@@ -4,15 +4,20 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
-		<key>LLMNRd.xcscheme</key>
+		<key>llmnrd.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>0</integer>
+			<integer>1</integer>
 		</dict>
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
 		<key>E52240F718CF0CA200DD9E2F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>E59E8BF218CF4D250054B295</key>
 		<dict>
 			<key>primary</key>
 			<true/>
