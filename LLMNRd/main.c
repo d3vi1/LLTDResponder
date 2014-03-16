@@ -30,6 +30,9 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
     kern_return_t       kernel_return;
     networkInterface   *currentNetworkInterface = (networkInterface*) refCon;
     
+    //
+    // XXX: should we listen for kIOMessageServiceIsRequestingClose instead?!?
+    //
     if (messageType ==kIOMessageServiceIsTerminated) {
         printf("%s has been removed\n", CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8));
         
@@ -42,7 +45,7 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
 }
 
 //==============================================================================
-// We identify
+// We identify the network interface and
 //==============================================================================
 void deviceAppeared(void *refCon, io_iterator_t iterator){
 
@@ -54,23 +57,30 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
     // Let's loop through the interfaces that we've got
     //
     while ((IONetworkInterface = IOIteratorNext(iterator))){
-        
+
+        //
+        // Let's initialize the networkInterface Data Structure
+        //
         networkInterface *currentNetworkInterface = NULL;
-        
-        //Let's initialize the networkInterface Data Structure
         currentNetworkInterface = malloc(sizeof(networkInterface));
         bzero(currentNetworkInterface,sizeof(networkInterface));
         
-        //Let's get the device name
+        //
+        // Let's get the device name. If we don't have a BSD name, we are
+        // letting it stabilize for 50000 since SCNetwork didn't do it's thing
+        // yet. It's a candidate for conversion from hard-coded time to
+        // SystemConfiguration event monitoring.
+        //
         currentNetworkInterface->deviceName = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOBSDNameKey), kCFAllocatorDefault, 0);
-        
-        //Let's let it stabilize. If we don't have a BSD name, it's not there
         if (currentNetworkInterface->deviceName == NULL) {
             usleep(50000);
             currentNetworkInterface->deviceName = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOBSDNameKey), kCFAllocatorDefault, 0);
         }
         
-        //Let's get the controller parent in order to get the Mac Address
+        //
+        // Get the object parent (the interface controller) in order to get the
+        // Mac Address from it.
+        //
         kernel_return = IORegistryEntryGetParentEntry( IONetworkInterface, kIOServicePlane, &IONetworkController);
         
         if (kernel_return != KERN_SUCCESS) printf("Could not get the parent of the interface\n");
@@ -86,12 +96,25 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
             
         }
         
+        //
+        // DEBUG: Print the network interfaces to stdout
+        //
         printf("Found interface: %s  MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8),currentNetworkInterface->MACAddress[0], currentNetworkInterface->MACAddress[1], currentNetworkInterface->MACAddress[2], currentNetworkInterface->MACAddress[3], currentNetworkInterface->MACAddress[4], currentNetworkInterface->MACAddress[5]);
         
+        
+        //
+        // Add a a notification for anything happening to the device to the
+        // run loop. The actual event gets filtered in the deviceDisappeared
+        // function. We are also giving it a pointer to our networkInterface
+        // so that we don't keep a global array of all interfaces.
+        //
         kernel_return = IOServiceAddInterestNotification(notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
         
         if (kernel_return!=KERN_SUCCESS) printf("IOServiceAddInterestNofitication error: 0x%08x.\n", kernel_return);
         
+        //
+        // Clean-up.
+        //
         kernel_return = IOObjectRelease(IONetworkInterface);
         kernel_return = IOObjectRelease(IONetworkController);
 
