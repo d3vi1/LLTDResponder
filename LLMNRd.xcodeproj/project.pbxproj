@@ -29,6 +29,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		E5774FA718D61F5E00988358 /* llmnrd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = llmnrd.h; path = LLMNRd/llmnrd.h; sourceTree = SOURCE_ROOT; };
 		E59E8BF318CF4D250054B295 /* llmnrd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = llmnrd; sourceTree = BUILT_PRODUCTS_DIR; };
 		E59E8BF418CF4D250054B295 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		E59E8BF718CF4D250054B295 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
@@ -86,6 +87,7 @@
 			children = (
 				E59E8BF718CF4D250054B295 /* main.c */,
 				E59E8BF918CF4D250054B295 /* llmnrd.1 */,
+				E5774FA718D61F5E00988358 /* llmnrd.h */,
 			);
 			path = llmnrd;
 			sourceTree = "<group>";
@@ -253,6 +255,7 @@
 				E59E8BFC18CF4D250054B295 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

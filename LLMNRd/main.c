@@ -1,34 +1,29 @@
-#include <CoreFoundation/CoreFoundation.h>
-#include <IOKit/network/IONetworkInterface.h>
-#include <IOKit/network/IONetworkController.h>
-#include <IOKit/network/IOEthernetController.h>
-#include <IOKit/network/IONetworkMedium.h>
-#include <IOKit/IOKitLib.h>
-#include <IOKit/IOBSD.h>
-#include <IOKit/IOMessage.h>
-#include <IOKit/IOCFPlugIn.h>
-#include <mach/mach.h>
+//
+//  llmnrd.c
+//  LLMNRd
+//
+//  Created by Răzvan Corneliu C.R. VILT on 16.03.2014.
+//  Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.
+//
 
+#include "llmnrd.h"
 
-void SignalHandler(int sigraised)
-{
+//==============================================================================
+// We are currently checking if it's an Ethernet Interface
+//==============================================================================
+void SignalHandler(int sigraised) {
     fprintf(stderr, "\nInterrupted.\n");
     exit(0);
 }
 
-typedef struct networkInterface {
-    io_object_t     notification;
-    CFStringRef     deviceName;
-    uint8_t         MACAddress [ kIOEthernetAddressSize ];
-    uint8_t         InterfaceType;
+//==============================================================================
+// We are currently checking if it's an Ethernet Interface
+//==============================================================================
+boolean_t validateInterface(void *refCon) {
+    networkInterface  *currentNetworkInterface = (networkInterface*) refCon;
     
-    
-    
-} networkInterface;
-
-IONotificationPortRef notificationPort;
-CFRunLoopRef          runLoop;
-
+    return true;
+}
 
 void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType, void *messageArgument){
     
@@ -46,22 +41,25 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
     }
 }
 
+//==============================================================================
+// We identify
+//==============================================================================
 void deviceAppeared(void *refCon, io_iterator_t iterator){
+
     kern_return_t      kernel_return;
     io_service_t       IONetworkInterface;
     io_service_t       IONetworkController;
     
-
-    
+    //
+    // Let's loop through the interfaces that we've got
+    //
     while ((IONetworkInterface = IOIteratorNext(iterator))){
-        io_name_t         ifname;
+        
         networkInterface *currentNetworkInterface = NULL;
         
         //Let's initialize the networkInterface Data Structure
         currentNetworkInterface = malloc(sizeof(networkInterface));
         bzero(currentNetworkInterface,sizeof(networkInterface));
-        
-        kernel_return = IORegistryEntryGetName(IONetworkInterface, ifname);
         
         //Let's get the device name
         currentNetworkInterface->deviceName = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOBSDNameKey), kCFAllocatorDefault, 0);
@@ -97,7 +95,7 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
         kernel_return = IOObjectRelease(IONetworkInterface);
         kernel_return = IOObjectRelease(IONetworkController);
 
-    }
+    } // while ((IONetworkInterface = IOIteratorNext(iterator))
 }
 
 
@@ -113,42 +111,66 @@ int main(int argc, const char *argv[])
     io_iterator_t         newDevicesIterator;
 
 
-    // Creates and returns a notification object for receiving IOKit
-    // notifications of new devices or state changes
-    masterPort = MACH_PORT_NULL;
-    kernel_return = IOMasterPort(bootstrap_port, &masterPort);
-    if (kernel_return != KERN_SUCCESS) {
-        printf("IOMasterPort returned 0x%x\n", kernel_return);
-        return 0;
-    }
-    
-    // Set up a signal handler so we can clean up when we're interrupted from the command line
-    // Otherwise we stay in our run loop forever.
+    //
+    // Set up a signal handler so we can clean up when we're interrupted from
+    // the command line. Otherwise we stay in our run loop forever.
+    //
     handler = signal(SIGINT, SignalHandler);
     if (handler == SIG_ERR) printf("Could not establish new signal handler.\n");
     
     
-    //Let's try to get device notifications
+    //
+    // Creates and returns a notification object for receiving
+    // IOKit notifications of new devices or state changes
+    //
+    masterPort = MACH_PORT_NULL;
+    kernel_return = IOMasterPort(bootstrap_port, &masterPort);
+    if (kernel_return != KERN_SUCCESS) { printf("IOMasterPort returned 0x%x\n", kernel_return); return 0; }
+    
+    //
+    // Let's get the Run Loop ready. It needs a notification
+    // port and a clean iterator.
+    //
     newDevicesIterator = 0;
     notificationPort = IONotificationPortCreate(masterPort);
     runLoopSource = IONotificationPortGetRunLoopSource(notificationPort);
-
     runLoop = CFRunLoopGetCurrent();
     CFRunLoopAddSource(runLoop, runLoopSource, kCFRunLoopDefaultMode);
 
-
+    //
+    // Add the Service Notification to the Run Loop. It will
+    // get the loop moving we we get a device added notification.
+    // The device removed notifications are added in the Run Loop
+    // from the actual "deviceAppeared" function.
+    //
     kernel_return = IOServiceAddMatchingNotification(notificationPort, kIOFirstMatchNotification, IOServiceMatching(kIONetworkInterfaceClass), deviceAppeared, NULL, &newDevicesIterator);
     if (kernel_return!=KERN_SUCCESS) printf("IOServiceAddMatchingNotification(deviceAppeared) returned 0x%x\n", kernel_return);
     
-    //Do an initial device scan
+    //
+    // Do an initial device scan since the Run Loop is not yet
+    // started. This will also add the following notifications:
+    //
+    // * From IOKit we get the serviceTerminated for removal;
+    // * From IOKit PowerManagement we get the sleep/hibernate
+    //   shutdown and wake notifications (TODO);
+    // * From SystemConfiguration we get the IPv4/IPv6 add,
+    //   change, removed notifications (TODO);
+    // * From SystemConfiguration we get the link
+    //   notifications (TODO);
+    // * From CoreWLAN we get the connected/disconnected
+    //   notifications (TODO);
+    //
     deviceAppeared(NULL, newDevicesIterator);
 
+    //
     // Start the run loop.
-    // As soon as I implement them, we'll receive notifications.
+    //
     printf("Starting run loop.\n\n");
     CFRunLoopRun();
     
+    //
     // We should never get here
+    //
     printf("Unexpectedly back from CFRunLoopRun()!\n");
     if (masterPort != MACH_PORT_NULL) mach_port_deallocate(mach_task_self(), masterPort);
     return 0;
