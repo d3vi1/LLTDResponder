@@ -1,10 +1,12 @@
-//
-//  llmnrd.h
-//  LLMNRd
-//
-//  Created by Răzvan Corneliu C.R. VILT on 16.03.2014.
-//  Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.
-//
+/******************************************************************************
+ *                                                                            *
+ *   llmnrd.h                                                                 *
+ *   LLMNRd                                                                   *
+ *                                                                            *
+ *   Created by Răzvan Corneliu C.R. VILT on 16.03.2014.                      *
+ *   Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.       *
+ *                                                                            *
+ ******************************************************************************/
 
 #ifndef LLMNRd_llmnrd_h
 #define LLMNRd_llmnrd_h
@@ -18,20 +20,25 @@
 #include <IOKit/IOBSD.h>
 #include <IOKit/IOMessage.h>
 #include <IOKit/IOCFPlugIn.h>
+#include <SystemConfiguration/SCNetwork.h>
+#include <SystemConfiguration/SCNetworkConfiguration.h>
+#include <SystemConfiguration/SCDynamicStoreCopyDHCPInfo.h> //For DHCPInfoGetOptionData
+
 #include <mach/mach.h>
 
 typedef struct networkInterface {
-    io_object_t     notification;
-    CFStringRef     deviceName;
-    uint8_t         MACAddress [ kIOEthernetAddressSize ];
-    uint8_t         InterfaceType;
-} networkInterface;
+    io_object_t           notification;
+    CFStringRef           deviceName;
+    uint8_t               MACAddress [ kIOEthernetAddressSize ];
+    uint8_t               InterfaceType;
+    SCNetworkInterfaceRef SCNetworkInterface;
+} network_interface_t;
 
 IONotificationPortRef notificationPort;
 CFRunLoopRef          runLoop;
 
 void deviceAppeared(void *refCon, io_iterator_t iterator);
 void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType, void *messageArgument);
-boolean_t validateInterface(void *refCon);
+void validateInterface(void *refCon, io_service_t IONetworkInterface);
 
 #endif
