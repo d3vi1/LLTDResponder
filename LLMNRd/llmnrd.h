@@ -23,14 +23,22 @@
 #include <SystemConfiguration/SCNetwork.h>
 #include <SystemConfiguration/SCNetworkConfiguration.h>
 #include <SystemConfiguration/SCDynamicStoreCopyDHCPInfo.h> //For DHCPInfoGetOptionData
-
 #include <mach/mach.h>
+#include <CoreServices/CoreServices.h>                      //For UTIIdentification
+#include <ImageIO/ImageIO.h>                                //For ICNS to ICO conversion
+//#include <AppKit/AppKit.h>                                 //For NSWorkspace and NSImage
+#include "darwin-ops.h"
 
-typedef struct networkInterface {
+typedef struct {
     io_object_t           notification;
     CFStringRef           deviceName;
-    uint8_t               MACAddress [ kIOEthernetAddressSize ];
-    uint8_t               InterfaceType;
+    uint8_t               hwAddress [ kIOEthernetAddressSize ];
+    uint16_t              ifType;        // The generic kernel interface type
+                                         // (csma/cd applies to ethernet/firware
+                                         // and wireless, although they are
+                                         // different and wireless is CSMA/CA
+    CFStringRef           interfaceType; // A string describing the interface
+                                         // type (Ethernet/Firewire/IEEE80211)
     SCNetworkInterfaceRef SCNetworkInterface;
 } network_interface_t;
 
