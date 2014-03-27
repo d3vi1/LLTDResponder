@@ -33,7 +33,7 @@ typedef struct {
     io_object_t           notification;
     CFStringRef           deviceName;
     uint8_t               hwAddress [ kIOEthernetAddressSize ];
-    uint16_t              ifType;        // The generic kernel interface type
+    uint32_t              ifType;        // The generic kernel interface type
                                          // (csma/cd applies to ethernet/firware
                                          // and wireless, although they are
                                          // different and wireless is CSMA/CA

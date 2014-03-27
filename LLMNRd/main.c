@@ -50,24 +50,22 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         
         CFTypeRef macAddressAsData = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOMACAddress), kCFAllocatorDefault, 0);
         
-        const CFDataRef refData = (const CFDataRef)macAddressAsData;
         
-        CFDataGetBytes(refData, CFRangeMake(0,CFDataGetLength(refData)), currentNetworkInterface->hwAddress);
+        CFDataGetBytes((CFDataRef)macAddressAsData, CFRangeMake(0,CFDataGetLength(macAddressAsData)), currentNetworkInterface->hwAddress);
         CFRelease(macAddressAsData);
         
     }
     
     kernel_return = IOObjectRelease(IONetworkController);
-    
+
     //
     // We attempt to connect to the System Configuration Framework in order to
-    // get the SCNetworkConnection for this particular interface.
+    // get the SCNetworkConnection for this particular interface. First step:
+    // get a copy of all the interfaces in the scInterfaces array.
     //
     
-    
-    // Get a copy of all the interfaces in an array
-	CFArrayRef          scInterfaces;
-    CFIndex             Index;
+    CFArrayRef          scInterfaces;
+    uint32              Index;
     
 	scInterfaces = SCNetworkInterfaceCopyAll();
 	if (scInterfaces == NULL) printf("validateInterface: could not find any SCNetworkInterfaces. Is configd running?\n");
@@ -83,38 +81,48 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
 		currentSCInterface = CFArrayGetValueAtIndex(scInterfaces, Index);
 		while ((currentSCInterface != NULL) && (scDeviceName == NULL)) {
 			scDeviceName = SCNetworkInterfaceGetBSDName(currentSCInterface);
-			if (scDeviceName == NULL) {
-				currentSCInterface = SCNetworkInterfaceGetInterface(currentSCInterface);
-			}
+			if (scDeviceName == NULL) currentSCInterface = SCNetworkInterfaceGetInterface(currentSCInterface);
 		}
         
 		if ((scDeviceName != NULL) && CFEqual(currentNetworkInterface->deviceName, scDeviceName)) {
 			if (currentNetworkInterface->SCNetworkInterface == NULL) {
 				currentNetworkInterface->SCNetworkInterface = currentSCInterface;
+                CFRetain(currentSCInterface);
 			} else {
 				// if multiple interfaces match
 				currentNetworkInterface->SCNetworkInterface = NULL;
 				printf("validateInterface: multiple scInterfaces match\n");
+                CFRelease(currentSCInterface);
 			}
-		}
+		} else {
+            CFRelease(currentSCInterface);
+        }
 	}
 
     //
     // Get the default information about the interface
     //
+    //currentNetworkInterface->ifType = 6;
+    //long ifTypeTemp;
     currentNetworkInterface->interfaceType=SCNetworkInterfaceGetInterfaceType(currentNetworkInterface->SCNetworkInterface);
-    CFNumberRef test = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOInterfaceType), kCFAllocatorDefault, 0);
- //   CFNumberGetValue(test, kCFNumberIntType, &(currentNetworkInterface->ifType)) ;
-    
+    CFTypeRef ioInterfaceType = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOInterfaceType), kCFAllocatorDefault, 0);
+    if (ioInterfaceType) {
+        CFNumberGetValue((CFNumberRef)ioInterfaceType, kCFNumberLongType, &currentNetworkInterface->ifType);
+        CFRelease(ioInterfaceType);
+    } else {
+        printf("Could not read ifType.\n");
+        CFRelease(ioInterfaceType);
+    }
     //
     // DEBUG: Print the network interfaces to stdout
     //
-    printf("Found interface:   %s  MAC: %02x:%02x:%02x:%02x:%02x:%02x  Type: %s\n", CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8),currentNetworkInterface->hwAddress[0], currentNetworkInterface->hwAddress[1], currentNetworkInterface->hwAddress[2], currentNetworkInterface->hwAddress[3], currentNetworkInterface->hwAddress[4], currentNetworkInterface->hwAddress[5], CFStringGetCStringPtr(currentNetworkInterface->interfaceType, kCFStringEncodingUTF8));
+    printf("Found interface:   %s  MAC: %02x:%02x:%02x:%02x:%02x:%02x  Type: %s (0x%000x)\n", CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8),currentNetworkInterface->hwAddress[0], currentNetworkInterface->hwAddress[1], currentNetworkInterface->hwAddress[2], currentNetworkInterface->hwAddress[3], currentNetworkInterface->hwAddress[4], currentNetworkInterface->hwAddress[5], CFStringGetCStringPtr(currentNetworkInterface->interfaceType, kCFStringEncodingUTF8), currentNetworkInterface->ifType);
 
     //
     // Clean-up the SC stuff
     //
-    CFRelease(scInterfaces);
+    
+    //CFRelease(scInterfaces);
     
 }
 
@@ -137,7 +145,8 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
         printf("Interface removed: %s\n", CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8));
 
         CFRelease(currentNetworkInterface->deviceName);
-        
+        CFRelease(currentNetworkInterface->interfaceType);
+        CFRelease(currentNetworkInterface->SCNetworkInterface);
         kernel_return = IOObjectRelease(currentNetworkInterface->notification);
 
         free(currentNetworkInterface);
@@ -274,7 +283,7 @@ int main(int argc, const char *argv[])
     //
     printf("Starting run loop.\n\n");
     getIconImage();
-
+    printf("UUID: %16x\n", getUpnpUuid);
     CFRunLoopRun();
     
     //
