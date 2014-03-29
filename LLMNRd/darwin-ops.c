@@ -9,7 +9,56 @@
  ******************************************************************************/
 #include "llmnrd.h"
 
-void getIconImage(){
+#pragma mark Functions that return machine information
+// Returned in UCS-2LE
+// SCDynamicStoreCopyLocalHostName
+void getMachineName(char **pointer, size_t *stringSize){
+    CFStringRef LocalHostName = SCDynamicStoreCopyLocalHostName(NULL);
+    // UCS-2 is two bytes per char
+    // CFStringGetLength tells us the number of chars
+    // CFStringGetMaximumSizeForEncoding tells us the number of bytes
+    *stringSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(LocalHostName), kCFStringEncodingUTF16LE);
+    char *data = malloc(*stringSize);
+    CFStringGetCString(LocalHostName, data, (CFIndex)stringSize, kCFStringEncodingUTF16LE);
+    CFRelease(LocalHostName);
+    *pointer = data;
+}
+
+// Returned in UCS-2LE only with QueryLargeTLV
+// SCDynamicStoreCopyComputerName
+void getFriendlyName(char **pointer, size_t *stringSize){
+    CFStringEncoding UCS2LE = kCFStringEncodingUTF16LE;
+    CFStringRef FriendlyName = SCDynamicStoreCopyComputerName(NULL, &UCS2LE);
+    // UCS-2 is two bytes per char
+    // CFStringGetLength tells us the number of chars
+    // CFStringGetMaximumSizeForEncoding tells us the number of bytes
+    *stringSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(FriendlyName), kCFStringEncodingUTF16LE);
+    char *data = malloc(*stringSize);
+    CFStringGetCString(FriendlyName, data, (CFIndex)stringSize, kCFStringEncodingUTF16LE);
+    CFRelease(FriendlyName);
+    *pointer = data;
+}
+
+// Returned in UCS-2LE
+void getSupportInfo(void *data){
+    //http://support-sp.apple.com/sp/index?page=psp&cc=AGZ last 3 digits of SN
+    //From: /A/Util/System Prof.app/Contents/Resources/SupportLinks.strings
+    //URL_OSX_SUPPORT	= "http://support-sp.apple.com/sp/index?page=psp&osver=%@&lang=%@"
+    
+}
+// See 2.2.2.3 in UCS-2LE
+void getHwId(void *data);
+// Only with QueryLargeTLV
+void getDetailedIconImage(void *data);
+// 
+void getHostCharacteristics (void *data);
+//Only with QueryLargeTLV
+void getComponentTable(void *data);
+
+
+
+// Returns a copy of the icon image
+void getIconImage(void *icon, size_t *iconsize){
 
     io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault,
                                                               IOServiceMatching("IOPlatformExpertDevice"));
@@ -31,6 +80,9 @@ void getIconImage(){
         else{
             UniformTypeIdentifier = CFSTR("com.apple.mac");
         }
+        
+        // Use to change the represented icon
+        //UniformTypeIdentifier = CFSTR("com.apple.iphone-4");
         CFRelease(modelCodeData);
         CFRelease(modelCode);
 
@@ -55,9 +107,9 @@ void getIconImage(){
             CFRelease(iconFileNameRef);
             CFRelease(UniformTypeIdentifier);
 
-
+#ifdef debug
             printf("Icon URL: %s\n", CFStringGetCStringPtr(CFURLGetString(iconURL), kCFStringEncodingUTF8));
-            
+#endif
             // Load the icns file
             CGImageSourceRef myIcon = CGImageSourceCreateWithURL(iconURL, NULL);
             
@@ -71,7 +123,9 @@ void getIconImage(){
             
             if(myIcon!=NULL){
                 size_t iconCount = CGImageSourceGetCount (myIcon);
+#ifdef debug
                 printf("icon count: %zu\n", iconCount);
+#endif
                 Boolean haveIconSelected = FALSE;
                 size_t iconSelected = 0;
                 long iconSelectedWidth = 0;
@@ -111,14 +165,16 @@ void getIconImage(){
                         // FIXME: If we have multiple icons of the same size choose the one with 72 dpi
                         //        or the highest bit depth.
                         //
-                        if (((iconSelectedWidth > iconWidth)&(iconWidth > 48)) | (haveIconSelected == FALSE)){
+                        if (((iconSelectedWidth >= iconWidth)&(iconWidth >= 48)) | (haveIconSelected == FALSE)){
                                 iconSelectedHeight = iconHeight;
                                 iconSelectedWidth = iconWidth;
                                 iconSelected = index;
                                 haveIconSelected = TRUE;
                         }
-                        
+#ifdef debug
+
                         printf("Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI)(%d bytes) %dx%d (%d)\n", index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)CFDataGetLength(myImageStream), (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
+#endif
                       CFRelease(imageProperties);
                     }
                     
@@ -160,47 +216,111 @@ void getIconImage(){
                     // * one iconDir
                     // * one iconDirEntry (for the single icon)
                     // * one PNG file of 48x48
+                    // * the icon file structs are always little endian so we use
+                    //   the CFSwapHostToLittle to swap if running on big-endian
+                    //   architectures to little-endian
                     iconDir *myICOFile;
-                    myICOFile = malloc(CFDataGetLength(myImageStream) + sizeof(iconDir) + sizeof(iconDirEntry));
-                    myICOFile->idCount = 1;
-                    myICOFile->idReserved = 0;
-                    myICOFile->idType = icoDirTypeIcon;
-                    myICOFile->idEntries->Height=48;
-                    myICOFile->idEntries->Width=48;
-                    myICOFile->idEntries->ColorCount=0;
-                    myICOFile->idEntries->Reserved=0;
-                    myICOFile->idEntries->Planes=0;
-                    myICOFile->idEntries->BitCount=32;
-                    myICOFile->idEntries->BytesInRes=(UInt32)CFDataGetLength(myImageStream);
-                    myICOFile->idEntries->ImageOffset=sizeof(iconDir)+sizeof(iconDirEntry);
+                    myICOFile = malloc(CFDataGetLength(myImageStream) + sizeof(iconDir));
+                    myICOFile->idReserved             =  0;
+                    myICOFile->idType                 = CFSwapInt16HostToLittle(icoDirTypeIcon);
+                    myICOFile->idCount                = CFSwapInt16HostToLittle(1);
+                    myICOFile->idEntries->Width       = CFSwapInt16HostToLittle(48);
+                    myICOFile->idEntries->Height      = CFSwapInt16HostToLittle(48);
+                    myICOFile->idEntries->ColorCount  =  0;
+                    myICOFile->idEntries->Reserved    =  0;
+                    myICOFile->idEntries->Planes      = CFSwapInt16HostToLittle(1);
+                    myICOFile->idEntries->BitCount    = CFSwapInt16HostToLittle(32);
+                    myICOFile->idEntries->BytesInRes  = CFSwapInt32HostToLittle((UInt32)CFDataGetLength(myImageStream));
+                    myICOFile->idEntries->ImageOffset = CFSwapInt32HostToLittle((UInt32)sizeof(iconDir));
                     CFDataGetBytes(myImageStream,  CFRangeMake(0,CFDataGetLength(myImageStream)), (void *)myICOFile + myICOFile->idEntries->ImageOffset);
-                    CFDataRef myICOFileData = CFDataCreateWithBytesNoCopy(kCFAllocatorDefault, myICOFile, (CFDataGetLength(myImageStream) + sizeof(iconDir) + sizeof(iconDirEntry)), kCFAllocatorDefault);
                     
-                    //TODO: Insert here the code to release the object blah blah blah
-                    
-                    
-                    //Clean-up mode
-                    CFRelease(myICOFileData);
-                    free(myICOFile);
-                    
+                    // Set the return values
+                    icon = myICOFile;
+                    *iconsize = (CFDataGetLength(myImageStream) + sizeof(iconDir));
                 }
             }
         }
     }
 }
 
-const char * getUpnpUuid(){
+// Returned in UUID binary format
+void getUpnpUuid(CFUUIDBytes *uuid){
     io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault,
                                                               IOServiceMatching("IOPlatformExpertDevice"));
     if (platformExpert) {
-        CFStringRef uuid = IORegistryEntryCreateCFProperty(platformExpert,
+        CFStringRef uuidStr = IORegistryEntryCreateCFProperty(platformExpert,
                                                            CFSTR(kIOPlatformUUIDKey),
                                                            kCFAllocatorDefault, 0);
         
         IOObjectRelease(platformExpert);
         
-        return CFStringGetCStringPtr(uuid, kCFStringEncodingASCII);
-    }
-    
-    return NULL;
+        uuid = malloc(sizeof(CFUUIDBytes));
+        *uuid = CFUUIDGetUUIDBytes(CFUUIDCreateFromString(kCFAllocatorDefault, uuidStr));
+//        uuid =
+        return;
+        
+    } else uuid = NULL;
 }
+/*
+ int BIWiFiInterface::syncSIOCSIFFLAGS(IONetworkController * ctr)
+ {
+ UInt16    flags = getFlags();
+ IOReturn  ret   = kIOReturnSuccess;
+ 
+ if ( ( ((flags & IFF_UP) == 0) || _controllerLostPower ) &&
+ ( flags & IFF_RUNNING ) )
+ {
+ // If interface is marked down and it is currently running,
+ // then stop it.
+ 
+ ctr->doDisable(this);
+ flags &= ~IFF_RUNNING;
+ _ctrEnabled = false;
+ }
+ else if ( ( flags & IFF_UP )                &&
+ ( _controllerLostPower == false ) &&
+ ((flags & IFF_RUNNING) == 0) )
+ {
+ // If interface is marked up and it is currently stopped,
+ // then start it.
+ 
+ if ( (ret = enableController(ctr)) == kIOReturnSuccess )
+ flags |= IFF_RUNNING;
+ }
+ 
+ if ( flags & IFF_RUNNING )
+ {
+ IOReturn rc;
+ 
+ // We don't expect multiple flags to be changed for a given
+ // SIOCSIFFLAGS call.
+ 
+ // Promiscuous mode
+ 
+ rc = (flags & IFF_PROMISC) ?
+ enableFilter(ctr, gIONetworkFilterGroup,
+ kIOPacketFilterPromiscuous) :
+ disableFilter(ctr, gIONetworkFilterGroup,
+ kIOPacketFilterPromiscuous);
+ 
+ if (ret == kIOReturnSuccess) ret = rc;
+ 
+ // Multicast-All mode
+ 
+ rc = (flags & IFF_ALLMULTI) ?
+ enableFilter(ctr, gIONetworkFilterGroup,
+ kIOPacketFilterMulticastAll) :
+ disableFilter(ctr, gIONetworkFilterGroup,
+ kIOPacketFilterMulticastAll);
+ 
+ if (ret == kIOReturnSuccess) ret = rc;
+ }
+ 
+ // Update the flags field to pick up any modifications. Also update the
+ // property table to reflect any flag changes.
+ 
+ setFlags(flags, ~flags);
+ 
+ return errnoFromReturn(ret);
+ }*/
+

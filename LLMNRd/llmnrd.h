@@ -26,9 +26,14 @@
 #include <mach/mach.h>
 #include <CoreServices/CoreServices.h>                      //For UTIIdentification
 #include <ImageIO/ImageIO.h>                                //For ICNS to ICO conversion
-//#include <AppKit/AppKit.h>                                 //For NSWorkspace and NSImage
 #include "darwin-ops.h"
+//Temporary:
+#include <wchar.h>
 
+
+
+
+#pragma mark -
 typedef struct {
     io_object_t           notification;
     CFStringRef           deviceName;
@@ -48,5 +53,9 @@ CFRunLoopRef          runLoop;
 void deviceAppeared(void *refCon, io_iterator_t iterator);
 void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType, void *messageArgument);
 void validateInterface(void *refCon, io_service_t IONetworkInterface);
+
+
+#define lltdEtherType 0x88D9
+#define lltdOUI 0x000D3A
 
 #endif

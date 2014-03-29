@@ -215,8 +215,7 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
 // main
 //
 //================================================================================================
-int main(int argc, const char *argv[])
-{
+int main(int argc, const char *argv[]){
     sig_t                 handler;
     kern_return_t         kernel_return;
     mach_port_t           masterPort;
@@ -278,12 +277,29 @@ int main(int argc, const char *argv[])
     //
     deviceAppeared(NULL, newDevicesIterator);
 
+    
+    //
+    // Testing the function
+    //
+#ifdef debug
+    //getIconImage();
+    char *hostname = NULL;
+    size_t sizeOfHostname = 0;
+    char *friendlyName = NULL;
+    size_t sizeOfFriendlyHostname = 0;
+    getMachineName(&hostname, &sizeOfHostname);
+    getFriendlyName(&friendlyName, &sizeOfFriendlyHostname);
+    // While the wprintf doesn't work, watching the buffer shows
+    // that the strings are there and in UCS-2 format.
+    wprintf(L"Hostname %ls\n", (wchar_t *)hostname);
+    wprintf(L"FriendlyName %ls\n", (wchar_t *)friendlyName);
+    free(hostname);
+    free(friendlyName);
+#endif
     //
     // Start the run loop.
     //
     printf("Starting run loop.\n\n");
-    getIconImage();
-    printf("UUID: %16x\n", getUpnpUuid);
     CFRunLoopRun();
     
     //
