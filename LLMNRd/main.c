@@ -118,6 +118,10 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     //
     printf("Found interface:   %s  MAC: %02x:%02x:%02x:%02x:%02x:%02x  Type: %s (0x%000x)\n", CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8),currentNetworkInterface->hwAddress[0], currentNetworkInterface->hwAddress[1], currentNetworkInterface->hwAddress[2], currentNetworkInterface->hwAddress[3], currentNetworkInterface->hwAddress[4], currentNetworkInterface->hwAddress[5], CFStringGetCStringPtr(currentNetworkInterface->interfaceType, kCFStringEncodingUTF8), currentNetworkInterface->ifType);
 
+    //TODO: Razvan: check if it's a broadcast interface and if it's up
+    //TODO: Razvan: add SystemConfiguration events to the run loop.
+    //TODO: Razvan: or maybe just use IOKit events for link-up/down
+    //TODO: Alex: add the thread creation here
     //
     // Clean-up the SC stuff
     //
@@ -143,12 +147,12 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
     //
     if (messageType == kIOMessageServiceIsTerminated) {
         printf("Interface removed: %s\n", CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8));
-
+        
         CFRelease(currentNetworkInterface->deviceName);
         CFRelease(currentNetworkInterface->interfaceType);
         CFRelease(currentNetworkInterface->SCNetworkInterface);
         kernel_return = IOObjectRelease(currentNetworkInterface->notification);
-
+        //TODO: Alex: Kill the listner thread
         free(currentNetworkInterface);
     }
 }
@@ -213,6 +217,7 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
 //================================================================================================
 //
 // main
+// TODO: Convert to daemon with ASL logging
 //
 //================================================================================================
 int main(int argc, const char *argv[]){
@@ -226,7 +231,7 @@ int main(int argc, const char *argv[]){
     // Set up a signal handler so we can clean up when we're interrupted from
     // the command line. Otherwise we stay in our run loop forever.
     // SigInt = Ctrl+C
-    // SigTerm = Killed by launhd
+    // SigTerm = Killed by launchd
     //
     handler = signal(SIGINT, SignalHandler);
     if (handler == SIG_ERR) printf("Could not establish SIGINT handler.\n");
@@ -279,7 +284,7 @@ int main(int argc, const char *argv[]){
 
     
     //
-    // Testing the function
+    // FIXME: Testing the functions in darwin-ops. Not for production.
     //
 #ifdef debug
     //getIconImage();

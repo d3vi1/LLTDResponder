@@ -27,9 +27,10 @@
 #include <CoreServices/CoreServices.h>                      //For UTIIdentification
 #include <ImageIO/ImageIO.h>                                //For ICNS to ICO conversion
 #include "darwin-ops.h"
-//Temporary:
+//Temporary for wide printing
+#ifdef debug
 #include <wchar.h>
-
+#endif
 
 
 
@@ -45,6 +46,7 @@ typedef struct {
     CFStringRef           interfaceType; // A string describing the interface
                                          // type (Ethernet/Firewire/IEEE80211)
     SCNetworkInterfaceRef SCNetworkInterface;
+    //TODO: Add the pthread struct here in case we need to stop the thread
 } network_interface_t;
 
 IONotificationPortRef notificationPort;
