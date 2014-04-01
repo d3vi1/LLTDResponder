@@ -10,6 +10,9 @@
 		E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */ = {isa = PBXBuildFile; fileRef = E500D7D518E01E0900863EAC /* darwin-ops.c */; };
 		E500D7DD18E02F3900863EAC /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7DC18E02F3900863EAC /* ImageIO.framework */; };
 		E500D7E318E0427200863EAC /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7E218E0427200863EAC /* CoreServices.framework */; };
+		E59C3D6A18E9B38C006836B0 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
+		E59C3D6D18E9B38C006836B0 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = E59C3D6C18E9B38C006836B0 /* main.c */; };
+		E59C3D6F18E9B38C006836B0 /* lltddaemon.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59C3D6E18E9B38C006836B0 /* lltddaemon.1 */; };
 		E59E8BF518CF4D250054B295 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
 		E59E8BF818CF4D250054B295 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = E59E8BF718CF4D250054B295 /* main.c */; };
 		E59E8BFA18CF4D250054B295 /* llmnrd.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59E8BF918CF4D250054B295 /* llmnrd.1 */; };
@@ -19,6 +22,16 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		E59C3D6718E9B38C006836B0 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+				E59C3D6F18E9B38C006836B0 /* lltddaemon.1 in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		E59E8BF118CF4D250054B295 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -38,6 +51,9 @@
 		E500D7E218E0427200863EAC /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
 		E500D7E418E08F6C00863EAC /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		E5774FA718D61F5E00988358 /* llmnrd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = llmnrd.h; path = LLMNRd/llmnrd.h; sourceTree = SOURCE_ROOT; };
+		E59C3D6918E9B38C006836B0 /* lltddaemon */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lltddaemon; sourceTree = BUILT_PRODUCTS_DIR; };
+		E59C3D6C18E9B38C006836B0 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		E59C3D6E18E9B38C006836B0 /* lltddaemon.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = lltddaemon.1; sourceTree = "<group>"; };
 		E59E8BF318CF4D250054B295 /* llmnrd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = llmnrd; sourceTree = BUILT_PRODUCTS_DIR; };
 		E59E8BF418CF4D250054B295 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		E59E8BF718CF4D250054B295 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
@@ -48,6 +64,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		E59C3D6618E9B38C006836B0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E59C3D6A18E9B38C006836B0 /* CoreFoundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E59E8BF018CF4D250054B295 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -68,6 +92,7 @@
 			isa = PBXGroup;
 			children = (
 				E59E8BF618CF4D250054B295 /* llmnrd */,
+				E59C3D6B18E9B38C006836B0 /* lltddaemon */,
 				E52240FA18CF0CA200DD9E2F /* Frameworks */,
 				E52240F918CF0CA200DD9E2F /* Products */,
 			);
@@ -77,6 +102,7 @@
 			isa = PBXGroup;
 			children = (
 				E59E8BF318CF4D250054B295 /* llmnrd */,
+				E59C3D6918E9B38C006836B0 /* lltddaemon */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,6 +121,15 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		E59C3D6B18E9B38C006836B0 /* lltddaemon */ = {
+			isa = PBXGroup;
+			children = (
+				E59C3D6C18E9B38C006836B0 /* main.c */,
+				E59C3D6E18E9B38C006836B0 /* lltddaemon.1 */,
+			);
+			path = lltddaemon;
+			sourceTree = "<group>";
+		};
 		E59E8BF618CF4D250054B295 /* llmnrd */ = {
 			isa = PBXGroup;
 			children = (
@@ -110,6 +145,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		E59C3D6818E9B38C006836B0 /* lltddaemon */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E59C3D7218E9B38C006836B0 /* Build configuration list for PBXNativeTarget "lltddaemon" */;
+			buildPhases = (
+				E59C3D6518E9B38C006836B0 /* Sources */,
+				E59C3D6618E9B38C006836B0 /* Frameworks */,
+				E59C3D6718E9B38C006836B0 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = lltddaemon;
+			productName = lltddaemon;
+			productReference = E59C3D6918E9B38C006836B0 /* lltddaemon */;
+			productType = "com.apple.product-type.tool";
+		};
 		E59E8BF218CF4D250054B295 /* llmnrd */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E59E8BFD18CF4D250054B295 /* Build configuration list for PBXNativeTarget "llmnrd" */;
@@ -149,11 +201,20 @@
 			projectRoot = "";
 			targets = (
 				E59E8BF218CF4D250054B295 /* llmnrd */,
+				E59C3D6818E9B38C006836B0 /* lltddaemon */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		E59C3D6518E9B38C006836B0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E59C3D6D18E9B38C006836B0 /* main.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E59E8BEF18CF4D250054B295 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -185,7 +246,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_OPTIMIZATION_LEVEL = "";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
@@ -234,6 +295,24 @@
 			};
 			name = Release;
 		};
+		E59C3D7018E9B38C006836B0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		E59C3D7118E9B38C006836B0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		E59E8BFB18CF4D250054B295 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -263,6 +342,14 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		E59C3D7218E9B38C006836B0 /* Build configuration list for PBXNativeTarget "lltddaemon" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E59C3D7018E9B38C006836B0 /* Debug */,
+				E59C3D7118E9B38C006836B0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
 		};
 		E59E8BFD18CF4D250054B295 /* Build configuration list for PBXNativeTarget "llmnrd" */ = {
 			isa = XCConfigurationList;

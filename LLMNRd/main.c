@@ -56,7 +56,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         
     }
     
-    kernel_return = IOObjectRelease(IONetworkController);
+    IOObjectRelease(IONetworkController);
 
     //
     // We attempt to connect to the System Configuration Framework in order to
@@ -68,7 +68,10 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     uint32              Index;
     
 	scInterfaces = SCNetworkInterfaceCopyAll();
-	if (scInterfaces == NULL) printf("validateInterface: could not find any SCNetworkInterfaces. Is configd running?\n");
+	if (scInterfaces == NULL) {
+        printf("validateInterface: could not find any SCNetworkInterfaces. Is configd running?\n");
+        return;
+    }
     
     //
     // Go through the array, get the current interface SCNetwork
@@ -92,12 +95,12 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
 				// if multiple interfaces match
 				currentNetworkInterface->SCNetworkInterface = NULL;
 				printf("validateInterface: multiple scInterfaces match\n");
-                CFRelease(currentSCInterface);
 			}
 		} else {
-            CFRelease(currentSCInterface);
         }
 	}
+    
+    CFRelease(scInterfaces);
 
     //
     // Get the default information about the interface
@@ -111,7 +114,6 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         CFRelease(ioInterfaceType);
     } else {
         printf("Could not read ifType.\n");
-        CFRelease(ioInterfaceType);
     }
     //
     // DEBUG: Print the network interfaces to stdout
@@ -126,8 +128,6 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     // Clean-up the SC stuff
     //
     
-    //CFRelease(scInterfaces);
-    
 }
 
 
@@ -139,7 +139,6 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
 //==============================================================================
 void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType, void *messageArgument){
     
-    kern_return_t        kernel_return;
     network_interface_t *currentNetworkInterface = (network_interface_t*) refCon;
     
     //
@@ -151,7 +150,7 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
         CFRelease(currentNetworkInterface->deviceName);
         CFRelease(currentNetworkInterface->interfaceType);
         CFRelease(currentNetworkInterface->SCNetworkInterface);
-        kernel_return = IOObjectRelease(currentNetworkInterface->notification);
+        IOObjectRelease(currentNetworkInterface->notification);
         //TODO: Alex: Kill the listner thread
         free(currentNetworkInterface);
     }
@@ -208,7 +207,7 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
         //
         // Clean-up.
         //
-        kernel_return = IOObjectRelease(IONetworkInterface);
+        IOObjectRelease(IONetworkInterface);
         
     } // while ((IONetworkInterface = IOIteratorNext(iterator))
 }
