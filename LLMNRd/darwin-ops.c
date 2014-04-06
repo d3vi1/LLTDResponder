@@ -8,6 +8,7 @@
  *                                                                            *
  ******************************************************************************/
 #include "llmnrd.h"
+#define debug 1
 
 #pragma mark Functions that return machine information
 #pragma mark -
@@ -15,7 +16,7 @@
 
 #pragma mark Complete
 // Returned in UUID binary format
-void getUpnpUuid(CFUUIDBytes *uuid){
+void getUpnpUuid(void **uuid){
     io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault,
                                                               IOServiceMatching("IOPlatformExpertDevice"));
     if (platformExpert) {
@@ -25,10 +26,11 @@ void getUpnpUuid(CFUUIDBytes *uuid){
         
         IOObjectRelease(platformExpert);
         
-        uuid = malloc(sizeof(CFUUIDBytes));
+        *uuid = malloc(sizeof(CFUUIDBytes));
         
         CFUUIDRef cfUUID = CFUUIDCreateFromString(kCFAllocatorDefault, uuidStr);
-        *uuid = CFUUIDGetUUIDBytes(cfUUID);
+        CFUUIDBytes CFUUIDBytes = CFUUIDGetUUIDBytes(cfUUID);
+        *uuid = &CFUUIDBytes;
         
         CFRelease(cfUUID);
         CFRelease(uuidStr);
@@ -41,7 +43,7 @@ void getUpnpUuid(CFUUIDBytes *uuid){
 
 // Returns a copy of the icon image in Microsoft ICO format.
 // Made from an image larger or equal to 48px in size.
-void getIconImage(void *icon, size_t *iconsize){
+void getIconImage(void **icon, size_t *iconsize){
     
     io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault,
                                                               IOServiceMatching("IOPlatformExpertDevice"));
@@ -52,7 +54,7 @@ void getIconImage(void *icon, size_t *iconsize){
         //
         // FIXME: Doesn't get released.
         //
-        IOObjectRelease(platformExpert);
+        (void) IOObjectRelease(platformExpert);
         
         CFStringRef modelCode = CFStringCreateWithCString(NULL, (char*)CFDataGetBytePtr(modelCodeData), kCFStringEncodingASCII);
         CFStringRef UniformTypeIdentifier = NULL;
@@ -77,7 +79,6 @@ void getIconImage(void *icon, size_t *iconsize){
 
         
         CFDictionaryRef utiDeclaration = UTTypeCopyDeclaration(UniformTypeIdentifier);
-        CFRelease(UniformTypeIdentifier);
         
         if (utiDeclaration){
             
@@ -86,29 +87,33 @@ void getIconImage(void *icon, size_t *iconsize){
             // if there is no icon for this UTI, load the icon for the key conforms to UTI.
             // cycle until we find one, there is always one at the top of the tree.
             // && (nil != utiDeclaration))
-            if (nil == iconFileNameRef){
+            if (iconFileNameRef){
                 while (nil==iconFileNameRef){
                     UniformTypeIdentifier = CFDictionaryGetValue(utiDeclaration, CFSTR("UTTypeConformsTo"));
                     utiDeclaration = UTTypeCopyDeclaration(UniformTypeIdentifier);
                     iconFileNameRef = CFDictionaryGetValue(utiDeclaration, CFSTR("UTTypeIconFile"));
                 }
+            }
+            CFURLRef CTBundleUrlRef = UTTypeCopyDeclaringBundleURL(UniformTypeIdentifier);
+            CFBundleRef CTBundle = CFBundleCreate(kCFAllocatorDefault, CTBundleUrlRef);
+            CFURLRef iconURL = CFBundleCopyResourceURL(CTBundle, iconFileNameRef, NULL, NULL);
 
-                CFBundleRef CTBundle = CFBundleCreate(kCFAllocatorDefault, UTTypeCopyDeclaringBundleURL(UniformTypeIdentifier));
-                CFURLRef iconURL = CFBundleCopyResourceURL(CTBundle, iconFileNameRef, NULL, NULL);
+            CFRelease(CTBundleUrlRef);
+            CFRelease(CTBundle);
+//            CFRelease(iconFileNameRef);//Gets released by releasing utiDeclaration
+            CFRelease(utiDeclaration);
+            CFRelease(UniformTypeIdentifier);
 
-                CFRelease(iconFileNameRef);
-
-                CFRelease(CTBundle);
-                
+            
 #ifdef debug
-                printf("getIconImage: Icon URL: %s\n", CFStringGetCStringPtr(CFURLGetString(iconURL), kCFStringEncodingUTF8));
+            printf("getIconImage: Icon URL: %s\n", CFStringGetCStringPtr(CFURLGetString(iconURL), kCFStringEncodingUTF8));
 #endif
-                // Load the icns file
-                CGImageSourceRef myIcon = CGImageSourceCreateWithURL(iconURL, NULL);
+            // Load the icns file
+            CGImageSourceRef myIcon = CGImageSourceCreateWithURL(iconURL, NULL);
                 
-                CFRelease(iconURL);
+            CFRelease(iconURL);
                 
-                if( myIcon != NULL){
+            if( myIcon != NULL){
                     size_t iconCount = CGImageSourceGetCount (myIcon);
 #ifdef debug
                     printf("getIconImage: icon count: %zu\n", iconCount);
@@ -151,7 +156,7 @@ void getIconImage(void *icon, size_t *iconsize){
                                 haveIconSelected = TRUE;
                             }
 #ifdef debug
-                            printf("getIconImage: Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI)(%d bytes) %dx%d (%d)\n", index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)CFDataGetLength(myImageStream), (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
+                            printf("getIconImage: Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI) %dx%d (%d)\n", index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
 #endif
                             CFRelease(imageProperties);
                         }
@@ -187,6 +192,7 @@ void getIconImage(void *icon, size_t *iconsize){
                         CFMutableDataRef myImageStream = CFDataCreateMutable(kCFAllocatorDefault, 0);
                         CGImageDestinationRef myImage = CGImageDestinationCreateWithData(myImageStream, kUTTypePNG, 1, NULL);
                         CGImageDestinationAddImage(myImage, thumbnailImageRef, NULL);
+                        CFRelease(thumbnailImageRef);
                         CGImageDestinationFinalize(myImage);
                         CFRelease(myImage);
                         
@@ -213,18 +219,16 @@ void getIconImage(void *icon, size_t *iconsize){
                         CFDataGetBytes(myImageStream,  CFRangeMake(0,CFDataGetLength(myImageStream)), (void *)myICOFile + myICOFile->idEntries->ImageOffset);
                         
                         // Set the return values
-                        icon = myICOFile;
+                        *icon = myICOFile;
                         *iconsize = (CFDataGetLength(myImageStream) + sizeof(iconDir));
+                        CFRelease(myImageStream);
                     }
                     
                     CFRelease(myIcon);
                 }
 
-                
-            }
-            
-
-            CFRelease(utiDeclaration);
+        } else {
+            CFRelease(UniformTypeIdentifier);
         }
 
     }

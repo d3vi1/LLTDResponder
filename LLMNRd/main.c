@@ -11,14 +11,13 @@
 
 #include "llmnrd.h"
 #define debug 1
-
 //==============================================================================
 //
 // We are currently checking if it's an Ethernet Interface
 //
 //==============================================================================
 void SignalHandler(int Signal) {
-    fprintf(stderr, "\nInterrupted by signal #%d\n", Signal);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "\nInterrupted by signal #%d\n", Signal);
     exit(0);
 }
 
@@ -226,6 +225,53 @@ int main(int argc, const char *argv[]){
     CFRunLoopSourceRef    runLoopSource;
     io_iterator_t         newDevicesIterator;
 
+    
+    //
+    // Create a new Apple System Log facility entry
+    // of Daemon type with the LLMNR name
+    //
+    asl = NULL;
+    log_msg = NULL;
+    asl = asl_open("LLMNR", "Daemon", ASL_OPT_STDERR);
+    log_msg = asl_new(ASL_TYPE_MSG);
+    asl_set(log_msg, ASL_KEY_SENDER, "LLMNR");
+
+    
+/*  //
+    // Register ourselves with LaunchD
+    //
+    launch_data_t sockets_dict, checkin_response;
+    launch_data_t checkin_request;
+    launch_data_t listening_fd_array;
+    if ((checkin_request = launch_data_new_string(LAUNCH_KEY_CHECKIN)) == NULL) {
+        asl_log(asl, log_msg, ASL_LEVEL_ERR, "launch_data_new_string(\"" LAUNCH_KEY_CHECKIN "\") Unable to create string.");
+        asl_close(asl);
+        return EXIT_FAILURE;
+    }
+    
+    if ((checkin_response = launch_msg(checkin_request)) == NULL) {
+        asl_log(asl, log_msg, ASL_LEVEL_ERR, "launch_msg(\"" LAUNCH_KEY_CHECKIN "\") IPC failure: %m");
+        asl_close(asl);
+        return EXIT_FAILURE;
+    }
+    
+    if (LAUNCH_DATA_ERRNO == launch_data_get_type(checkin_response)) {
+        errno = launch_data_get_errno(checkin_response);
+        asl_log(asl, log_msg, ASL_LEVEL_ERR, "Check-in failed: %m");
+        asl_close(asl);
+        return EXIT_FAILURE;
+    }
+    
+    launch_data_t the_label = launch_data_dict_lookup(checkin_response, LAUNCH_JOBKEY_LABEL);
+    if (NULL == the_label) {
+        asl_log(asl, log_msg, ASL_LEVEL_ERR, "No label found");
+        asl_close(asl);
+        return EXIT_FAILURE;
+    }
+
+    asl_log(asl, log_msg, ASL_LEVEL_NOTICE, "Label: %s", launch_data_get_string(the_label));
+*/
+    
     //
     // Set up a signal handler so we can clean up when we're interrupted from
     // the command line. Otherwise we stay in our run loop forever.
@@ -233,9 +279,9 @@ int main(int argc, const char *argv[]){
     // SigTerm = Killed by launchd
     //
     handler = signal(SIGINT, SignalHandler);
-    if (handler == SIG_ERR) printf("Could not establish SIGINT handler.\n");
+    if (handler == SIG_ERR) asl_log(asl, log_msg, ASL_LEVEL_CRIT, "Could not establish SIGINT handler.\n");
     handler = signal(SIGTERM, SignalHandler);
-    if (handler == SIG_ERR) printf("Could not establish SIGTERM handler.\n");
+    if (handler == SIG_ERR) asl_log(asl, log_msg, ASL_LEVEL_CRIT, "Could not establish SIGTERM handler.\n");
     
     
     //
@@ -244,7 +290,10 @@ int main(int argc, const char *argv[]){
     //
     masterPort = MACH_PORT_NULL;
     kernel_return = IOMasterPort(bootstrap_port, &masterPort);
-    if (kernel_return != KERN_SUCCESS) { printf("IOMasterPort returned 0x%x\n", kernel_return); return 0; }
+    if (kernel_return != KERN_SUCCESS) {
+        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "IOMasterPort returned 0x%x\n", kernel_return);
+        return EXIT_FAILURE;
+    }
     
     //
     // Let's get the Run Loop ready. It needs a notification
@@ -263,7 +312,7 @@ int main(int argc, const char *argv[]){
     // from the actual "deviceAppeared" function.
     //
     kernel_return = IOServiceAddMatchingNotification(notificationPort, kIOFirstMatchNotification, IOServiceMatching(kIONetworkInterfaceClass), deviceAppeared, NULL, &newDevicesIterator);
-    if (kernel_return!=KERN_SUCCESS) printf("IOServiceAddMatchingNotification(deviceAppeared) returned 0x%x\n", kernel_return);
+    if (kernel_return!=KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_CRIT, "IOServiceAddMatchingNotification(deviceAppeared) returned 0x%x\n", kernel_return);
     
     //
     // Do an initial device scan since the Run Loop is not yet
@@ -286,31 +335,37 @@ int main(int argc, const char *argv[]){
     // FIXME: Testing the functions in darwin-ops. Not for production.
     //
 #ifdef debug
-    //getIconImage();
-    char *hostname = NULL;
+
+    void *hostname = NULL;
     size_t sizeOfHostname = 0;
-    char *friendlyName = NULL;
+    void *friendlyName = NULL;
     size_t sizeOfFriendlyHostname = 0;
-    getMachineName(&hostname, &sizeOfHostname);
-    getFriendlyName(&friendlyName, &sizeOfFriendlyHostname);
+    void *iconImage = NULL;
+    size_t sizeOfIconImage = 0;
+    getMachineName((char **)&hostname, &sizeOfHostname);
+    getFriendlyName((char **)&friendlyName, &sizeOfFriendlyHostname);
+    getIconImage(&iconImage, &sizeOfIconImage);
     // While the wprintf doesn't work, watching the buffer shows
     // that the strings are there and in UCS-2 format.
-    printf("Hostname %s\n", hostname);
-    printf("FriendlyName %s\n", friendlyName);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getHostname: %ls\n", hostname);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getFriendlyName: %ls\n", friendlyName);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getIconImage result: %d\n", (int)sizeOfIconImage);
     free(hostname);
     free(friendlyName);
+    free(iconImage);
 #endif
     //
     // Start the run loop.
     //
-    printf("Starting run loop.\n\n");
+    asl_log(asl, log_msg, ASL_LEVEL_NOTICE, "Starting run loop.\n\n");
     CFRunLoopRun();
     
     //
     // We should never get here
     //
-    printf("Unexpectedly back from CFRunLoopRun()!\n");
+    asl_log(asl, log_msg, ASL_LEVEL_CRIT, "Unexpectedly back from CFRunLoopRun()!\n");
     if (masterPort != MACH_PORT_NULL) mach_port_deallocate(mach_task_self(), masterPort);
-    return 0;
+    asl_close(asl);
+    return EXIT_FAILURE;
     
 }

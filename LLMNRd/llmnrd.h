@@ -26,11 +26,9 @@
 #include <mach/mach.h>
 #include <CoreServices/CoreServices.h>                      //For UTIIdentification
 #include <ImageIO/ImageIO.h>                                //For ICNS to ICO conversion
+#include <asl.h>                                            //Apple System Logging instead of printf()
+#include <launch.h>                                         //LaunchD Notification
 #include "darwin-ops.h"
-//Temporary for wide printing
-#ifdef debug
-#include <wchar.h>
-#endif
 
 
 
@@ -51,6 +49,8 @@ typedef struct {
 
 IONotificationPortRef notificationPort;
 CFRunLoopRef          runLoop;
+aslclient             asl;
+aslmsg                log_msg;
 
 void deviceAppeared(void *refCon, io_iterator_t iterator);
 void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType, void *messageArgument);
