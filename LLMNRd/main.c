@@ -10,7 +10,7 @@
 
 
 #include "llmnrd.h"
-
+#define debug 1
 
 //==============================================================================
 //
@@ -295,8 +295,8 @@ int main(int argc, const char *argv[]){
     getFriendlyName(&friendlyName, &sizeOfFriendlyHostname);
     // While the wprintf doesn't work, watching the buffer shows
     // that the strings are there and in UCS-2 format.
-    wprintf(L"Hostname %ls\n", (wchar_t *)hostname);
-    wprintf(L"FriendlyName %ls\n", (wchar_t *)friendlyName);
+    printf("Hostname %s\n", hostname);
+    printf("FriendlyName %s\n", friendlyName);
     free(hostname);
     free(friendlyName);
 #endif

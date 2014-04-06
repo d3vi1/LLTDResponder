@@ -19,7 +19,7 @@ void getMachineName(char **data, size_t *stringSize);
 // SCDynamicStoreCopyComputerName
 void getFriendlyName(char **data, size_t *stringSize);
 // Returned in UCS-2LE
-void getSupportInfo(void *data);
+void getSupportInfo(void **data, size_t *stringSize);
 // Returned in UUID binary format
 void getUpnpUuid(CFUUIDBytes *uuid);
 // See 2.2.2.3 in UCS-2LE

@@ -231,18 +231,13 @@ void getIconImage(void *icon, size_t *iconsize){
 }
 
 
-#pragma mark -
-#pragma mark Almost complete/with minor bugs
 // Returned in UCS-2LE
 void getMachineName(char **pointer, size_t *stringSize){
+    
     CFStringRef LocalHostName = SCDynamicStoreCopyLocalHostName(NULL);
     *stringSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(LocalHostName), kCFStringEncodingUTF16LE);
-    // -2 for the double-null termination
-    char *data = malloc(*stringSize - 2);
-    // We copy instead so that we can copy without the final double-null termination
-    *pointer = (char *)CFStringGetCStringPtr(LocalHostName,kCFStringEncodingUTF16LE);
-    memcpy(*pointer, data, *stringSize - 2);
-    free(*pointer);
+    char *data = malloc(*stringSize);
+    CFStringGetCString(LocalHostName, data, (CFIndex)stringSize, kCFStringEncodingUTF16LE);
     CFRelease(LocalHostName);
     *pointer = data;
 }
@@ -255,16 +250,17 @@ void getFriendlyName(char **pointer, size_t *stringSize){
     *stringSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(FriendlyName), kCFStringEncodingUTF16LE);
     char *data = malloc(*stringSize);
     CFStringGetCString(FriendlyName, data, (CFIndex)stringSize, kCFStringEncodingUTF16LE);
-    // FIXME: Also returned with double null termination
     CFRelease(FriendlyName);
     *pointer = data;
 }
 
+#pragma mark -
+#pragma mark Almost complete/with minor bugs
 
 #pragma mark -
 #pragma mark Half way there. Scheleton done.
 // Returned in UCS-2LE
-void getSupportInfo(void *data){
+void getSupportInfo(void **data, size_t *stringSize){
     //http://support-sp.apple.com/sp/index?page=psp&cc=AGZ&lang=syslang last 3 digits of SN
     //From:
     // /Applications/Utilities/System Profiler.app/Contents/Resources/SupportLinks.strings
@@ -273,7 +269,8 @@ void getSupportInfo(void *data){
         CFStringRef serialNumber = IORegistryEntryCreateCFProperty(platformExpert, CFSTR(kIOPlatformSerialNumberKey), kCFAllocatorDefault, 0);
         
         IOObjectRelease(platformExpert);
-        
+//        CFStringCreateWith
+//        *data = malloc(
         switch (CFStringGetLength(serialNumber)) {
             case 11:
                 //TODO: get the last 3 digits of the string and use them at the cc paramater in the URL
