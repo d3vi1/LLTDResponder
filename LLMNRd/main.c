@@ -212,12 +212,12 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
 }
 
 
-//================================================================================================
+//==============================================================================
 //
 // main
 // TODO: Convert to daemon with ASL logging
 //
-//================================================================================================
+//==============================================================================
 int main(int argc, const char *argv[]){
     sig_t                 handler;
     kern_return_t         kernel_return;
@@ -326,8 +326,8 @@ int main(int argc, const char *argv[]){
     // * From SystemConfiguration we get the link
     //   notifications (TODO);
     // * From CoreWLAN we get the connected/disconnected
-    //   notifications (TODO);
-    //
+    //   notifications, though SC might provide them also(TODO);
+    //TODO: Add the notifications mentioned above.
     deviceAppeared(NULL, newDevicesIterator);
 
     

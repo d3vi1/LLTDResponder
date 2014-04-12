@@ -15,7 +15,11 @@
 
 
 #pragma mark Complete
+//==============================================================================
+//
 // Returned in UUID binary format
+//
+//==============================================================================
 void getUpnpUuid(void **uuid){
     io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault,
                                                               IOServiceMatching("IOPlatformExpertDevice"));
@@ -40,9 +44,12 @@ void getUpnpUuid(void **uuid){
     } else uuid = NULL;
 }
 
-
+//==============================================================================
+//
 // Returns a copy of the icon image in Microsoft ICO format.
 // Made from an image larger or equal to 48px in size.
+//
+//==============================================================================
 void getIconImage(void **icon, size_t *iconsize){
     
     io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault,
@@ -234,8 +241,11 @@ void getIconImage(void **icon, size_t *iconsize){
     }
 }
 
-
+//==============================================================================
+//
 // Returned in UCS-2LE
+//
+//==============================================================================
 void getMachineName(char **pointer, size_t *stringSize){
     
     CFStringRef LocalHostName = SCDynamicStoreCopyLocalHostName(NULL);
@@ -247,7 +257,11 @@ void getMachineName(char **pointer, size_t *stringSize){
 }
 
 
+//==============================================================================
+//
 // Returned in UCS-2LE only with QueryLargeTLV
+//
+//==============================================================================
 void getFriendlyName(char **pointer, size_t *stringSize){
     CFStringEncoding UCS2LE = kCFStringEncodingUTF16LE;
     CFStringRef FriendlyName = SCDynamicStoreCopyComputerName(NULL, &UCS2LE);
@@ -263,7 +277,11 @@ void getFriendlyName(char **pointer, size_t *stringSize){
 
 #pragma mark -
 #pragma mark Half way there. Scheleton done.
+//==============================================================================
+//
 // Returned in UCS-2LE
+//
+//==============================================================================
 void getSupportInfo(void **data, size_t *stringSize){
     //http://support-sp.apple.com/sp/index?page=psp&cc=AGZ&lang=syslang last 3 digits of SN
     //From:
@@ -296,28 +314,48 @@ void getSupportInfo(void **data, size_t *stringSize){
 
 #pragma mark -
 #pragma mark Not yet written
+//==============================================================================
+//
 // See 2.2.2.3 in UCS-2LE
+//
+//==============================================================================
 void getHwId(void *data);
 
 
+//==============================================================================
+//
 // Only with QueryLargeTLV
 // Returns a copy of the icon image in Microsoft ICO format
 // at the followin sizes: 16x16, 32x32, 64x64, 128x128, 256x256
 // and if available, 24x24 and 48x48
+//
+//==============================================================================
 void getDetailedIconImage(void *data);
 
 
+//==============================================================================
+//
 // Hmm... This will take a bit of work
 // I know that we are a host that is
 // hub+switch
+//
+//==============================================================================
 void getHostCharacteristics (void *data);
 
 
+//==============================================================================
+//
 // Only with QueryLargeTLV
+//
+//==============================================================================
 void getComponentTable(void *data);
 
 
+//==============================================================================
+//
 // Switches the interface in the argument to promscious mode
+//
+//==============================================================================
 void goIntoPromiscuous(){
     /*
      UInt16    flags = getFlags();
