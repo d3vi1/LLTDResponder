@@ -43,7 +43,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     //
     kernel_return = IORegistryEntryGetParentEntry( IONetworkInterface, kIOServicePlane, &IONetworkController);
     
-    if (kernel_return != KERN_SUCCESS) printf("Could not get the parent of the interface\n");
+    if (kernel_return != KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not get the parent of the interface\n", __FUNCTION__);
     
     if(IONetworkController) {
         
@@ -68,7 +68,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     
 	scInterfaces = SCNetworkInterfaceCopyAll();
 	if (scInterfaces == NULL) {
-        printf("validateInterface: could not find any SCNetworkInterfaces. Is configd running?\n");
+        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: could not find any SCNetworkInterfaces. Is configd running?\n", __FUNCTION__);
         return;
     }
     
@@ -93,7 +93,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
 			} else {
 				// if multiple interfaces match
 				currentNetworkInterface->SCNetworkInterface = NULL;
-				printf("validateInterface: multiple scInterfaces match\n");
+				asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: multiple scInterfaces match\n", __FUNCTION__);
 			}
 		} else {
         }
@@ -112,12 +112,12 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         CFNumberGetValue((CFNumberRef)ioInterfaceType, kCFNumberLongType, &currentNetworkInterface->ifType);
         CFRelease(ioInterfaceType);
     } else {
-        printf("Could not read ifType.\n");
+        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not read ifType.\n", __FUNCTION__);
     }
     //
     // DEBUG: Print the network interfaces to stdout
     //
-    printf("Found interface:   %s  MAC: %02x:%02x:%02x:%02x:%02x:%02x  Type: %s (0x%000x)\n", CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8),currentNetworkInterface->hwAddress[0], currentNetworkInterface->hwAddress[1], currentNetworkInterface->hwAddress[2], currentNetworkInterface->hwAddress[3], currentNetworkInterface->hwAddress[4], currentNetworkInterface->hwAddress[5], CFStringGetCStringPtr(currentNetworkInterface->interfaceType, kCFStringEncodingUTF8), currentNetworkInterface->ifType);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Found interface:   %s  MAC: %02x:%02x:%02x:%02x:%02x:%02x  Type: %s (0x%000x)\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8),currentNetworkInterface->hwAddress[0], currentNetworkInterface->hwAddress[1], currentNetworkInterface->hwAddress[2], currentNetworkInterface->hwAddress[3], currentNetworkInterface->hwAddress[4], currentNetworkInterface->hwAddress[5], CFStringGetCStringPtr(currentNetworkInterface->interfaceType, kCFStringEncodingUTF8), currentNetworkInterface->ifType);
 
     //TODO: Razvan: check if it's a broadcast interface and if it's up
     //TODO: Razvan: add SystemConfiguration events to the run loop.
@@ -201,7 +201,8 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
         //
         kernel_return = IOServiceAddInterestNotification(notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
         
-        if (kernel_return!=KERN_SUCCESS) printf("IOServiceAddInterestNofitication error: 0x%08x.\n", kernel_return);
+        
+        if (kernel_return!=KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: IOServiceAddInterestNofitication error: 0x%08x.\n", __FUNCTION__, kernel_return);
         
         //
         // Clean-up.
@@ -320,19 +321,20 @@ int main(int argc, const char *argv[]){
     //
     // * From IOKit we get the serviceTerminated for removal;
     // * From IOKit PowerManagement we get the sleep/hibernate
-    //   shutdown and wake notifications (TODO);
+    //   shutdown and wake notifications (NOTYET);
     // * From SystemConfiguration we get the IPv4/IPv6 add,
-    //   change, removed notifications (TODO);
+    //   change, removed notifications (NOTYET);
     // * From SystemConfiguration we get the link
-    //   notifications (TODO);
+    //   notifications (NOTYET);
     // * From CoreWLAN we get the connected/disconnected
-    //   notifications, though SC might provide them also(TODO);
+    //   notifications, though SC might provide them also(NOTYET);
+    //
     //TODO: Add the notifications mentioned above.
     deviceAppeared(NULL, newDevicesIterator);
 
     
     //
-    // FIXME: Testing the functions in darwin-ops. Not for production.
+    // XXX: Testing the functions in darwin-ops. Not for production.
     //
 #ifdef debug
 
@@ -342,17 +344,22 @@ int main(int argc, const char *argv[]){
     size_t sizeOfFriendlyHostname = 0;
     void *iconImage = NULL;
     size_t sizeOfIconImage = 0;
+    void *supportURL = NULL;
+    size_t sizeOfSupportURL = 0;
     getMachineName((char **)&hostname, &sizeOfHostname);
     getFriendlyName((char **)&friendlyName, &sizeOfFriendlyHostname);
     getIconImage(&iconImage, &sizeOfIconImage);
+    getSupportInfo(&supportURL, &sizeOfSupportURL);
     // While the wprintf doesn't work, watching the buffer shows
     // that the strings are there and in UCS-2 format.
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getHostname: %ls\n", hostname);
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getFriendlyName: %ls\n", friendlyName);
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getIconImage result: %d\n", (int)sizeOfIconImage);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getHostname: %ls\n", (wchar_t *)hostname);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getFriendlyName: %ls\n", (wchar_t *)friendlyName);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getIconImage result: %d bytes\n", (int)sizeOfIconImage);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getSupportURL: %s\n", (char *)supportURL);
     free(hostname);
     free(friendlyName);
     free(iconImage);
+    free(supportURL);
 #endif
     //
     // Start the run loop.

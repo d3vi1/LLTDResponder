@@ -48,6 +48,8 @@ void getUpnpUuid(void **uuid){
 //
 // Returns a copy of the icon image in Microsoft ICO format.
 // Made from an image larger or equal to 48px in size.
+// The icon must be smaller than 32kb which we are not yet verifying.
+// Only with QueryLargetTLV
 //
 //==============================================================================
 void getIconImage(void **icon, size_t *iconsize){
@@ -79,7 +81,7 @@ void getIconImage(void **icon, size_t *iconsize){
         
         // Use to change the represented icon to another one
         // if you want to test the looks of another system
-        // In this example you have an iphone-4 icon
+        // Uncomment to get an iphone-4 icon
         //UniformTypeIdentifier = CFSTR("com.apple.iphone-4");
         
         CFRelease(modelCodeData);
@@ -112,9 +114,8 @@ void getIconImage(void **icon, size_t *iconsize){
             CFRelease(UniformTypeIdentifier);
 
             
-#ifdef debug
-            printf("getIconImage: Icon URL: %s\n", CFStringGetCStringPtr(CFURLGetString(iconURL), kCFStringEncodingUTF8));
-#endif
+            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Icon URL: %s\n", __FUNCTION__, CFStringGetCStringPtr(CFURLGetString(iconURL), kCFStringEncodingUTF8));
+
             // Load the icns file
             CGImageSourceRef myIcon = CGImageSourceCreateWithURL(iconURL, NULL);
                 
@@ -122,9 +123,9 @@ void getIconImage(void **icon, size_t *iconsize){
                 
             if( myIcon != NULL){
                     size_t iconCount = CGImageSourceGetCount (myIcon);
-#ifdef debug
-                    printf("getIconImage: icon count: %zu\n", iconCount);
-#endif
+
+                    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: icon count: %zu\n", __FUNCTION__, iconCount);
+
                     Boolean haveIconSelected = FALSE;
                     size_t iconSelected = 0;
                     long iconSelectedWidth = 0;
@@ -162,9 +163,9 @@ void getIconImage(void **icon, size_t *iconsize){
                                 iconSelected = index;
                                 haveIconSelected = TRUE;
                             }
-#ifdef debug
-                            printf("getIconImage: Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI) %dx%d (%d)\n", index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
-#endif
+
+                            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI) %dx%d (%d)\n", __FUNCTION__, index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
+
                             CFRelease(imageProperties);
                         }
                         
@@ -272,18 +273,13 @@ void getFriendlyName(char **pointer, size_t *stringSize){
     *pointer = data;
 }
 
-#pragma mark -
-#pragma mark Almost complete/with minor bugs
-
-#pragma mark -
-#pragma mark Half way there. Scheleton done.
 //==============================================================================
 //
 // Returned in UCS-2LE
 //
 //==============================================================================
 void getSupportInfo(void **data, size_t *stringSize){
-    //http://support-sp.apple.com/sp/index?page=psp&cc=AGZ&lang=syslang last 3 digits of SN
+    //http://support-sp.apple.com/sp/index?page=psp&cc=AGZ&lang=syslang last 3 or 4 digits of SN
     //From:
     // /Applications/Utilities/System Profiler.app/Contents/Resources/SupportLinks.strings
     io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
@@ -291,26 +287,56 @@ void getSupportInfo(void **data, size_t *stringSize){
         CFStringRef serialNumber = IORegistryEntryCreateCFProperty(platformExpert, CFSTR(kIOPlatformSerialNumberKey), kCFAllocatorDefault, 0);
         
         IOObjectRelease(platformExpert);
-//        CFStringCreateWith
-//        *data = malloc(
-        switch (CFStringGetLength(serialNumber)) {
-            case 11:
-                //TODO: get the last 3 digits of the string and use them at the cc paramater in the URL
-                break;
-            case 12:
-                //TODO: get the last 4 digits of the string and use them at the cc paramater in the URL
-                break;
-            default:
+        if (serialNumber != NULL) {
+            //
+            //If the serial number is in the classic 11 digit format pe get
+            //the last 3 digits
+            //
+            if(CFStringGetLength(serialNumber)==11) {
+                asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: 11 character serial number\n", __FUNCTION__);
+                CFMutableStringRef URLString = CFStringCreateMutable(kCFAllocatorDefault, 0);
+                if (URLString != NULL){
+                    CFStringAppend(URLString, CFSTR("http://support-sp.apple.com/sp/index?page=psp&cc="));
+                    CFStringAppend(URLString, CFStringCreateWithSubstring(kCFAllocatorDefault, serialNumber, CFRangeMake(8, 3)));
+                    *data=malloc(CFStringGetMaximumSizeForEncoding(CFStringGetLength(URLString), kCFStringEncodingUTF8));
+                    CFStringGetCString(URLString, *data, CFStringGetMaximumSizeForEncoding(CFStringGetLength(URLString), kCFStringEncodingUTF8),    kCFStringEncodingUTF8);
+                    CFRelease(URLString);
+                }
+                //
+                //If it's in the modern 12 digit format, we get the last 4 digits.
+                //
+            } else if (CFStringGetLength(serialNumber)==12){
+                asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: 12 character serial number\n", __FUNCTION__);
+                CFMutableStringRef URLString = CFStringCreateMutable(kCFAllocatorDefault, 0);
+                if (URLString != NULL){
+                    CFStringAppend(URLString, CFSTR("http://support-sp.apple.com/sp/index?page=psp&cc="));
+                    CFStringAppend(URLString, CFStringCreateWithSubstring(kCFAllocatorDefault, serialNumber, CFRangeMake(8, 3)));
+                    *data=malloc(CFStringGetMaximumSizeForEncoding(CFStringGetLength(URLString), kCFStringEncodingUTF8));
+                    CFStringGetCString(URLString, *data, CFStringGetMaximumSizeForEncoding(CFStringGetLength(URLString), kCFStringEncodingUTF8), kCFStringEncodingUTF8);
+                    CFRelease(URLString);
+                }
+                //
+                //If it's not 11 or 12 digits, we have no idea.
+                //
+            } else {
                 data = NULL;
-                break;
+            }
+            
+            CFRelease(serialNumber);
+            return;
         }
-        CFRelease(serialNumber);
-        return;
         
     } else data = NULL;
     
 }
 
+
+
+#pragma mark -
+#pragma mark Almost complete/with minor bugs
+
+#pragma mark -
+#pragma mark Half way there. Scheleton done.
 
 #pragma mark -
 #pragma mark Not yet written
