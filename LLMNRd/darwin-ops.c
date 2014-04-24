@@ -35,7 +35,7 @@ void getUpnpUuid(void **uuid){
         CFUUIDRef cfUUID = CFUUIDCreateFromString(kCFAllocatorDefault, uuidStr);
         CFUUIDBytes CFUUIDBytes = CFUUIDGetUUIDBytes(cfUUID);
         *uuid = &CFUUIDBytes;
-        
+        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s\n", __FUNCTION__, CFStringGetCStringPtr(uuidStr, 0));
         CFRelease(cfUUID);
         CFRelease(uuidStr);
         
@@ -293,12 +293,14 @@ void getSupportInfo(void **data, size_t *stringSize){
             //the last 3 digits
             //
             if(CFStringGetLength(serialNumber)==11) {
-                asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: 11 character serial number\n", __FUNCTION__);
+                asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: 11 character serial number %s\n", __FUNCTION__, CFStringGetCStringPtr(serialNumber, 0));
                 CFMutableStringRef URLString = CFStringCreateMutable(kCFAllocatorDefault, 0);
                 if (URLString != NULL){
                     CFStringAppend(URLString, CFSTR("http://support-sp.apple.com/sp/index?page=psp&cc="));
-                    CFStringAppend(URLString, CFStringCreateWithSubstring(kCFAllocatorDefault, serialNumber, CFRangeMake(8, 3)));
-                    *data=malloc(CFStringGetMaximumSizeForEncoding(CFStringGetLength(URLString), kCFStringEncodingUTF8));
+                    CFStringRef last3Digits = CFStringCreateWithSubstring(kCFAllocatorDefault, serialNumber, CFRangeMake(8, 3));
+                    CFStringAppend(URLString, last3Digits);
+                    CFRelease(last3Digits);
+                    *data = malloc(CFStringGetMaximumSizeForEncoding(CFStringGetLength(URLString), kCFStringEncodingUTF8));
                     CFStringGetCString(URLString, *data, CFStringGetMaximumSizeForEncoding(CFStringGetLength(URLString), kCFStringEncodingUTF8),    kCFStringEncodingUTF8);
                     CFRelease(URLString);
                 }
@@ -306,11 +308,13 @@ void getSupportInfo(void **data, size_t *stringSize){
                 //If it's in the modern 12 digit format, we get the last 4 digits.
                 //
             } else if (CFStringGetLength(serialNumber)==12){
-                asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: 12 character serial number\n", __FUNCTION__);
+                asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: 12 character serial number %s\n", __FUNCTION__, CFStringGetCStringPtr(serialNumber, 0));
                 CFMutableStringRef URLString = CFStringCreateMutable(kCFAllocatorDefault, 0);
                 if (URLString != NULL){
                     CFStringAppend(URLString, CFSTR("http://support-sp.apple.com/sp/index?page=psp&cc="));
-                    CFStringAppend(URLString, CFStringCreateWithSubstring(kCFAllocatorDefault, serialNumber, CFRangeMake(8, 3)));
+                    CFStringRef last4Digits = CFStringCreateWithSubstring(kCFAllocatorDefault, serialNumber, CFRangeMake(8, 4));
+                    CFStringAppend(URLString, last4Digits);
+                    CFRelease(last4Digits);
                     *data=malloc(CFStringGetMaximumSizeForEncoding(CFStringGetLength(URLString), kCFStringEncodingUTF8));
                     CFStringGetCString(URLString, *data, CFStringGetMaximumSizeForEncoding(CFStringGetLength(URLString), kCFStringEncodingUTF8), kCFStringEncodingUTF8);
                     CFRelease(URLString);

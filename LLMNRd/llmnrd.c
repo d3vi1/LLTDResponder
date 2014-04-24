@@ -52,9 +52,10 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         
         CFDataGetBytes((CFDataRef)macAddressAsData, CFRangeMake(0,CFDataGetLength(macAddressAsData)), currentNetworkInterface->hwAddress);
         CFRelease(macAddressAsData);
-        
+        currentNetworkInterface->linkStatus = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOLinkStatus), kCFAllocatorDefault, 0);
     }
     
+    // We're not releasing the controller here because
     IOObjectRelease(IONetworkController);
 
     //
@@ -95,8 +96,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
 				currentNetworkInterface->SCNetworkInterface = NULL;
 				asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: multiple scInterfaces match\n", __FUNCTION__);
 			}
-		} else {
-        }
+		}
 	}
     
     CFRelease(scInterfaces);
@@ -104,8 +104,6 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     //
     // Get the default information about the interface
     //
-    //currentNetworkInterface->ifType = 6;
-    //long ifTypeTemp;
     currentNetworkInterface->interfaceType=SCNetworkInterfaceGetInterfaceType(currentNetworkInterface->SCNetworkInterface);
     CFTypeRef ioInterfaceType = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOInterfaceType), kCFAllocatorDefault, 0);
     if (ioInterfaceType) {
@@ -114,13 +112,65 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     } else {
         asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not read ifType.\n", __FUNCTION__);
     }
+    
     //
     // DEBUG: Print the network interfaces to stdout
     //
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Found interface:   %s  MAC: %02x:%02x:%02x:%02x:%02x:%02x  Type: %s (0x%000x)\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8),currentNetworkInterface->hwAddress[0], currentNetworkInterface->hwAddress[1], currentNetworkInterface->hwAddress[2], currentNetworkInterface->hwAddress[3], currentNetworkInterface->hwAddress[4], currentNetworkInterface->hwAddress[5], CFStringGetCStringPtr(currentNetworkInterface->interfaceType, kCFStringEncodingUTF8), currentNetworkInterface->ifType);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Found interface:   %s  MAC: "ETHERNET_ADDR_FMT"  Type: %s (0x%000x)\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8), ETHERNET_ADDR(currentNetworkInterface->hwAddress), CFStringGetCStringPtr(currentNetworkInterface->interfaceType, kCFStringEncodingUTF8), currentNetworkInterface->ifType);
 
-    //TODO: Razvan: check if it's a broadcast interface and if it's up
-    //TODO: Razvan: add SystemConfiguration events to the run loop.
+    
+    //
+    // Check if we're UP, BROADCAST and not LOOPBACK
+    //
+    currentNetworkInterface->flags = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOInterfaceFlags), kCFAllocatorDefault, 0);
+    if (currentNetworkInterface->flags!=NULL){
+        uint32_t flags;
+        CFNumberGetValue(currentNetworkInterface->flags, kCFNumberIntType, &flags);
+        //FIXME: There are way too many things here
+        if(!( (flags & IFF_UP) && (flags & IFF_BROADCAST) && (!(flags & IFF_LOOPBACK)))){
+            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Failed flags check\n", __FUNCTION__);
+            return;
+        }
+    }
+    
+    //
+    // Check if we have link on the controller
+    //
+    if (currentNetworkInterface->linkStatus!=NULL){
+        uint32_t linkStatus;
+        CFNumberGetValue(currentNetworkInterface->linkStatus, kCFNumberIntType, &linkStatus);
+        //FIXME: There are way too many things here
+        if(!( (linkStatus & kIONetworkLinkActive) && (linkStatus & kIONetworkLinkValid) )){
+            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Failed link status check\n", __FUNCTION__);
+            return;
+        }
+    }
+    
+    //
+    // Get the object's parent (the interface controller) in order to watch the
+    // controller for link state changes and add that to the runLoop
+    // notifications list. The desired message is kIOMessageServicePropertyChange
+    // and it affects kIOLinkStatus.
+    //
+    kernel_return = IORegistryEntryGetParentEntry( IONetworkInterface, kIOServicePlane, &IONetworkController);
+    
+    if (kernel_return != KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not get the parent of the interface\n", __FUNCTION__);
+    
+    if(IONetworkController) {
+
+        kernel_return = IOServiceAddInterestNotification(notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+        
+    }
+    
+    IOObjectRelease(IONetworkController);
+
+    
+    //
+    // Now documented the interface inside our currentNetworkInterface and
+    // we know that it's up, broadcast capable, not a loopback and has a link
+    // So we move on to adding the thread
+    //
+
     //TODO: Razvan: or maybe just use IOKit events for link-up/down
     //TODO: Alex: add the thread creation here
     //
@@ -140,18 +190,18 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
     
     network_interface_t *currentNetworkInterface = (network_interface_t*) refCon;
     
-    //
-    // XXX: add parser for link-up/link-down and other SC events?!?
-    //
     if (messageType == kIOMessageServiceIsTerminated) {
-        printf("Interface removed: %s\n", CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8));
-        
+        asl_log(asl, log_msg, ASL_LEVEL_NOTICE, "%s: Interface removed: %s\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8));
         CFRelease(currentNetworkInterface->deviceName);
         CFRelease(currentNetworkInterface->interfaceType);
         CFRelease(currentNetworkInterface->SCNetworkInterface);
         IOObjectRelease(currentNetworkInterface->notification);
         //TODO: Alex: Kill the listner thread
         free(currentNetworkInterface);
+    } else if (messageType == kIOMessageServicePropertyChange){
+
+        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: A property has changed.\n", __FUNCTION__);
+        //TODO: Now let's see what property changed. Let's compare with the saved information
     }
 }
 
@@ -233,9 +283,9 @@ int main(int argc, const char *argv[]){
     //
     asl = NULL;
     log_msg = NULL;
-    asl = asl_open("LLMNR", "Daemon", ASL_OPT_STDERR);
+    asl = asl_open("LLTD", "Daemon", ASL_OPT_STDERR);
     log_msg = asl_new(ASL_TYPE_MSG);
-    asl_set(log_msg, ASL_KEY_SENDER, "LLMNR");
+    asl_set(log_msg, ASL_KEY_SENDER, "LLTD");
 
     
 /*  //
@@ -340,26 +390,30 @@ int main(int argc, const char *argv[]){
 
     void *hostname = NULL;
     size_t sizeOfHostname = 0;
+    getMachineName((char **)&hostname, &sizeOfHostname);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getHostname: %s (%d bytes)\n", hostname, (int)sizeOfHostname);
+    free(hostname);
+
     void *friendlyName = NULL;
     size_t sizeOfFriendlyHostname = 0;
+    getFriendlyName((char **)&friendlyName, &sizeOfFriendlyHostname);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getFriendlyName: %s (%d bytes)\n", friendlyName, (int)sizeOfFriendlyHostname);
+    free(friendlyName);
+
     void *iconImage = NULL;
     size_t sizeOfIconImage = 0;
+    getIconImage(&iconImage, &sizeOfIconImage);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getIconImage: %d bytes\n", (int)sizeOfIconImage);
+    free(iconImage);
+    
     void *supportURL = NULL;
     size_t sizeOfSupportURL = 0;
-    getMachineName((char **)&hostname, &sizeOfHostname);
-    getFriendlyName((char **)&friendlyName, &sizeOfFriendlyHostname);
-    getIconImage(&iconImage, &sizeOfIconImage);
     getSupportInfo(&supportURL, &sizeOfSupportURL);
-    // While the wprintf doesn't work, watching the buffer shows
-    // that the strings are there and in UCS-2 format.
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getHostname: %ls\n", (wchar_t *)hostname);
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getFriendlyName: %ls\n", (wchar_t *)friendlyName);
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getIconImage result: %d bytes\n", (int)sizeOfIconImage);
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getSupportURL: %s\n", (char *)supportURL);
-    free(hostname);
-    free(friendlyName);
-    free(iconImage);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getSupportInfo: %s\n", (char *)supportURL);    // While the wprintf doesn't work, watching the buffer shows
     free(supportURL);
+    
+    void *uuid = NULL;
+    getUpnpUuid(&uuid);
 #endif
     //
     // Start the run loop.
