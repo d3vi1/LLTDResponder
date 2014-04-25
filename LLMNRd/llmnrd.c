@@ -112,12 +112,21 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     } else {
         asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not read ifType.\n", __FUNCTION__);
     }
-    
+
+    CFTypeRef ioInterfaceMTU = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOMaxTransferUnit), kCFAllocatorDefault, 0);
+    if (ioInterfaceMTU) {
+        CFNumberGetValue((CFNumberRef)ioInterfaceMTU, kCFNumberLongType, &currentNetworkInterface->MTU);
+        CFRelease(ioInterfaceMTU);
+    } else {
+        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not read ifMaxTransferUnit.\n", __FUNCTION__);
+    }
+
+#ifdef debug
     //
     // DEBUG: Print the network interfaces to stdout
     //
     asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Found interface:   %s  MAC: "ETHERNET_ADDR_FMT"  Type: %s (0x%000x)\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8), ETHERNET_ADDR(currentNetworkInterface->hwAddress), CFStringGetCStringPtr(currentNetworkInterface->interfaceType, kCFStringEncodingUTF8), currentNetworkInterface->ifType);
-
+#endif
     
     //
     // Check if we're UP, BROADCAST and not LOOPBACK
@@ -147,6 +156,18 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     }
     
     //
+    // Add a a notification for anything happening to the device to the
+    // run loop. The actual event gets filtered in the deviceDisappeared
+    // function. We are also giving it a pointer to our networkInterface
+    // so that we don't keep a global array of all interfaces.
+    //
+    kernel_return = IOServiceAddInterestNotification(notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+    
+    
+    if (kernel_return!=KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: IOServiceAddInterestNofitication Interface error: 0x%08x.\n", __FUNCTION__, kernel_return);
+    
+
+    //
     // Get the object's parent (the interface controller) in order to watch the
     // controller for link state changes and add that to the runLoop
     // notifications list. The desired message is kIOMessageServicePropertyChange
@@ -159,6 +180,8 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     if(IONetworkController) {
 
         kernel_return = IOServiceAddInterestNotification(notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+        if (kernel_return!=KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: IOServiceAddInterestNofitication Controller error: 0x%08x.\n", __FUNCTION__, kernel_return);
+
         
     }
     
@@ -170,9 +193,33 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     // we know that it's up, broadcast capable, not a loopback and has a link
     // So we move on to adding the thread
     //
-
-    //TODO: Razvan: or maybe just use IOKit events for link-up/down
-    //TODO: Alex: add the thread creation here
+    pthread_attr_t  threadAttributes;
+    pthread_t       posixThreadID;
+    int             returnVal;
+    
+    returnVal = pthread_attr_init(&threadAttributes);
+    
+    if (returnVal!=noErr){
+        asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s:, could not init pthread attributes: %d\n", __FUNCTION__, returnVal);
+        return;
+    }
+    returnVal = pthread_attr_setdetachstate(&threadAttributes, PTHREAD_CREATE_DETACHED);
+    if (returnVal!=noErr){
+        asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s:, could not set pthread attributes: %d\n", __FUNCTION__, returnVal);
+        return;
+    }
+    
+    int threadError = pthread_create(&posixThreadID, &threadAttributes, (void *)&lltdBlock, currentNetworkInterface);
+    
+    returnVal = pthread_attr_destroy(&threadAttributes);
+    
+    assert(!returnVal);
+    if (threadError != 0)
+    {
+        // Report an error.
+    }
+    
+    
     //
     // Clean-up the SC stuff
     //
@@ -231,8 +278,10 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
         
         //
         // Let's get the device name. If we don't have a BSD name, we are
-        // letting it stabilize for 50000 since SCNetwork didn't do it's thing
-        // yet. It's a candidate for conversion from hard-coded time to
+        // letting it stabilize for 50ms since SCNetwork didn't do it's thing
+        // yet.
+        // FIXME: I don't like using sleep. We should use events or a pooling loop.
+        // It's a candidate for conversion from hard-coded time to
         // SystemConfiguration event monitoring.
         //
         currentNetworkInterface->deviceName = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOBSDNameKey), kCFAllocatorDefault, 0);
@@ -244,29 +293,19 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
         validateInterface(currentNetworkInterface, IONetworkInterface);
         
         //
-        // Add a a notification for anything happening to the device to the
-        // run loop. The actual event gets filtered in the deviceDisappeared
-        // function. We are also giving it a pointer to our networkInterface
-        // so that we don't keep a global array of all interfaces.
-        //
-        kernel_return = IOServiceAddInterestNotification(notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
-        
-        
-        if (kernel_return!=KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: IOServiceAddInterestNofitication error: 0x%08x.\n", __FUNCTION__, kernel_return);
-        
-        //
         // Clean-up.
         //
         IOObjectRelease(IONetworkInterface);
         
     } // while ((IONetworkInterface = IOIteratorNext(iterator))
+
 }
 
 
 //==============================================================================
 //
 // main
-// TODO: Convert to daemon with ASL logging
+// TODO: Convert to a Launch Daemon
 //
 //==============================================================================
 int main(int argc, const char *argv[]){
@@ -367,19 +406,14 @@ int main(int argc, const char *argv[]){
     
     //
     // Do an initial device scan since the Run Loop is not yet
-    // started. This will also add the following notifications:
-    //
-    // * From IOKit we get the serviceTerminated for removal;
+    // started. This will also add the notifications:
+    // * Device disappeared
+    // * IOKit Property changed
     // * From IOKit PowerManagement we get the sleep/hibernate
     //   shutdown and wake notifications (NOTYET);
     // * From SystemConfiguration we get the IPv4/IPv6 add,
     //   change, removed notifications (NOTYET);
-    // * From SystemConfiguration we get the link
-    //   notifications (NOTYET);
-    // * From CoreWLAN we get the connected/disconnected
-    //   notifications, though SC might provide them also(NOTYET);
     //
-    //TODO: Add the notifications mentioned above.
     deviceAppeared(NULL, newDevicesIterator);
 
     
@@ -387,7 +421,6 @@ int main(int argc, const char *argv[]){
     // XXX: Testing the functions in darwin-ops. Not for production.
     //
 #ifdef debug
-
     void *hostname = NULL;
     size_t sizeOfHostname = 0;
     getMachineName((char **)&hostname, &sizeOfHostname);
@@ -415,6 +448,7 @@ int main(int argc, const char *argv[]){
     void *uuid = NULL;
     getUpnpUuid(&uuid);
 #endif
+
     //
     // Start the run loop.
     //

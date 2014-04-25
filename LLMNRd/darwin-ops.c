@@ -44,6 +44,7 @@ void getUpnpUuid(void **uuid){
     } else uuid = NULL;
 }
 
+
 //==============================================================================
 //
 // Returns a copy of the icon image in Microsoft ICO format.
@@ -276,17 +277,24 @@ void getFriendlyName(char **pointer, size_t *stringSize){
 //==============================================================================
 //
 // Returned in UCS-2LE
+// Returns the following URL with the last 3 or 4 digits of the serial number
+// at the CC argument http://support-sp.apple.com/sp/index?page=psp&cc=XXX
+// Taken from:
+// /Applications/Utilities/System Profiler.app/Contents/Resources/SupportLinks.strings
 //
 //==============================================================================
 void getSupportInfo(void **data, size_t *stringSize){
-    //http://support-sp.apple.com/sp/index?page=psp&cc=AGZ&lang=syslang last 3 or 4 digits of SN
-    //From:
-    // /Applications/Utilities/System Profiler.app/Contents/Resources/SupportLinks.strings
+    //
+    // Get the serial number from the IOPlatformExpertDevice
+    //
     io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
+    
     if (platformExpert) {
+
         CFStringRef serialNumber = IORegistryEntryCreateCFProperty(platformExpert, CFSTR(kIOPlatformSerialNumberKey), kCFAllocatorDefault, 0);
         
         IOObjectRelease(platformExpert);
+        
         if (serialNumber != NULL) {
             //
             //If the serial number is in the classic 11 digit format pe get
@@ -330,8 +338,10 @@ void getSupportInfo(void **data, size_t *stringSize){
             return;
         }
         
-    } else data = NULL;
+    }
     
+    data = NULL;
+    return;
 }
 
 

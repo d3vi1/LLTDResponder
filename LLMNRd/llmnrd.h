@@ -29,8 +29,10 @@
 #include <ImageIO/ImageIO.h>                                // For ICNS to ICO conversion using Thumbnails
 #include <asl.h>                                            // Apple System Logging instead of printf()
 #include <launch.h>                                         // LaunchD Notification
-#include <net/if.h>                                     // For IFFlags
+#include <net/if.h>                                         // For IFFlags
+#include <pthread.h>                                        // For POSIX Threads
 #include "darwin-ops.h"
+#include "lltdBlock.h"
 
 
 
@@ -49,6 +51,7 @@ typedef struct {
     SCNetworkConnectionRef SCNetworkConnection;
     CFNumberRef            flags;               // kIOInterfaceFlags from the Interface
     CFNumberRef            linkStatus;          // kIOLinkStatus from the Controller
+    uint32_t               MTU;                 // We'll set the buffer size to the MTU size
     //TODO: Add the pthread struct here in case we need to stop the thread
 } network_interface_t;
 

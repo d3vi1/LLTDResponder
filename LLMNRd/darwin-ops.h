@@ -90,14 +90,6 @@ typedef struct {
     UInt16          idType;        // Resource Type (1 for icons)
     UInt16          idCount;       // How many images?
     iconDirEntry    idEntries[1];  // An entry for each image (idCount of 'em)
-/*    UInt8           Width;         // Width, in pixels, of the image
-    UInt8           Height;        // Height, in pixels, of the image
-    UInt8           ColorCount;    // Number of colors in image (0 if >=8bpp)
-    UInt8           Reserved;      // Reserved ( must be 0)
-    UInt16          Planes;        // Color Planes
-    UInt16          BitCount;      // Bits per pixel
-    UInt32          BytesInRes;    // How many bytes in this resource?
-    UInt32          ImageOffset;   // Where in the file is this image?*/
 } iconDir;
 #pragma pack( pop )
 
