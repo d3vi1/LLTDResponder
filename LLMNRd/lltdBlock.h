@@ -13,10 +13,11 @@
 #include <net/ndrv.h>
 #include "llmnrd.h"
 #include "darwin-ops.h"
+#include "tlv-ops.h"
 
 
 void lltdBlock (void *data);
-void parseFrame(void *frame, void *networkInterface);
+void parseFrame(void *frame, void *networkInterface, int socketDescriptor);
 
 #pragma pack( push )
 #pragma pack( 2 )
@@ -37,10 +38,28 @@ typedef struct {
     uint8_t            tos;
     uint8_t            reserved;
     uint8_t            opcode;
-//    ethernet_address_t realDestination;
-//    ethernet_address_t realSource;
-//    uint16_t           seqNumber;
+    ethernet_address_t realDestination;
+    ethernet_address_t realSource;
+    uint16_t           seqNumber;
 } lltd_demultiplex_header_t;
+
+typedef struct {
+    uint16_t           generation;
+    uint16_t           stationNumber;
+    ethernet_header_t  stationList[1];
+} lltd_discover_upper_header_t;
+
+typedef struct {
+    uint16_t           generation;
+    ethernet_address_t currentMapper;
+    ethernet_address_t apparentMapper;
+} lltd_hello_upper_header_t;
+
+typedef struct {
+    uint8_t            type;
+    uint8_t            length;
+} tlv_header;
+
 #pragma pack ( pop )
 #endif
 
@@ -71,3 +90,21 @@ typedef struct {
 #define opcode_qosCounterSnapshot 0x08
 #define opcode_qosCounterResult   0x09
 #define opcode_qosCounterLease    0x0A
+#define tlv_hostId                0x01
+#define tlv_characterisics        0x02
+#define tlv_ifType                0x03
+#define tlv_wifimode              0x04
+#define tlv_bssid                 0x05
+#define tlv_ssid                  0x06
+#define tlv_ipv4                  0x07
+#define tlv_ipv6                  0x08
+#define tlv_wifiMaxRate           0x09
+#define tlv_perfCounterFrequency  0x0A
+#define tlv_linkSpeed             0x0C
+#define tlv_wifiRssi              0x0D
+#define tlv_iconImage             0x0E
+#define tlv_hostname              0x0F
+#define tlv_supportUrl            0x10
+#define tlv_friendlyName          0x11
+#define tlv_uuid                  0x12
+#define tlv_hwIdProperty          0x13

@@ -11,6 +11,7 @@
 		E500D7DD18E02F3900863EAC /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7DC18E02F3900863EAC /* ImageIO.framework */; };
 		E500D7E318E0427200863EAC /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7E218E0427200863EAC /* CoreServices.framework */; };
 		E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */ = {isa = PBXBuildFile; fileRef = E53E69BE1908293B0033F651 /* lltdBlock.c */; };
+		E59A5325190BEBB500CF5329 /* tlv-ops.c in Sources */ = {isa = PBXBuildFile; fileRef = E59A5324190BEBB500CF5329 /* tlv-ops.c */; };
 		E59C3D6A18E9B38C006836B0 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
 		E59C3D6D18E9B38C006836B0 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = E59C3D6C18E9B38C006836B0 /* main.c */; };
 		E59C3D6F18E9B38C006836B0 /* lltddaemon.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59C3D6E18E9B38C006836B0 /* lltddaemon.1 */; };
@@ -56,6 +57,8 @@
 		E54C38B218F191EB00127645 /* net.shmessenger.darwin.llmnrd.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = net.shmessenger.darwin.llmnrd.plist; path = LLMNRd/net.shmessenger.darwin.llmnrd.plist; sourceTree = SOURCE_ROOT; };
 		E54C38B318F1920500127645 /* net.shmessenger.darwin.lltddaemon.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = net.shmessenger.darwin.lltddaemon.plist; sourceTree = "<group>"; };
 		E5774FA718D61F5E00988358 /* llmnrd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = llmnrd.h; path = LLMNRd/llmnrd.h; sourceTree = SOURCE_ROOT; };
+		E59A5324190BEBB500CF5329 /* tlv-ops.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "tlv-ops.c"; path = "LLMNRd/tlv-ops.c"; sourceTree = SOURCE_ROOT; };
+		E59A5326190BEBC600CF5329 /* tlv-ops.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "tlv-ops.h"; path = "../LLMNRd/tlv-ops.h"; sourceTree = "<group>"; };
 		E59C3D6918E9B38C006836B0 /* lltddaemon */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lltddaemon; sourceTree = BUILT_PRODUCTS_DIR; };
 		E59C3D6C18E9B38C006836B0 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		E59C3D6E18E9B38C006836B0 /* lltddaemon.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = lltddaemon.1; sourceTree = "<group>"; };
@@ -147,6 +150,8 @@
 				E53E69BE1908293B0033F651 /* lltdBlock.c */,
 				E53E69C0190829540033F651 /* lltdBlock.h */,
 				E54C38B218F191EB00127645 /* net.shmessenger.darwin.llmnrd.plist */,
+				E59A5324190BEBB500CF5329 /* tlv-ops.c */,
+				E59A5326190BEBC600CF5329 /* tlv-ops.h */,
 			);
 			path = llmnrd;
 			sourceTree = "<group>";
@@ -231,6 +236,7 @@
 				E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */,
 				E5A41A0E19082C0B00D5D2FD /* llmnrd.c in Sources */,
 				E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */,
+				E59A5325190BEBB500CF5329 /* tlv-ops.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -137,7 +137,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         CFNumberGetValue(currentNetworkInterface->flags, kCFNumberIntType, &flags);
         //FIXME: There are way too many things here
         if(!( (flags & IFF_UP) && (flags & IFF_BROADCAST) && (!(flags & IFF_LOOPBACK)))){
-            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Failed flags check\n", __FUNCTION__);
+            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s failed the flags check\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8));
             return;
         }
     }
@@ -150,7 +150,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         CFNumberGetValue(currentNetworkInterface->linkStatus, kCFNumberIntType, &linkStatus);
         //FIXME: There are way too many things here
         if(!( (linkStatus & kIONetworkLinkActive) && (linkStatus & kIONetworkLinkValid) )){
-            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Failed link status check\n", __FUNCTION__);
+            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s failed link status check\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8));
             return;
         }
     }
@@ -189,8 +189,8 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
 
     
     //
-    // Now documented the interface inside our currentNetworkInterface and
-    // we know that it's up, broadcast capable, not a loopback and has a link
+    // After documenting the interface inside our currentNetworkInterface we
+    // know that it's up, broadcast capable, not a loopback and has a link
     // So we move on to adding the thread
     //
     pthread_attr_t  threadAttributes;
@@ -447,6 +447,8 @@ int main(int argc, const char *argv[]){
     
     void *uuid = NULL;
     getUpnpUuid(&uuid);
+    asl_log(asl,log_msg, ASL_LEVEL_DEBUG, "getUpnpUuid");
+    free(uuid);
 #endif
 
     //

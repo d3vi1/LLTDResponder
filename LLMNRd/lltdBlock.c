@@ -1,13 +1,19 @@
-//
-//  lltdBlock.c
-//  LLMNRd
-//
-//  Created by Răzvan Corneliu C.R. VILT on 23.04.2014.
-//  Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.
-//
+/******************************************************************************
+ *                                                                            *
+ *   lltdBlock.c                                                              *
+ *   LLMNRd                                                                   *
+ *                                                                            *
+ *   Created by Răzvan Corneliu C.R. VILT on 23.03.2014.                      *
+ *   Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.       *
+ *                                                                            *
+ ******************************************************************************/
 
 #include "llmnrd.h"
-
+//==============================================================================
+//
+// This is the thread that is opened for each valid interface
+//
+//==============================================================================
 void lltdBlock (void *data){
 
     network_interface_t *currentNetworkInterface = data;
@@ -69,7 +75,7 @@ void lltdBlock (void *data){
     for(;;){
         bytesRecv = recvfrom(fileDescriptor, buffer, currentNetworkInterface->MTU, 0, NULL, NULL);
         
-        parseFrame(buffer, currentNetworkInterface);
+        parseFrame(buffer, currentNetworkInterface, fileDescriptor);
         
         cyclNo++;
         
@@ -85,7 +91,68 @@ void lltdBlock (void *data){
 
 }
 
-void parseFrame(void *frame, void *networkInterface){
+
+
+//==============================================================================
+//
+// This is the Hello answer to any Discovery package.
+//
+//==============================================================================
+void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
+    network_interface_t *currentNetworkInterface = networkInterface;
+
+    void *buffer = malloc(currentNetworkInterface->MTU);
+    
+    lltd_demultiplex_header_t *inFrameHeader = inFrame;
+    lltd_demultiplex_header_t *lltdHeader = buffer;
+
+    lltd_hello_upper_header_t *helloHeader = (void *)lltdHeader + sizeof(lltdHeader);
+    lltd_discover_upper_header_t *discoverHeader = (void *)inFrameHeader + sizeof(lltdHeader);
+    setLltdHeader(currentNetworkInterface->hwAddress, inFrameHeader->realSource, inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
+    setHelloHeader(helloHeader, inFrameHeader->frameHeader.source, inFrameHeader->realSource);
+    setHostnameTLV();
+    setCharacteristicsTLV();
+    setPhysicalMediumTLV();
+    
+    if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
+        setWirelessTLV();
+        setBSSIDTLV();
+        setSSIDTLV();
+        setWifiMaxRateTLV();
+        setWifiRssiTLV();
+        set80211MediumTLV();
+        setAPAssociationTableTLV();
+        setRepeaterAPLineageTLV();
+        setRepeaterAPTableTLV();
+    }
+    setIPv4TLV();
+    setIPv6TLV();
+    setPerfCounterTLV();
+    setLinkSpeedTLV();
+    setIconImageTLV();
+    setMachineNameTLV();
+    setSupportInfoTLV();
+    setFriendlyNameTLV();
+    setUuidTLV();
+    setHardwareIdTLV();
+    setQosCharacteristicsTLV();
+    setDetailedIconTLV();
+    setSeeslistWorkingSetTLV();
+    setComponentTableTLV();
+    setEndOfPropertyTLV();
+}
+
+
+
+//==============================================================================
+//
+// Here we validate the frame and make sure that the TOS/OpCode is a valid
+// combination.
+// TODO: Add a method to validate that we have the correct TLV combinations
+// TODO: for each frame.
+//
+//==============================================================================
+void parseFrame(void *frame, void *networkInterface, int socketDescriptor){
     lltd_demultiplex_header_t *header = frame;
     network_interface_t *currentNetworkInterface = networkInterface;
     
@@ -100,6 +167,7 @@ void parseFrame(void *frame, void *networkInterface){
             switch (header->opcode) {
                 case opcode_discover:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Discover (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    answerHello(frame, currentNetworkInterface, socketDescriptor);
                     break;
                 case opcode_hello:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Hello (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
@@ -124,6 +192,7 @@ void parseFrame(void *frame, void *networkInterface){
                     break;
                 case opcode_reset:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    
                     break;
                 case opcode_charge:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Charge (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
@@ -145,10 +214,13 @@ void parseFrame(void *frame, void *networkInterface){
         case tos_quick_discovery:
             switch (header->opcode) {
                 case opcode_discover:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Discover (%d) for TOS_Quick_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_hello:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Hello (%d) for TOS_Quick_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_reset:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Quick_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 default:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Invalid opcode (%d) for TOS_Quick_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
@@ -158,26 +230,37 @@ void parseFrame(void *frame, void *networkInterface){
         case tos_qos_diagnostics:
             switch (header->opcode) {
                 case opcode_qosInitializeSink:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Initialize Sink (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_qosReady:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Ready (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_qosProbe:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Probe (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_qosQuery:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Query (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_qosQueryResp:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Query Response (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_qosReset:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_qosError:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Error (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_qosAck:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Ack (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_qosCounterSnapshot:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Counter Snapshot (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_qosCounterResult:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Counter Result (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_qosCounterLease:
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Counter Lease (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 default:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Invalid opcode (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
@@ -187,4 +270,5 @@ void parseFrame(void *frame, void *networkInterface){
         default:
             asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Invalid Type of Service Code: %x", __FUNCTION__, header->tos);
     }
+    
 }

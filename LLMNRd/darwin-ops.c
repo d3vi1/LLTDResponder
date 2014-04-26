@@ -20,7 +20,7 @@
 // Returned in UUID binary format
 //
 //==============================================================================
-void getUpnpUuid(void **uuid){
+void getUpnpUuid(void **pointer){
     io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault,
                                                               IOServiceMatching("IOPlatformExpertDevice"));
     if (platformExpert) {
@@ -28,21 +28,21 @@ void getUpnpUuid(void **uuid){
                                                               CFSTR(kIOPlatformUUIDKey),
                                                               kCFAllocatorDefault, 0);
         
+        
         IOObjectRelease(platformExpert);
-        
-        *uuid = malloc(sizeof(CFUUIDBytes));
-        
+
         CFUUIDRef cfUUID = CFUUIDCreateFromString(kCFAllocatorDefault, uuidStr);
-        CFUUIDBytes CFUUIDBytes = CFUUIDGetUUIDBytes(cfUUID);
-        *uuid = &CFUUIDBytes;
-        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s\n", __FUNCTION__, CFStringGetCStringPtr(uuidStr, 0));
+        CFUUIDBytes uuidBytes = CFUUIDGetUUIDBytes(cfUUID);
+        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s %x\n", __FUNCTION__, CFStringGetCStringPtr(uuidStr, 0), uuidBytes.byte0);
+        *pointer = malloc(sizeof(uuidBytes));
+        memcpy(*pointer, &uuidBytes, sizeof(CFUUIDBytes));
         CFRelease(cfUUID);
         CFRelease(uuidStr);
-        
         return;
         
-    } else uuid = NULL;
+    } else pointer = NULL;
 }
+
 
 
 //==============================================================================
@@ -109,13 +109,17 @@ void getIconImage(void **icon, size_t *iconsize){
             CFURLRef iconURL = CFBundleCopyResourceURL(CTBundle, iconFileNameRef, NULL, NULL);
 
             CFRelease(CTBundleUrlRef);
+            //FIXME: Doesn't get released
             CFRelease(CTBundle);
 //            CFRelease(iconFileNameRef);//Gets released by releasing utiDeclaration
+            
+            //FIXME: Doesn't get released
             CFRelease(utiDeclaration);
+            //FIXME: Doesn't get released
             CFRelease(UniformTypeIdentifier);
 
             
-            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Icon URL: %s\n", __FUNCTION__, CFStringGetCStringPtr(CFURLGetString(iconURL), kCFStringEncodingUTF8));
+//            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Icon URL: %s\n", __FUNCTION__, CFStringGetCStringPtr(CFURLGetString(iconURL), kCFStringEncodingUTF8));
 
             // Load the icns file
             CGImageSourceRef myIcon = CGImageSourceCreateWithURL(iconURL, NULL);
@@ -125,7 +129,7 @@ void getIconImage(void **icon, size_t *iconsize){
             if( myIcon != NULL){
                     size_t iconCount = CGImageSourceGetCount (myIcon);
 
-                    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: icon count: %zu\n", __FUNCTION__, iconCount);
+//                    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: icon count: %zu\n", __FUNCTION__, iconCount);
 
                     Boolean haveIconSelected = FALSE;
                     size_t iconSelected = 0;
@@ -165,8 +169,9 @@ void getIconImage(void **icon, size_t *iconsize){
                                 haveIconSelected = TRUE;
                             }
 
-                            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI) %dx%d (%d)\n", __FUNCTION__, index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
-
+//                            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI) %dx%d (%d)\n", __FUNCTION__, index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
+                            
+                            // FIXME: Doesn't get released
                             CFRelease(imageProperties);
                         }
                         
@@ -201,8 +206,10 @@ void getIconImage(void **icon, size_t *iconsize){
                         CFMutableDataRef myImageStream = CFDataCreateMutable(kCFAllocatorDefault, 0);
                         CGImageDestinationRef myImage = CGImageDestinationCreateWithData(myImageStream, kUTTypePNG, 1, NULL);
                         CGImageDestinationAddImage(myImage, thumbnailImageRef, NULL);
+                        //FIXME: Doesn't get released
                         CFRelease(thumbnailImageRef);
                         CGImageDestinationFinalize(myImage);
+                        //FIXME: Doesn't get released
                         CFRelease(myImage);
                         
                         // Now let's make an ICO out of that PNG. We have:
@@ -232,16 +239,20 @@ void getIconImage(void **icon, size_t *iconsize){
                         *iconsize = (CFDataGetLength(myImageStream) + sizeof(iconDir));
                         CFRelease(myImageStream);
                     }
-                    
+                
+                    //FIXME: Doesn't get released
                     CFRelease(myIcon);
                 }
 
         } else {
+
             CFRelease(UniformTypeIdentifier);
         }
 
     }
 }
+
+
 
 //==============================================================================
 //
@@ -259,6 +270,7 @@ void getMachineName(char **pointer, size_t *stringSize){
 }
 
 
+
 //==============================================================================
 //
 // Returned in UCS-2LE only with QueryLargeTLV
@@ -273,6 +285,8 @@ void getFriendlyName(char **pointer, size_t *stringSize){
     CFRelease(FriendlyName);
     *pointer = data;
 }
+
+
 
 //==============================================================================
 //
@@ -301,7 +315,7 @@ void getSupportInfo(void **data, size_t *stringSize){
             //the last 3 digits
             //
             if(CFStringGetLength(serialNumber)==11) {
-                asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: 11 character serial number %s\n", __FUNCTION__, CFStringGetCStringPtr(serialNumber, 0));
+//                asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: 11 character serial number %s\n", __FUNCTION__, CFStringGetCStringPtr(serialNumber, 0));
                 CFMutableStringRef URLString = CFStringCreateMutable(kCFAllocatorDefault, 0);
                 if (URLString != NULL){
                     CFStringAppend(URLString, CFSTR("http://support-sp.apple.com/sp/index?page=psp&cc="));

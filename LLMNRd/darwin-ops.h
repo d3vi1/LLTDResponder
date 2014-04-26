@@ -21,7 +21,7 @@ void getFriendlyName(char **data, size_t *stringSize);
 // Returned in UCS-2LE
 void getSupportInfo(void **data, size_t *stringSize);
 // Returned in UUID binary format
-void getUpnpUuid(void **uuid);
+void getUpnpUuid(void **data);
 // See 2.2.2.3 in UCS-2LE
 void getHwId(void *data);
 // Returns a copy of the icon image
