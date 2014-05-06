@@ -108,7 +108,7 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
 
     lltd_hello_upper_header_t *helloHeader = (void *)lltdHeader + sizeof(lltdHeader);
     lltd_discover_upper_header_t *discoverHeader = (void *)inFrameHeader + sizeof(lltdHeader);
-    setLltdHeader(currentNetworkInterface->hwAddress, inFrameHeader->realSource, inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
+/*    setLltdHeader(currentNetworkInterface->hwAddress, inFrameHeader->realSource, inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
     setHelloHeader(helloHeader, inFrameHeader->frameHeader.source, inFrameHeader->realSource);
     setHostnameTLV();
     setCharacteristicsTLV();
@@ -139,7 +139,7 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
     setDetailedIconTLV();
     setSeeslistWorkingSetTLV();
     setComponentTableTLV();
-    setEndOfPropertyTLV();
+    setEndOfPropertyTLV();*/
 }
 
 

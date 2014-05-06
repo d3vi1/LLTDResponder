@@ -11,7 +11,6 @@
 		E500D7DD18E02F3900863EAC /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7DC18E02F3900863EAC /* ImageIO.framework */; };
 		E500D7E318E0427200863EAC /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7E218E0427200863EAC /* CoreServices.framework */; };
 		E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */ = {isa = PBXBuildFile; fileRef = E53E69BE1908293B0033F651 /* lltdBlock.c */; };
-		E59A5325190BEBB500CF5329 /* tlv-ops.c in Sources */ = {isa = PBXBuildFile; fileRef = E59A5324190BEBB500CF5329 /* tlv-ops.c */; };
 		E59C3D6A18E9B38C006836B0 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
 		E59C3D6D18E9B38C006836B0 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = E59C3D6C18E9B38C006836B0 /* main.c */; };
 		E59C3D6F18E9B38C006836B0 /* lltddaemon.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59C3D6E18E9B38C006836B0 /* lltddaemon.1 */; };
@@ -236,7 +235,6 @@
 				E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */,
 				E5A41A0E19082C0B00D5D2FD /* llmnrd.c in Sources */,
 				E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */,
-				E59A5325190BEBB500CF5329 /* tlv-ops.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

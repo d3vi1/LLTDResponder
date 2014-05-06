@@ -13,7 +13,7 @@
 #include <net/ndrv.h>
 #include "llmnrd.h"
 #include "darwin-ops.h"
-#include "tlv-ops.h"
+//#include "tlv-ops.h"
 
 
 void lltdBlock (void *data);

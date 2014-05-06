@@ -11,13 +11,10 @@
 
 #include "llmnrd.h"
 #define debug 1
-//==============================================================================
-//
-// We are currently checking if it's an Ethernet Interface
-//
-//==============================================================================
+
 void SignalHandler(int Signal) {
     asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "\nInterrupted by signal #%d\n", Signal);
+    printf("\nInterrupted by signal #%d\n", Signal);
     exit(0);
 }
 
@@ -249,6 +246,20 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
 
         asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: A property has changed.\n", __FUNCTION__);
         //TODO: Now let's see what property changed. Let's compare with the saved information
+        /* CFStringRef            deviceName;
+        uint8_t                hwAddress [ kIOEthernetAddressSize ];
+        uint32_t               ifType;              // The generic kernel interface type
+        // (csma/cd applies to ethernet/firware
+        // and wireless, although they are
+        // different and wireless is CSMA/CA
+        CFStringRef            interfaceType;       // A string describing the interface
+        // type (Ethernet/Firewire/IEEE80211)
+        SCNetworkInterfaceRef  SCNetworkInterface;
+        SCNetworkConnectionRef SCNetworkConnection;
+        CFNumberRef            flags;               // kIOInterfaceFlags from the Interface
+        CFNumberRef            linkStatus;          // kIOLinkStatus from the Controller
+        uint32_t               MTU;                 // We'll set the buffer size to the MTU size*/
+        
     }
 }
 
@@ -442,12 +453,12 @@ int main(int argc, const char *argv[]){
     void *supportURL = NULL;
     size_t sizeOfSupportURL = 0;
     getSupportInfo(&supportURL, &sizeOfSupportURL);
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getSupportInfo: %s\n", (char *)supportURL);    // While the wprintf doesn't work, watching the buffer shows
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getSupportInfo: %s\n", (char *)supportURL);
     free(supportURL);
     
     void *uuid = NULL;
     getUpnpUuid(&uuid);
-    asl_log(asl,log_msg, ASL_LEVEL_DEBUG, "getUpnpUuid");
+//    asl_log(asl,log_msg, ASL_LEVEL_DEBUG, "getUpnpUuid: %d");
     free(uuid);
 #endif
 
