@@ -113,7 +113,7 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
     //Validate that real mac address == src address
     //If it's not, silently fail.
     //
-    if (!compareEthernetAddress(lltdHeader->realSource, lltdHeader->frameHeader.source)){
+    if (!compareEthernetAddress(&lltdHeader->realSource, &lltdHeader->frameHeader.source)){
         return;
     }
 /*    setLltdHeader(currentNetworkInterface->hwAddress, ethernet_broadcast_address, inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
