@@ -15,8 +15,8 @@
 static const ethernet_address_t EthernetBroadcast = (ethernet_address_t) {{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
 
 bool compareEthernetAddress(ethernet_address_t *A, ethernet_address_t *B);
-void setLltdHeader (ethernet_address_t *source, ethernet_address_t *destination, uint16_t seqNumber, uint8_t opcode, uint8_t tos);
-void setHelloHeader (ethernet_address_t *apparentMapper, ethernet_address_t *currentMapper, uint16_t generation);
+u_int64_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_address_t *destination, uint16_t seqNumber, uint8_t opcode, uint8_t tos);
+u_int64_t setHelloHeader (void *buffer, u_int64_t offset, ethernet_address_t *apparentMapper, ethernet_address_t *currentMapper, uint16_t generation);
 void setHostnameTLV();
 void setCharacteristicsTLV();
 void setPerfCounterTLV();
