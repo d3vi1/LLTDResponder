@@ -20,6 +20,7 @@
 		E59E8C0118CF4D500054B295 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0018CF4D500054B295 /* SystemConfiguration.framework */; };
 		E59E8C0318CF4D550054B295 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0218CF4D550054B295 /* CoreWLAN.framework */; };
 		E5A41A0E19082C0B00D5D2FD /* llmnrd.c in Sources */ = {isa = PBXBuildFile; fileRef = E5A41A0D19082C0B00D5D2FD /* llmnrd.c */; };
+		E5FD8AE0192A130900E4EA22 /* tlv-ops.c in Sources */ = {isa = PBXBuildFile; fileRef = E59A5324190BEBB500CF5329 /* tlv-ops.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -235,6 +236,7 @@
 				E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */,
 				E5A41A0E19082C0B00D5D2FD /* llmnrd.c in Sources */,
 				E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */,
+				E5FD8AE0192A130900E4EA22 /* tlv-ops.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

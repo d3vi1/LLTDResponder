@@ -10,9 +10,9 @@
 #pragma mark -
 #pragma mark Header generation
 //
-void setLltdHeader (ethernet_header_t *source, ethernet_header_t *destination, uint16_t seqNumber, uint8_t opcode, uint8_t tos){
+//void setLltdHeader (ethernet_header_t *source, ethernet_header_t *destination, uint16_t seqNumber, uint8_t opcode, uint8_t tos){
     
-    lltdHeader->frameHeader.ethertype = lltdEtherType;
+/*    lltdHeader->frameHeader.ethertype = lltdEtherType;
     lltdHeader->frameHeader.source.a[0] = source.a[0];
     lltdHeader->frameHeader.source.a[1] = source.a[1];
     lltdHeader->frameHeader.source.a[2] = source.a[2];
@@ -40,15 +40,21 @@ void setLltdHeader (ethernet_header_t *source, ethernet_header_t *destination, u
     lltdHeader->seqNumber = seqNumber;
     lltdHeader->opcode = opcode;
     lltdHeader->tos = tos;
-    lltdHeader->version = 1;
+    lltdHeader->version = 1;*/
 
+//}
+
+bool compareEthernetAddress(ethernet_address_t *A, ethernet_address_t *B){
+    
+    if ((A->a[0]==B->a[0])&&(A->a[1]==B->a[1])&&(A->a[2]==B->a[2])&&(A->a[3]==B->a[3])&&(A->a[4]==B->a[4])&&(A->a[5]==B->a[5])) return true;
+    return false;
 }
 
 //
 // Get the mess out of lltdBlock.c
 //
-void setHelloHeader (lltd_hello_header_t *helloHeader, ethernet_header_t *apparentMapper, ethernet_header_t currentMapper, uint16_t generation){
-    helloHeader->apparentMapper.a[0] = apparentMapper.a[0];
+//void setHelloHeader (lltd_hello_header_t *helloHeader, ethernet_header_t *apparentMapper, ethernet_header_t currentMapper, uint16_t generation){
+/*    helloHeader->apparentMapper.a[0] = apparentMapper.a[0];
     helloHeader->apparentMapper.a[1] = apparentMapper.a[1];
     helloHeader->apparentMapper.a[2] = apparentMapper.a[2];
     helloHeader->apparentMapper.a[3] = apparentMapper.a[3];
@@ -60,8 +66,8 @@ void setHelloHeader (lltd_hello_header_t *helloHeader, ethernet_header_t *appare
     helloHeader->currentMapper.a[3] = currentMapper.a[3];
     helloHeader->currentMapper.a[4] = currentMapper.a[4];
     helloHeader->currentMapper.a[5] = currentMapper.a[5];
-    helloHeader->generation = generation;
-}
+    helloHeader->generation = generation;*/
+//}
 
 #pragma mark -
 #pragma mark Host specific TLVs

@@ -12,8 +12,9 @@
 #include "darwin-ops.h"
 #include "lltdBlock.h"
 
-void setLltdHeader (ethernet_header_t *source, ethernet_header_t *destination, uint16_t seqNumber, uint8_t opcode, uint8_t tos);
-void setHelloHeader (ethernet_header_t *apparentMapper, ethernet_header_t *currentMapper, uint16_t generation);
+bool compareEthernetAddress(ethernet_address_t *A, ethernet_address_t *B);
+void setLltdHeader (ethernet_address_t *source, ethernet_address_t *destination, uint16_t seqNumber, uint8_t opcode, uint8_t tos);
+void setHelloHeader (ethernet_address_t *apparentMapper, ethernet_address_t *currentMapper, uint16_t generation);
 void setHostnameTLV();
 void setCharacteristicsTLV();
 void setPerfCounterTLV();
