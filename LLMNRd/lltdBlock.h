@@ -108,3 +108,8 @@ typedef struct {
 #define tlv_friendlyName          0x11
 #define tlv_uuid                  0x12
 #define tlv_hwIdProperty          0x13
+#define Config_TLV_PublicNAT_Value              0x8000
+#define Config_TLV_PrivateNAT_Value             0x4000
+#define Config_TLV_NetworkInterfaceDuplex_Value 0x2000
+#define Config_TLV_HasManagementURL_Value       0x1000
+#define Config_TLV_InterfaceIsLoopback_Value    0x800

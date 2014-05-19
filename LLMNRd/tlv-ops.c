@@ -10,6 +10,17 @@
 #pragma mark -
 #pragma mark Header generation
 
+typedef struct {
+    uint8_t TLVType;
+    uint8_t TLVLength;
+}  generic_tlv_t;
+
+typedef struct {
+    uint8_t     TLVType;
+    uint8_t     TLVLength;
+    uint16_t    ConfigTLV;
+} characteristic_tlv_t;
+
 u_int64_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_address_t *destination, uint16_t seqNumber, uint8_t opcode, uint8_t tos){
     
     lltd_demultiplex_header_t *lltdHeader = (lltd_demultiplex_header_t*) buffer;
@@ -38,7 +49,7 @@ bool compareEthernetAddress(ethernet_address_t *A, ethernet_address_t *B) {
 //
 u_int64_t setHelloHeader (void *buffer, u_int64_t offset, ethernet_address_t *apparentMapper, ethernet_address_t *currentMapper, uint16_t generation){
     
-    lltd_hello_upper_header_t *helloHeader = (lltd_hello_upper_header_t *) buffer+offset;
+    lltd_hello_upper_header_t *helloHeader = (lltd_hello_upper_header_t *) (buffer+offset);
 
     memcpy(&helloHeader->apparentMapper, apparentMapper, sizeof(ethernet_address_t));
     memcpy(&helloHeader->currentMapper, currentMapper, sizeof(ethernet_address_t));
@@ -49,95 +60,108 @@ u_int64_t setHelloHeader (void *buffer, u_int64_t offset, ethernet_address_t *ap
 
 #pragma mark -
 #pragma mark Host specific TLVs
-void setHostnameTLV(){
+u_int64_t setHostnameTLV(void *buffer, u_int64_t offset){
+    void *hostname = NULL;
+    size_t sizeOfHostname = 0;
+    getMachineName((char **)&hostname, &sizeOfHostname);
+    
+    generic_tlv_t *hostnameTLV = (generic_tlv_t *) (buffer+offset);
+    hostnameTLV->TLVType = tlv_hostname;
+    hostnameTLV->TLVLength = sizeOfHostname;
+    void *hostNameStringOffset = (buffer+offset+sizeof(hostnameTLV));
+    memcpy(hostNameStringOffset, hostname, sizeOfHostname);
+    free(hostname);
+    
+    return buffer+offset+sizeof(hostnameTLV)+sizeOfHostname;
+}
+u_int64_t setCharacteristicsTLV(void *buffer, u_int64_t offset) {
+    
+    
+    return 0;
+}
+u_int64_t setPerfCounterTLV(void *buffer, u_int64_t offset){
     
 }
-void setCharacteristicsTLV(){
+u_int64_t setIconImageTLV(void *buffer, u_int64_t offset){
     
 }
-void setPerfCounterTLV(){
+u_int64_t setMachineNameTLV(void *buffer, u_int64_t offset){
     
 }
-void setIconImageTLV(){
+u_int64_t setSupportInfoTLV(void *buffer, u_int64_t offset){
     
 }
-void setMachineNameTLV(){
+u_int64_t setFriendlyNameTLV(void *buffer, u_int64_t offset){
     
 }
-void setSupportInfoTLV(){
+u_int64_t setUuidTLV(void *buffer, u_int64_t offset){
     
 }
-void setFriendlyNameTLV(){
+u_int64_t setHardwareIdTLV(void *buffer, u_int64_t offset){
     
 }
-void setUuidTLV(){
+u_int64_t setQosCharacteristicsTLV(void *buffer, u_int64_t offset){
     
 }
-void setHardwareIdTLV(){
+u_int64_t setDetailedIconTLV(void *buffer, u_int64_t offset){
     
 }
-void setQosCharacteristicsTLV(){
+u_int64_t setComponentTableTLV(void *buffer, u_int64_t offset){
     
 }
-void setDetailedIconTLV(){
-    
-}
-void setComponentTableTLV(){
-    
-}
-void setEndOfPropertyTLV(){
+u_int64_t setEndOfPropertyTLV(void *buffer, u_int64_t offset){
     
 }
 
 #pragma mark -
 #pragma mark Interface Specific TLVs
-void setPhysicalMediumTLV(void *networkInterface){
+u_int64_t setPhysicalMediumTLV(void *buffer, u_int64_t offset, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
     uint8_t Type = tlv_ifType;
     uint8_t Length = 4;
     uint32_t ifType = currentNetworkInterface->ifType;
 }
-void setIPv4TLV(void *networkInterface){
+u_int64_t setIPv4TLV(void *buffer, u_int64_t offset, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
     uint8_t Type = tlv_ifType;
     uint8_t Length = 4;
     uint32_t ifType = currentNetworkInterface->ifType;
 }
-void setIPv6TLV(){
+u_int64_t setIPv6TLV(void *buffer, u_int64_t offset){
     
 }
-void setLinkSpeedTLV(){
+u_int64_t setLinkSpeedTLV(void *buffer, u_int64_t offset){
     
 }
-void setSeeslistWorkingSetTLV(){
+u_int64_t setSeeslistWorkingSetTLV(void *buffer, u_int64_t offset){
     
 }
 #pragma mark -
 #pragma mark 802.11 Interface Specific TLVs
-void setWirelessTLV(){
-    
+u_int64_t setWirelessTLV(void *buffer, u_int64_t offset){
+    return 0;
 }
-void setBSSIDTLV(){
-    
+u_int64_t setBSSIDTLV(void *buffer, u_int64_t offset){
+    return 0;
 }
-void setSSIDTLV(){
-    
+u_int64_t setSSIDTLV(void *buffer, u_int64_t offset){
+    return 0;
 }
-void setWifiMaxRateTLV(){
-    
+u_int64_t setWifiMaxRateTLV(void *buffer, u_int64_t offset){
+    return 0;
 }
-void setWifiRssiTLV(){
-    
+u_int64_t setWifiRssiTLV(void *buffer, u_int64_t offset){
+    return 0;
 }
-void set80211MediumTLV(){
-    
+u_int64_t set80211MediumTLV(void *buffer, u_int64_t offset){
+    return 0;
 }
-void setAPAssociationTableTLV(){
-    
+u_int64_t setAPAssociationTableTLV(void *buffer, u_int64_t offset){
+    return 0;
 }
-void setRepeaterAPLineageTLV(){
-    
+u_int64_t setRepeaterAPLineageTLV(void *buffer, u_int64_t offset){
+    return 0;
 }
-void setRepeaterAPTableTLV(){
-    
+u_int64_t setRepeaterAPTableTLV(void *buffer, u_int64_t offset){
+    return 0;
 }

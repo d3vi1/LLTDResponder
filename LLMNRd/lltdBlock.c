@@ -102,6 +102,7 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
     network_interface_t *currentNetworkInterface = networkInterface;
 
     void *buffer = malloc(currentNetworkInterface->MTU);
+    memset(buffer, 0, currentNetworkInterface->MTU);
     u_int64_t offset = 0;
     
     lltd_demultiplex_header_t *inFrameHeader = inFrame;
@@ -115,15 +116,15 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
     //If it's not, silently fail.
     //
     if (!compareEthernetAddress(&lltdHeader->realSource, &lltdHeader->frameHeader.source)){
-        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Discovery validation failed - %x vs %x.\n", __FUNCTION__, &lltdHeader->realSource, &lltdHeader->frameHeader.source);
-        return;
+        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Discovery validation failed - %x vs %x.\n", __FUNCTION__, lltdHeader->realSource, lltdHeader->frameHeader.source);
+//        return;
     }
     offset = setLltdHeader(buffer, currentNetworkInterface->hwAddress, (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
     offset = setHelloHeader(buffer, offset, &inFrameHeader->frameHeader.source, &inFrameHeader->realSource, discoverHeader->generation );
-    setHostnameTLV();
-    setCharacteristicsTLV();
+    offset = setHostnameTLV(buffer, offset);
+/*    setCharacteristicsTLV();
     setPhysicalMediumTLV();
-/*
+
     if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
         setWirelessTLV();
         setBSSIDTLV();
@@ -135,7 +136,7 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
         setRepeaterAPLineageTLV();
         setRepeaterAPTableTLV();
     }
- */
+
     setIPv4TLV();
     setIPv6TLV();
     setPerfCounterTLV();
@@ -151,6 +152,7 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
     setSeeslistWorkingSetTLV();
     setComponentTableTLV();
     setEndOfPropertyTLV();
+  */
 }
 
 
