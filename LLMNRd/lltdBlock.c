@@ -120,13 +120,13 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
 //        return;
     }
     offset = setLltdHeader(buffer, currentNetworkInterface->hwAddress, (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
-    offset = setHelloHeader(buffer, offset, &inFrameHeader->frameHeader.source, &inFrameHeader->realSource, discoverHeader->generation );
-    offset = setHostnameTLV(buffer, offset);
+    offset += setHelloHeader(buffer, offset, &inFrameHeader->frameHeader.source, &inFrameHeader->realSource, discoverHeader->generation );
+    offset += setHostnameTLV(buffer, offset);
     // FIXME: we really need to write them properly
-    offset = setCharacteristicsTLV(buffer, offset);
-/*    setPhysicalMediumTLV();
+    offset += setCharacteristicsTLV(buffer, offset);
+    offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
 
-    if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
+/*    if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
         setWirelessTLV();
         setBSSIDTLV();
         setSSIDTLV();

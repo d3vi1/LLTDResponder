@@ -72,7 +72,7 @@ u_int64_t setHostnameTLV(void *buffer, u_int64_t offset){
     memcpy(hostNameStringOffset, hostname, sizeOfHostname);
     free(hostname);
     
-    return buffer+offset+sizeof(hostnameTLV)+sizeOfHostname;
+    return sizeof(hostnameTLV)+sizeOfHostname;
 }
 //FIXME: mAREE de citit full duplex sau nu, NAT sau nu.. bla bla
 u_int64_t setCharacteristicsTLV(void *buffer, u_int64_t offset) {
@@ -124,6 +124,10 @@ u_int64_t setPhysicalMediumTLV(void *buffer, u_int64_t offset, void *networkInte
     uint8_t Type = tlv_ifType;
     uint8_t Length = 4;
     uint32_t ifType = currentNetworkInterface->ifType;
+    
+    memcpy(buffer+offset, ifType, sizeof(ifType));
+    
+    return sizeof(ifType);
 }
 u_int64_t setIPv4TLV(void *buffer, u_int64_t offset, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
