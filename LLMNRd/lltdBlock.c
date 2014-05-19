@@ -125,7 +125,15 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
     // FIXME: we really need to write them properly
     offset += setCharacteristicsTLV(buffer, offset);
     offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
+    offset += setPerfCounterTLV(buffer, offset);
+    
+    offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
+    offset += setQosCharacteristicsTLV(buffer, offset);
+    offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
+    
+    offset += setEndOfPropertyTLV(buffer, offset);
 
+    int write = sendto(socketDescriptor, buffer, offset, 0, NULL, NULL);
 /*    if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
         setWirelessTLV();
         setBSSIDTLV();
@@ -138,21 +146,18 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
         setRepeaterAPTableTLV();
     }
 
-    setIPv4TLV();
     setIPv6TLV();
-    setPerfCounterTLV();
     setLinkSpeedTLV();
     setIconImageTLV();
-    setMachineNameTLV();
+    setMachineNameTLV(); //TODO: asta e de fapt setHostnameTLV!!
     setSupportInfoTLV();
     setFriendlyNameTLV();
     setUuidTLV();
     setHardwareIdTLV();
-    setQosCharacteristicsTLV();
+
     setDetailedIconTLV();
-    setSeeslistWorkingSetTLV();
+    //setSeeslistWorkingSetTLV();
     setComponentTableTLV();
-    setEndOfPropertyTLV();
   */
 }
 
