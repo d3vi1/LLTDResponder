@@ -122,8 +122,9 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
     offset = setLltdHeader(buffer, currentNetworkInterface->hwAddress, (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
     offset = setHelloHeader(buffer, offset, &inFrameHeader->frameHeader.source, &inFrameHeader->realSource, discoverHeader->generation );
     offset = setHostnameTLV(buffer, offset);
-/*    setCharacteristicsTLV();
-    setPhysicalMediumTLV();
+    // FIXME: we really need to write them properly
+    offset = setCharacteristicsTLV(buffer, offset);
+/*    setPhysicalMediumTLV();
 
     if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
         setWirelessTLV();

@@ -74,10 +74,14 @@ u_int64_t setHostnameTLV(void *buffer, u_int64_t offset){
     
     return buffer+offset+sizeof(hostnameTLV)+sizeOfHostname;
 }
+//FIXME: mAREE de citit full duplex sau nu, NAT sau nu.. bla bla
 u_int64_t setCharacteristicsTLV(void *buffer, u_int64_t offset) {
-    
-    
-    return 0;
+    characteristic_tlv_t * charac = (characteristic_tlv_t *) (buffer+offset);
+    uint32_t characteristicsValue;
+    charac->TLVType = tlv_characterisics;
+    charac->TLVLength = sizeof(characteristicsValue);
+    characteristicsValue = characteristicsValue | Config_TLV_NetworkInterfaceDuplex_Value;
+    return sizeof(characteristic_tlv_t);
 }
 u_int64_t setPerfCounterTLV(void *buffer, u_int64_t offset){
     
