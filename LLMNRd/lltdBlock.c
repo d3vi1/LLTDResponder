@@ -119,20 +119,23 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor, co
         asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Discovery validation failed real mac is not equal to source.\n", __FUNCTION__);
 //        return;
     }
-    offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->hwAddress), (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
+    offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->hwAddress), (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, //inFrameHeader->tos);
+                    0x01);
     //offset = setLltdHeader(buffer, currentNetworkInterface->hwAddress, (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, tos_quick_discovery);
     
     offset += setHelloHeader(buffer, offset, &inFrameHeader->frameHeader.source, &inFrameHeader->realSource, discoverHeader->generation );
-    offset += setHostnameTLV(buffer, offset);
-    // FIXME: we really need to write them properly
+    offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
     offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
     offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
-    //offset += setPerfCounterTLV(buffer, offset);
-    //offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
+    offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
+    //offset += setIPv6TLV(buffer, offset, currentNetworkInterface);
+    offset += setPerfCounterTLV(buffer, offset);
+    //offset += setLinkSpeedTLV(buffer, offset, currentNetworkInterface);
+    offset += setHostnameTLV(buffer, offset);
+    // FIXME: we really need to write them properly
     offset += setQosCharacteristicsTLV(buffer, offset);
-    offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
     offset += setEndOfPropertyTLV(buffer, offset);
-    
+
     size_t write = sendto(socketDescriptor, buffer, offset, 0, socketAddr, sizeof(socketAddr));
 /*    if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
         setWirelessTLV();
