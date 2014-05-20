@@ -149,9 +149,6 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor, co
         setRepeaterAPLineageTLV();
         setRepeaterAPTableTLV();
     }
-
-    setIPv6TLV();
-    setLinkSpeedTLV();
     setIconImageTLV();
     setMachineNameTLV(); //TODO: asta e de fapt setHostnameTLV!!
     setSupportInfoTLV();
