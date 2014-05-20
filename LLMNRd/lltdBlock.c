@@ -127,16 +127,16 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor, co
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
     offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
     offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
-    //offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
-    //offset += setIPv6TLV(buffer, offset, currentNetworkInterface);
+    offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
+    offset += setIPv6TLV(buffer, offset, currentNetworkInterface);
     offset += setPerfCounterTLV(buffer, offset);
     offset += setLinkSpeedTLV(buffer, offset, currentNetworkInterface);
     offset += setHostnameTLV(buffer, offset);
-    // FIXME: we really need to write them properly
+//     FIXME: we really need to write them properly
     offset += setQosCharacteristicsTLV(buffer, offset);
     offset += setEndOfPropertyTLV(buffer, offset);
 
-    size_t write = sendto(socketDescriptor, buffer, offset, 0, socketAddr, sizeof(socketAddr));
+    size_t write = sendto(socketDescriptor, buffer, offset, 0, (struct sockaddr *) socketAddr, sizeof(socketAddr));
 
 /*    if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
         setWirelessTLV();

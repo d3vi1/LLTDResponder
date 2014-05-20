@@ -34,6 +34,8 @@
 #include "darwin-ops.h"
 #include "lltdBlock.h"
 #include "tlv-ops.h"
+#include <ifaddrs.h>
+#include <arpa/inet.h>
 
 
 
@@ -55,6 +57,8 @@ typedef struct {
     uint32_t               MTU;                 // We'll set the buffer size to the MTU size
     CFNumberRef            MediumType;          // Get the current medium Type
     uint64_t               LinkSpeed;           // The current link speed, automatically updated when the property changes
+    uint32_t               IPv4Addr;
+    struct in6_addr               IPv6Addr;
     //TODO: Add the pthread struct here in case we need to stop the thread
 } network_interface_t;
 

@@ -67,7 +67,7 @@ uint64_t setHostnameTLV(void *buffer, uint64_t offset){
     generic_tlv_t *hostnameTLV = (generic_tlv_t *) (buffer + offset);
     hostnameTLV->TLVType = tlv_hostname;
     hostnameTLV->TLVLength = sizeOfHostname;
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %d %d %d\n", __FUNCTION__, hostnameTLV->TLVType, hostnameTLV->TLVLength, sizeOfHostname);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %d %d %zu\n", __FUNCTION__, hostnameTLV->TLVType, hostnameTLV->TLVLength, sizeOfHostname);
     memcpy((void *)(buffer + offset + sizeof(generic_tlv_t)), hostname, sizeOfHostname);
     free(hostname);
     return (sizeof(generic_tlv_t) + sizeOfHostname);
@@ -173,18 +173,27 @@ uint64_t setPhysicalMediumTLV(void *buffer, uint64_t offset, void *networkInterf
 
 uint64_t setIPv4TLV(void *buffer, uint64_t offset, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
-    uint8_t Type = tlv_ifType;
-    uint8_t Length = 4;
-    uint32_t ifType = currentNetworkInterface->ifType;
-    // see http://lists.apple.com/archives/macnetworkprog/2006/Oct/msg00007.html
-    // or  http://www.opensource.apple.com/source/ipv6configuration/ipv6configuration-27/libraries/config_method.c
-    // for kSCPropNetIPv4Addresses
+    generic_tlv_t *hdr = (generic_tlv_t *) (buffer + offset);
+    hdr->TLVType = tlv_ipv4;
+    hdr->TLVLength = sizeof(uint32_t);
     
+    uint32_t *ipv4 = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
+    *ipv4 = currentNetworkInterface->IPv4Addr;
+    
+    return sizeof (*hdr) + sizeof(uint32_t);
 }
 
 uint64_t setIPv6TLV(void *buffer, uint64_t offset, void *networkInterface){
+    network_interface_t *currentNetworkInterface = networkInterface;
+    generic_tlv_t *hdr = (generic_tlv_t *) (buffer + offset);
     
+    struct in6_addr *bla = (buffer + offset + sizeof(*hdr));
+    *bla = currentNetworkInterface->IPv6Addr;
     
+    hdr->TLVType = tlv_ipv6;
+    hdr->TLVLength = sizeof(currentNetworkInterface->IPv6Addr);
+    
+    return sizeof (*hdr) + hdr->TLVLength;
 }
 
 uint64_t setLinkSpeedTLV(void *buffer, uint64_t offset, void *networkInterface){

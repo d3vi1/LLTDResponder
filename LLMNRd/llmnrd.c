@@ -8,7 +8,8 @@
  *                                                                            *
  ******************************************************************************/
 
-
+#include <ifaddrs.h>
+#include <arpa/inet.h>
 #include "llmnrd.h"
 #define debug 1
 
@@ -18,6 +19,14 @@ void SignalHandler(int Signal) {
     exit(0);
 }
 
+void print_ip(int ip) {
+    unsigned char bytes[4];
+    bytes[0] = ip & 0xFF;
+    bytes[1] = (ip >> 8) & 0xFF;
+    bytes[2] = (ip >> 16) & 0xFF;
+    bytes[3] = (ip >> 24) & 0xFF;
+    printf("%d.%d.%d.%d\n", bytes[3], bytes[2], bytes[1], bytes[0]);
+}
 
 //==============================================================================
 //
@@ -43,7 +52,6 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     if (kernel_return != KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not get the parent of the interface\n", __FUNCTION__);
     
     if(IONetworkController) {
-        
         CFTypeRef macAddressAsData = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOMACAddress), kCFAllocatorDefault, 0);
         
         
@@ -147,7 +155,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
             return;
         }
     }
-
+    
     //
     //Let's get the Medium Type
     //
@@ -173,6 +181,27 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
             return;
         }
     }
+    
+    //Let's get the IPv4 (and IPv6?) address(es?)
+    struct ifaddrs *interfaces = NULL;
+    struct ifaddrs *temp_addr = NULL;
+    int success = 0;
+    success = getifaddrs(&interfaces);
+    if (success == 0) {
+        temp_addr = interfaces;
+        while(temp_addr != NULL) {
+            if(temp_addr->ifa_addr->sa_family == AF_INET) {
+                if(!strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
+                    currentNetworkInterface->IPv4Addr = ((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr.s_addr;
+                    currentNetworkInterface->IPv6Addr = ((struct sockaddr_in6 *)temp_addr->ifa_addr)->sin6_addr;
+                }
+            }
+            temp_addr = temp_addr->ifa_next;
+        }
+    }
+    // Free memory
+    freeifaddrs(interfaces);
+
     
     //
     // Add a a notification for anything happening to the device to the
