@@ -94,7 +94,7 @@ uint64_t setCharacteristicsTLV(void *buffer, uint64_t offset, void *networkInter
     }
     uint32_t flags;
     CFNumberGetValue(currentNetworkInterface->flags, kCFNumberIntType, &flags);
-    if (flags | IFF_LOOPBACK){
+    if (flags & IFF_LOOPBACK){
         *characteristicsValue = htons(Config_TLV_InterfaceIsLoopback_Value);
     }
     asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %d %d %d\n", __FUNCTION__, characteristicsTLV->TLVType, characteristicsTLV->TLVLength, *characteristicsValue);
@@ -191,7 +191,7 @@ uint64_t setLinkSpeedTLV(void *buffer, uint64_t offset, void *networkInterface){
     linkSpeedTL->TLVType   = tlv_linkSpeed;
     linkSpeedTL->TLVLength = sizeof(*linkSpeedValue);
     
-    *linkSpeedValue = (uint32_t)(currentNetworkInterface->LinkSpeed)/100;
+    *linkSpeedValue = htonl((uint32_t)(currentNetworkInterface->LinkSpeed)/100);
     
     return (sizeof(*linkSpeedTL) + sizeof(*linkSpeedValue));
 }
