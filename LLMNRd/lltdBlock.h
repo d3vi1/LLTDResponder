@@ -109,6 +109,7 @@ typedef struct {
 #define tlv_uuid                  0x12
 #define tlv_hwIdProperty          0x13
 #define tlv_qos_characteristics   0x14
+//FIX THESE VALUES FOR 32 bit
 #define Config_TLV_PublicNAT_Value              0x8000
 #define Config_TLV_PrivateNAT_Value             0x4000
 #define Config_TLV_NetworkInterfaceDuplex_Value 0x2000
