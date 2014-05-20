@@ -19,7 +19,7 @@ u_int64_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_addr
 u_int64_t setHelloHeader (void *buffer, u_int64_t offset, ethernet_address_t *apparentMapper, ethernet_address_t *currentMapper, uint16_t generation);
 u_int64_t setHostnameTLV(void *buffer, u_int64_t offset);
 u_int64_t setHostIdTLV(void *buffer, u_int64_t offset, void *networkInterface);
-u_int64_t setCharacteristicsTLV(void *buffer, u_int64_t offset);
+u_int64_t setCharacteristicsTLV(void *buffer, u_int64_t offset, void *networkInterface);
 u_int64_t setPerfCounterTLV(void *buffer, u_int64_t offset);
 u_int64_t setIconImageTLV(void *buffer, u_int64_t offset);
 u_int64_t setMachineNameTLV(void *buffer, u_int64_t offset);

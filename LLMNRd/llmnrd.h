@@ -53,6 +53,7 @@ typedef struct {
     CFNumberRef            flags;               // kIOInterfaceFlags from the Interface
     CFNumberRef            linkStatus;          // kIOLinkStatus from the Controller
     uint32_t               MTU;                 // We'll set the buffer size to the MTU size
+    CFNumberRef            MediumType;
     //TODO: Add the pthread struct here in case we need to stop the thread
 } network_interface_t;
 

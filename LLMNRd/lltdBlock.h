@@ -17,7 +17,7 @@
 
 
 void lltdBlock (void *data);
-void parseFrame(void *frame, void *networkInterface, int socketDescriptor);
+void parseFrame(void *frame, void *networkInterface, int socketDescriptor, const struct sockaddr_ndrv *socketAddr);
 
 #pragma pack( push )
 #pragma pack( 2 )
@@ -91,7 +91,6 @@ typedef struct {
 #define opcode_qosCounterResult   0x09
 #define opcode_qosCounterLease    0x0A
 #define tlv_hostId                0x01
-#define tlv_hostId_len            0x06
 #define tlv_characterisics        0x02
 #define tlv_ifType                0x03
 #define tlv_wifimode              0x04
@@ -109,13 +108,12 @@ typedef struct {
 #define tlv_friendlyName          0x11
 #define tlv_uuid                  0x12
 #define tlv_hwIdProperty          0x13
+#define tlv_qos_characteristics   0x14
 #define Config_TLV_PublicNAT_Value              0x8000
 #define Config_TLV_PrivateNAT_Value             0x4000
 #define Config_TLV_NetworkInterfaceDuplex_Value 0x2000
 #define Config_TLV_HasManagementURL_Value       0x1000
 #define Config_TLV_InterfaceIsLoopback_Value    0x800
-#define tlv_qos_characteristics   0x14
-#define tlv_qos_characteristics_len   0x04
 #define Config_TLV_QOS_L2Fwd      0x8000
 #define Config_TLV_QOS_VLAN       0x4000
 #define Config_TLV_QOS_PrioTag    0x2000

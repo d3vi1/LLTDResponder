@@ -75,7 +75,7 @@ void lltdBlock (void *data){
     for(;;){
         bytesRecv = recvfrom(fileDescriptor, buffer, currentNetworkInterface->MTU, 0, NULL, NULL);
         
-        parseFrame(buffer, currentNetworkInterface, fileDescriptor);
+        parseFrame(buffer, currentNetworkInterface, fileDescriptor, &socketAddress);
         
         cyclNo++;
         
@@ -98,12 +98,12 @@ void lltdBlock (void *data){
 // This is the Hello answer to any Discovery package.
 //
 //==============================================================================
-void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
+void answerHello(void *inFrame, void *networkInterface, int socketDescriptor, const struct sockaddr_ndrv *socketAddr){
     network_interface_t *currentNetworkInterface = networkInterface;
 
     void *buffer = malloc(currentNetworkInterface->MTU);
     memset(buffer, 0, currentNetworkInterface->MTU);
-    u_int64_t offset = 0;
+    uint64_t offset = 0;
     
     lltd_demultiplex_header_t *inFrameHeader = inFrame;
     lltd_demultiplex_header_t *lltdHeader = buffer;
@@ -116,24 +116,24 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
     //If it's not, silently fail.
     //
     if (!compareEthernetAddress(&lltdHeader->realSource, &lltdHeader->frameHeader.source)){
-        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Discovery validation failed - %x vs %x.\n", __FUNCTION__, lltdHeader->realSource, lltdHeader->frameHeader.source);
+        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Discovery validation failed real mac is not equal to source.\n", __FUNCTION__);
 //        return;
     }
-    offset = setLltdHeader(buffer, currentNetworkInterface->hwAddress, (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
+    offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->hwAddress), (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
+    //offset = setLltdHeader(buffer, currentNetworkInterface->hwAddress, (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, tos_quick_discovery);
+    
     offset += setHelloHeader(buffer, offset, &inFrameHeader->frameHeader.source, &inFrameHeader->realSource, discoverHeader->generation );
     offset += setHostnameTLV(buffer, offset);
     // FIXME: we really need to write them properly
-    offset += setCharacteristicsTLV(buffer, offset);
+    offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
     offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
-    offset += setPerfCounterTLV(buffer, offset);
-    
-    offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
+    //offset += setPerfCounterTLV(buffer, offset);
+    //offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
     offset += setQosCharacteristicsTLV(buffer, offset);
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
-    
     offset += setEndOfPropertyTLV(buffer, offset);
-
-    int write = sendto(socketDescriptor, buffer, offset, 0, NULL, NULL);
+    
+    size_t write = sendto(socketDescriptor, buffer, offset, 0, socketAddr, sizeof(socketAddr));
 /*    if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
         setWirelessTLV();
         setBSSIDTLV();
@@ -171,7 +171,7 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor){
 // TODO: for each frame.
 //
 //==============================================================================
-void parseFrame(void *frame, void *networkInterface, int socketDescriptor){
+void parseFrame(void *frame, void *networkInterface, int socketDescriptor, const struct sockaddr_ndrv *socketAddr){
     lltd_demultiplex_header_t *header = frame;
     network_interface_t *currentNetworkInterface = networkInterface;
     
@@ -186,7 +186,7 @@ void parseFrame(void *frame, void *networkInterface, int socketDescriptor){
             switch (header->opcode) {
                 case opcode_discover:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Discover (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
-                    answerHello(frame, currentNetworkInterface, socketDescriptor);
+                    answerHello(frame, currentNetworkInterface, socketDescriptor, socketAddr);
                     break;
                 case opcode_hello:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Hello (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);

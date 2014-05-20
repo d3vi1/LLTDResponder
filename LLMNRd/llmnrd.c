@@ -128,7 +128,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     //
     // Check if we're UP, BROADCAST and not LOOPBACK
     //
-    currentNetworkInterface->flags = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOInterfaceFlags), kCFAllocatorDefault, 0);
+    currentNetworkInterface->flags = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOInterfaceFlags), kCFAllocatorDefault, kNilOptions);
     if (currentNetworkInterface->flags!=NULL){
         uint32_t flags;
         CFNumberGetValue(currentNetworkInterface->flags, kCFNumberIntType, &flags);
@@ -138,7 +138,20 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
             return;
         }
     }
-    
+
+    //
+    //Let's get the Medium Type
+    //
+    CFDictionaryRef properties = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOMediumDictionary), kCFAllocatorDefault, kNilOptions);
+    CFNumberRef activeMediumValue = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOActiveMedium), kCFAllocatorDefault, kNilOptions);
+    if (properties!=NULL){
+        CFDictionaryRef activeMedium = (CFDictionaryRef)CFDictionaryGetValue(properties, activeMediumValue);
+        if (activeMedium!=NULL){
+            currentNetworkInterface->MediumType = CFDictionaryGetValue(activeMedium, CFSTR(kIOMediumType));
+            CFRelease(activeMedium);
+        }
+        CFRelease(properties);
+    }
     //
     // Check if we have link on the controller
     //
