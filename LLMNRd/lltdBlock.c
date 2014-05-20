@@ -127,10 +127,10 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor, co
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
     offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
     offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
-    offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
+    //offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
     //offset += setIPv6TLV(buffer, offset, currentNetworkInterface);
     offset += setPerfCounterTLV(buffer, offset);
-    //offset += setLinkSpeedTLV(buffer, offset, currentNetworkInterface);
+    offset += setLinkSpeedTLV(buffer, offset, currentNetworkInterface);
     offset += setHostnameTLV(buffer, offset);
     // FIXME: we really need to write them properly
     offset += setQosCharacteristicsTLV(buffer, offset);
