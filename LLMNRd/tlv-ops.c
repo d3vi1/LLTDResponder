@@ -186,12 +186,14 @@ uint64_t setIPv6TLV(void *buffer, uint64_t offset, void *networkInterface){
 
 uint64_t setLinkSpeedTLV(void *buffer, uint64_t offset, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
-    uint32_t *linkSpeed;
+    uint32_t *linkSpeedValue;
+    generic_tlv_t *linkSpeedTL = (generic_tlv_t *) (buffer + offset);
+    linkSpeedTL->TLVType   = tlv_linkSpeed;
+    linkSpeedTL->TLVLength = sizeof(*linkSpeedValue);
     
-    uint8_t Type = tlv_linkSpeed;
-    uint8_t Length = sizeof(*linkSpeed);
+    *linkSpeedValue = (uint32_t)(currentNetworkInterface->LinkSpeed)/100;
     
-    *linkSpeed = (uint32_t)(currentNetworkInterface->LinkSpeed)/100;
+    return (sizeof(*linkSpeedTL) + sizeof(*linkSpeedValue));
 }
 
 
