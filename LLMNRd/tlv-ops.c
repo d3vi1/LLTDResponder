@@ -61,6 +61,9 @@ uint64_t setHostnameTLV(void *buffer, uint64_t offset){
     void *hostname = NULL;
     size_t sizeOfHostname = 0;
     getMachineName((char **)&hostname, &sizeOfHostname);
+    if (sizeOfHostname > 32) {
+        sizeOfHostname = 32;
+    }
     generic_tlv_t *hostnameTLV = (generic_tlv_t *) (buffer + offset);
     hostnameTLV->TLVType = tlv_hostname;
     hostnameTLV->TLVLength = sizeOfHostname;
