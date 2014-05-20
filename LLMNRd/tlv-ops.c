@@ -27,7 +27,7 @@ uint64_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_addre
     memcpy(&lltdHeader->frameHeader.destination, destination, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->realSource, source, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->realDestination, destination, sizeof(ethernet_address_t));
-    lltdHeader->seqNumber = seqNumber;
+    lltdHeader->seqNumber = 0x00;
     lltdHeader->opcode = opcode;
     lltdHeader->tos = tos;
     lltdHeader->version = 1;
@@ -186,7 +186,7 @@ uint64_t setIPv6TLV(void *buffer, uint64_t offset, void *networkInterface){
 
 uint64_t setLinkSpeedTLV(void *buffer, uint64_t offset, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
-    uint32_t *linkSpeedValue;
+    uint32_t *linkSpeedValue = (buffer + offset + sizeof(generic_tlv_t));
     generic_tlv_t *linkSpeedTL = (generic_tlv_t *) (buffer + offset);
     linkSpeedTL->TLVType   = tlv_linkSpeed;
     linkSpeedTL->TLVLength = sizeof(*linkSpeedValue);
