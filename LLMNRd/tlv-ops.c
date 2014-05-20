@@ -109,7 +109,7 @@ uint64_t setPerfCounterTLV(void *buffer, uint64_t offset){
     uint32_t *perfValue = (void *) (perf + sizeof(*perf));
     perf->TLVType = tlv_perfCounterFrequency;
     perf->TLVLength = sizeof(*perfValue);
-    *perfValue = 1000000;
+    *perfValue = htonl(1000000);
     asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %d %d %d\n", __FUNCTION__, perf->TLVType, perf->TLVLength, *perfValue);
     return sizeof(*perf)+sizeof(*perfValue);
 }
@@ -166,7 +166,7 @@ uint64_t setPhysicalMediumTLV(void *buffer, uint64_t offset, void *networkInterf
     hdr->TLVLength = sizeof(uint32_t);
 
     uint32_t *ifType = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
-    *ifType = htons((uint32_t)currentNetworkInterface->ifType);
+    *ifType = htonl((uint32_t)currentNetworkInterface->ifType);
     asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %d %d %d\n", __FUNCTION__, hdr->TLVType, hdr->TLVLength, *ifType);
     return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
