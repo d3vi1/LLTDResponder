@@ -118,6 +118,14 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not read ifMaxTransferUnit.\n", __FUNCTION__);
     }
 
+    CFTypeRef ioLinkSpeed = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOLinkSpeed), kCFAllocatorDefault, 0);
+    if (ioLinkSpeed) {
+        CFNumberGetValue((CFNumberRef)ioLinkSpeed, kCFNumberLongLongType, &currentNetworkInterface->LinkSpeed);
+        CFRelease(ioLinkSpeed);
+    } else {
+        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not read ifLinkSpeed.\n", __FUNCTION__);
+    }
+
 #ifdef debug
     //
     // DEBUG: Print the network interfaces to stdout

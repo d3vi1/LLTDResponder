@@ -134,6 +134,7 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor, co
     offset += setEndOfPropertyTLV(buffer, offset);
     
     size_t write = sendto(socketDescriptor, buffer, offset, 0, socketAddr, sizeof(socketAddr));
+
 /*    if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
         setWirelessTLV();
         setBSSIDTLV();
