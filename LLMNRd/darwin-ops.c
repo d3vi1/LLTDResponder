@@ -422,10 +422,9 @@ void getComponentTable(void *data);
 //==============================================================================
 void setPromiscuous(void *networkInterface, boolean_t set){
     network_interface_t *currentNetworkInterface = (network_interface_t *) networkInterface;
-    UInt16       flags;
+    uint16_t       flags;
     
-    CFNumberGetValue(currentNetworkInterface->flags, kCFNumberDoubleType, &flags);
-    asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface \"%d, %d\"\n", __FUNCTION__, currentNetworkInterface->flags, flags);
+    CFNumberGetValue(currentNetworkInterface->flags, kCFNumberIntType, &flags);
     if ( ( flags & IFF_UP ) && ( flags & IFF_RUNNING ) ){
         struct ifreq IfRequest;
         
@@ -440,7 +439,7 @@ void setPromiscuous(void *networkInterface, boolean_t set){
         if (set) {
             IfRequest.ifr_flags |= IFF_PROMISC;
         } else {
-            IfRequest.ifr_flags &= IFF_PROMISC;
+            IfRequest.ifr_flags &= ~IFF_PROMISC;
         }
         
         if (ioctl(currentNetworkInterface->socket, SIOCSIFFLAGS, (caddr_t)&IfRequest) == -1) {

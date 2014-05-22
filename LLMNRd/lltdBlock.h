@@ -17,7 +17,7 @@
 
 
 void lltdBlock (void *data);
-void parseFrame(void *frame, void *networkInterface, int socketDescriptor, const struct sockaddr_ndrv *socketAddr);
+void parseFrame(void *frame, void *networkInterface);
 
 #pragma pack( push )
 #pragma pack( 2 )
@@ -48,6 +48,18 @@ typedef struct {
     uint16_t           stationNumber;
     ethernet_header_t  stationList[1];
 } lltd_discover_upper_header_t;
+
+typedef struct {
+    uint16_t           numDescs;
+    void*              emiteeDescs;
+} lltd_emit_upper_header_t;
+
+typedef struct {
+    uint8_t            type;
+    uint8_t            pause;
+    ethernet_address_t sourceAddr;
+    ethernet_address_t destAddr;
+} emitee_descs;
 
 typedef struct {
     uint16_t           generation;

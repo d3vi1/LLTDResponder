@@ -59,8 +59,15 @@ typedef struct {
     uint64_t               LinkSpeed;           // The current link speed, automatically updated when the property changes
     uint32_t               IPv4Addr;
     int                    socket;
-    struct in6_addr               IPv6Addr;
+    struct sockaddr_ndrv   socketAddr;
+    struct in6_addr        IPv6Addr;
     //TODO: Add the pthread struct here in case we need to stop the thread
+    
+    struct {
+        uint16_t            seqNumber;
+        ethernet_address_t  hwAddress;
+    } mapper;
+    
 } network_interface_t;
 
 IONotificationPortRef notificationPort;
