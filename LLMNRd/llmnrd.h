@@ -58,6 +58,7 @@ typedef struct {
     CFNumberRef            MediumType;          // Get the current medium Type
     uint64_t               LinkSpeed;           // The current link speed, automatically updated when the property changes
     uint32_t               IPv4Addr;
+    int                    socket;
     struct in6_addr               IPv6Addr;
     //TODO: Add the pthread struct here in case we need to stop the thread
 } network_interface_t;

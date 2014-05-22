@@ -410,65 +410,47 @@ void getComponentTable(void *data);
 // Switches the interface in the argument to promscious mode
 //
 //==============================================================================
-void goIntoPromiscuous(){
-    /*
-     UInt16    flags = getFlags();
-     IOReturn  ret   = kIOReturnSuccess;
-     
-     if ( ( ((flags & IFF_UP) == 0) || _controllerLostPower ) &&
-     ( flags & IFF_RUNNING ) )
-     {
-     // If interface is marked down and it is currently running,
-     // then stop it.
-     
-     ctr->doDisable(this);
-     flags &= ~IFF_RUNNING;
-     _ctrEnabled = false;
-     }
-     else if ( ( flags & IFF_UP )                &&
-     ( _controllerLostPower == false ) &&
-     ((flags & IFF_RUNNING) == 0) )
-     {
-     // If interface is marked up and it is currently stopped,
-     // then start it.
-     
-     if ( (ret = enableController(ctr)) == kIOReturnSuccess )
-     flags |= IFF_RUNNING;
-     }
-     
-     if ( flags & IFF_RUNNING )
-     {
-     IOReturn rc;
-     
-     // We don't expect multiple flags to be changed for a given
-     // SIOCSIFFLAGS call.
-     
-     // Promiscuous mode
-     
-     rc = (flags & IFF_PROMISC) ?
-     disableFilter(ctr, gIONetworkFilterGroup,
-     kIOPacketFilterPromiscuous);
-     
-     if (ret == kIOReturnSuccess) ret = rc;
-     
-     // Multicast-All mode
-     
-     rc = (flags & IFF_ALLMULTI) ?
-     enableFilter(ctr, gIONetworkFilterGroup,
-     kIOPacketFilterMulticastAll) :
-     disableFilter(ctr, gIONetworkFilterGroup,
-     kIOPacketFilterMulticastAll);
-     
-     if (ret == kIOReturnSuccess) ret = rc;
-     }
-     
-     // Update the flags field to pick up any modifications. Also update the
-     // property table to reflect any flag changes.
-     
-     setFlags(flags, ~flags);
-     
-     return errnoFromReturn(ret);
-     }*/
+//==============================================================================
+//
+// Switches the interface in the argument to promscious mode
+//
+//==============================================================================
+//==============================================================================
+//
+// Switches the interface in the argument to promscious mode
+//
+//==============================================================================
+void setPromiscuous(void *networkInterface, boolean_t set){
+    network_interface_t *currentNetworkInterface = (network_interface_t *) networkInterface;
+    UInt16       flags;
+    
+    CFNumberGetValue(currentNetworkInterface->flags, kCFNumberDoubleType, &flags);
+    asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface \"%d, %d\"\n", __FUNCTION__, currentNetworkInterface->flags, flags);
+    if ( ( flags & IFF_UP ) && ( flags & IFF_RUNNING ) ){
+        struct ifreq IfRequest;
+        
+        bzero(&IfRequest, sizeof(IfRequest));
+        (void) CFStringGetCString(currentNetworkInterface->deviceName, IfRequest.ifr_name, sizeof(IfRequest.ifr_name), kCFStringEncodingASCII);
+        
+        if (ioctl(currentNetworkInterface->socket, SIOCGIFFLAGS, (caddr_t)&IfRequest) == -1) {
+            asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface \"%s\": %s\n", __FUNCTION__, IfRequest.ifr_name, strerror(errno));
+            return FALSE;
+        }
+        
+        if (set) {
+            IfRequest.ifr_flags |= IFF_PROMISC;
+        } else {
+            IfRequest.ifr_flags &= IFF_PROMISC;
+        }
+        
+        if (ioctl(currentNetworkInterface->socket, SIOCSIFFLAGS, (caddr_t)&IfRequest) == -1) {
+            asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not set flags for interface \"%s\": %s\n", __FUNCTION__, IfRequest.ifr_name, strerror(errno));
+            return FALSE;
+        }
+        
+        return TRUE;
+    }
+    
 }
 
 

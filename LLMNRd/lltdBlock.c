@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "llmnrd.h"
+#include "darwin-ops.h"
 //==============================================================================
 //
 // This is the thread that is opened for each valid interface
@@ -29,6 +30,7 @@ void lltdBlock (void *data){
     // Open the AF_NDRV RAW socket
     //
     fileDescriptor = socket(AF_NDRV, SOCK_RAW, 0);
+    currentNetworkInterface->socket = fileDescriptor;
     if (fileDescriptor < 0) {
         asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not create socket on %s.\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, 0));
         return -1;
@@ -119,8 +121,8 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor, co
         asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Discovery validation failed real mac is not equal to source.\n", __FUNCTION__);
 //        return;
     }
-    offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->hwAddress), (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, //inFrameHeader->tos);
-                    0x01);
+    offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->hwAddress), (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
+    
     //offset = setLltdHeader(buffer, currentNetworkInterface->hwAddress, (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, tos_quick_discovery);
     
     offset += setHelloHeader(buffer, offset, &inFrameHeader->frameHeader.source, &inFrameHeader->realSource, discoverHeader->generation );
@@ -134,9 +136,12 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor, co
     offset += setHostnameTLV(buffer, offset);
 //     FIXME: we really need to write them properly
     offset += setQosCharacteristicsTLV(buffer, offset);
+    offset += setIconImageTLV(buffer, offset);
     offset += setEndOfPropertyTLV(buffer, offset);
 
     size_t write = sendto(socketDescriptor, buffer, offset, 0, (struct sockaddr *) socketAddr, sizeof(socketAddr));
+    
+    setPromiscuous(currentNetworkInterface, true);
 
 /*    if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
         setWirelessTLV();
@@ -162,8 +167,6 @@ void answerHello(void *inFrame, void *networkInterface, int socketDescriptor, co
   */
 }
 
-
-
 //==============================================================================
 //
 // Here we validate the frame and make sure that the TOS/OpCode is a valid
@@ -177,6 +180,7 @@ void parseFrame(void *frame, void *networkInterface, int socketDescriptor, const
     network_interface_t *currentNetworkInterface = networkInterface;
     
     asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s: ethertype:%4x, opcode:%4x, tos:%4x, version: %x", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, 0), header->frameHeader.ethertype , header->opcode, header->tos, header->version);
+    
     
     //
     // We validate the message demultiplex
@@ -235,6 +239,7 @@ void parseFrame(void *frame, void *networkInterface, int socketDescriptor, const
             switch (header->opcode) {
                 case opcode_discover:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Discover (%d) for TOS_Quick_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    answerHello(frame, currentNetworkInterface, socketDescriptor, socketAddr);
                     break;
                 case opcode_hello:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Hello (%d) for TOS_Quick_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);

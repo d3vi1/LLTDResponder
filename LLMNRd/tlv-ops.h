@@ -36,6 +36,7 @@ uint64_t setIPv4TLV(void *buffer, u_int64_t offset, void *networkInterface);
 uint64_t setIPv6TLV(void *buffer, u_int64_t offset, void *networkInterface);
 uint64_t setLinkSpeedTLV(void *buffer, uint64_t offset, void *networkInterface);
 uint64_t setWirelessTLV(void *buffer, u_int64_t offset);
+uint64_t setComponentTable(void *buffer, uint64_t offset);
 uint64_t setBSSIDTLV(void *buffer, u_int64_t offset);
 uint64_t setSSIDTLV(void *buffer, u_int64_t offset);
 uint64_t setWifiMaxRateTLV(void *buffer, u_int64_t offset);

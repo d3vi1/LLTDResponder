@@ -187,13 +187,20 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     struct ifaddrs *temp_addr = NULL;
     int success = 0;
     success = getifaddrs(&interfaces);
+    
+    
     if (success == 0) {
         temp_addr = interfaces;
         while(temp_addr != NULL) {
             if(temp_addr->ifa_addr->sa_family == AF_INET) {
                 if(!strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
                     currentNetworkInterface->IPv4Addr = ((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr.s_addr;
+                }
+            }
+            if(temp_addr->ifa_addr->sa_family == AF_INET6) {
+                if(!strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
                     currentNetworkInterface->IPv6Addr = ((struct sockaddr_in6 *)temp_addr->ifa_addr)->sin6_addr;
+//                    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "IPv6 Addr: %s, %x", currentNetworkInterface->IPv6Addr, currentNetworkInterface->IPv6Addr);
                 }
             }
             temp_addr = temp_addr->ifa_next;
@@ -293,8 +300,7 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
         IOObjectRelease(currentNetworkInterface->notification);
         //TODO: Alex: Kill the listner thread
         free(currentNetworkInterface);
-    } else if (messageType == kIOMessageServicePropertyChange){
-
+    } else if (messageType == kIOMessageServicePropertyChange) {
         asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: A property has changed.\n", __FUNCTION__);
         //TODO: Now let's see what property changed. Let's compare with the saved information
         /* CFStringRef            deviceName;
