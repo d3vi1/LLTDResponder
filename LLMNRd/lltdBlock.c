@@ -96,39 +96,61 @@ void lltdBlock (void *data){
 
 }
 
-void buildProbeMsg(ethernet_address_t src, ethernet_address_t dst, void* package) {
+void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkInterface) {
+    network_interface_t *currentNetworkInterface = networkInterface;
+    
+    // TODO: why, we'll see..
+    int packageSize = sizeof(lltd_demultiplex_header_t);
+    
+    void *buffer = malloc( sizeof(packageSize) );
+    bzero(buffer, sizeof(packageSize));
+
+    lltd_demultiplex_header_t *probe = buffer;
+    
+    probe->frameHeader.source       = src;
+    probe->frameHeader.destination  = dst;
+    probe->frameHeader.ethertype    = htons(lltdEtherType);
+    probe->opcode                   = opcode_probe;
+    probe->realDestination          = dst;
+    memcpy(&(probe->realSource), currentNetworkInterface->hwAddress, sizeof(ethernet_address_t));
+    probe->version                  = 0x01;
+    
+    size_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
+                          (struct sockaddr *) &currentNetworkInterface->socketAddr,
+                          sizeof(currentNetworkInterface->socketAddr));
+    
     
 }
 
 void parseEmit(void *inFrame, void *networkInterface){
-    network_interface_t *currentNetworkInterface = networkInterface;
-    void *buffer = malloc(currentNetworkInterface->MTU);
-    bzero(buffer, currentNetworkInterface->MTU);
-    uint64_t offset = 0;
-    
-    lltd_demultiplex_header_t *inFrameHeader = inFrame;
-    lltd_demultiplex_header_t *lltdHeader = buffer;
-    
-    lltd_emit_upper_header_t *emitHeader = (void *)lltdHeader + sizeof(lltdHeader);
-    
-    // TODO: check if the message is indeed intended for us
-    int offsetEmitee = 0;
-    for (int i = 0; i < emitHeader->numDescs; i++) {
-        emitee_descs *emitee = emitHeader->emiteeDescs + offsetEmitee;
+
+    lltd_demultiplex_header_t *lltdHeader = inFrame;
+    // Works correctly!!!
+    lltd_emit_upper_header_t *emitHeader = (void *) ( (void *)lltdHeader + sizeof(*lltdHeader) );
+    int numDescs = ntohs(emitHeader->numDescs);
+    uint16_t offsetEmitee = 0;
+    //asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Fucking emit parsed, number of descs: %x\n", __FUNCTION__, ntohs(emitHeader->numDescs));
+    for (int i = 0; i < numDescs; i++) {
+        emitee_descs *emitee = ( (void *)emitHeader + sizeof(*emitHeader) + offsetEmitee );
         if (emitee->type == 1) {
             // this is where the magic really happens
             void *package = NULL;
-            buildProbeMsg(emitee->sourceAddr, emitee->destAddr, package);
+            sendProbeMsg(emitee->sourceAddr, emitee->destAddr, networkInterface);
+        } else if (emitee->type == 2) {
+          asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Emitee type=%d !", __FUNCTION__, emitee->type);
+        } else {
+          asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Unknown emitee type=%d !", __FUNCTION__, emitee->type);
         }
-        offsetEmitee += sizeof(emitee_descs);
+       offsetEmitee += sizeof(emitee_descs);
     }
-    
+
 }
 
 
 //==============================================================================
 //
 // This is the Hello answer to any Discovery package.
+// FIXME: Hello header casting is b0rken.
 //
 //==============================================================================
 void answerHello(void *inFrame, void *networkInterface){
@@ -142,6 +164,7 @@ void answerHello(void *inFrame, void *networkInterface){
     lltd_demultiplex_header_t *lltdHeader = buffer;
 
     lltd_hello_upper_header_t *helloHeader = (void *)lltdHeader + sizeof(lltdHeader);
+    
     lltd_discover_upper_header_t *discoverHeader = (void *)inFrameHeader + sizeof(lltdHeader);
     
     //
@@ -177,6 +200,8 @@ void answerHello(void *inFrame, void *networkInterface){
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                             sizeof(currentNetworkInterface->socketAddr));
     setPromiscuous(currentNetworkInterface, true);
+    
+    free(buffer);
 
 /*    if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
         setWirelessTLV();
@@ -202,6 +227,8 @@ void answerHello(void *inFrame, void *networkInterface){
   */
 }
 
+int helloSent = 0;
+
 //==============================================================================
 //
 // Here we validate the frame and make sure that the TOS/OpCode is a valid
@@ -214,7 +241,7 @@ void parseFrame(void *frame, void *networkInterface){
     lltd_demultiplex_header_t *header = frame;
     network_interface_t *currentNetworkInterface = networkInterface;
     
-    //asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s: ethertype:%4x, opcode:%4x, tos:%4x, version: %x", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, 0), header->frameHeader.ethertype , header->opcode, header->tos, header->version);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s: ethertype:%4x, opcode:%4x, tos:%4x, version: %x", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, 0), header->frameHeader.ethertype , header->opcode, header->tos, header->version);
     
     
     //
@@ -226,8 +253,11 @@ void parseFrame(void *frame, void *networkInterface){
             switch (header->opcode) {
                 case opcode_discover:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Discover (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
-                    usleep(350000);
-                    answerHello(frame, currentNetworkInterface);
+                    if (!helloSent) {
+                        helloSent = 1;
+                        usleep(350000);
+                        answerHello(frame, currentNetworkInterface);
+                    }
                     break;
                 case opcode_hello:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Hello (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
@@ -253,7 +283,8 @@ void parseFrame(void *frame, void *networkInterface){
                     break;
                 case opcode_reset:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
-                    //setPromiscuous(currentNetworkInterface, false);
+                    helloSent = 0;
+                    setPromiscuous(currentNetworkInterface, false);
                     break;
                 case opcode_charge:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Charge (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);

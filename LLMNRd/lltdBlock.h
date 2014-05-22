@@ -51,7 +51,6 @@ typedef struct {
 
 typedef struct {
     uint16_t           numDescs;
-    void*              emiteeDescs;
 } lltd_emit_upper_header_t;
 
 typedef struct {

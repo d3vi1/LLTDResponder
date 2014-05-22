@@ -246,8 +246,10 @@
 		E522410618CF0CA200DD9E2F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_OPTIMIZATION_LEVEL = 0;
 				MACOSX_DEPLOYMENT_TARGET = 10.4;
 				OTHER_CFLAGS = "-DDEBUG=1";
+				STRIP_INSTALLED_PRODUCT = NO;
 			};
 			name = Debug;
 		};
@@ -256,6 +258,7 @@
 			buildSettings = {
 				MACOSX_DEPLOYMENT_TARGET = 10.4;
 				OTHER_CFLAGS = "-DDEBUG=1";
+				STRIP_INSTALLED_PRODUCT = YES;
 			};
 			name = Release;
 		};
