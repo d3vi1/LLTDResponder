@@ -119,7 +119,7 @@ void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkI
     
     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Trying to send probe with seqNumber %d\n", __FUNCTION__, ntohs(probe->seqNumber));
     
-    size_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
+    ssize_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
     if (write == -1) {
         asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on PROBE: %s\n", __FUNCTION__, strerror(write));
@@ -148,28 +148,24 @@ void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkI
 //TODO: validate Query
 void parseQuery(void *inFrame, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
-    int packageSize = sizeof( currentNetworkInterface->MTU );
-    
+    int packageSize = currentNetworkInterface->MTU,
+        offset = 0;
     void *buffer = malloc( sizeof(packageSize) );
+    asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Entered parseQuery\n", __FUNCTION__);
     
-    lltd_demultiplex_header_t *query = buffer;
-    query->seqNumber                    = currentNetworkInterface->mapper.seqNumber;
-    memcpy(&(query->realSource), currentNetworkInterface->hwAddress, sizeof(ethernet_address_t));
-    query->frameHeader.source       = query->realSource;
-    query->realDestination          = currentNetworkInterface->mapper.hwAddress;
-    query->frameHeader.destination  = query->realDestination;
-    query->frameHeader.ethertype    = htons(lltdEtherType);
-    query->opcode                   = opcode_queryResp;
-    query->version                  = 0x01;
-    query->tos                      = opcode_discover;
+    offset = setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
+                                   (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
+                                    currentNetworkInterface->mapper.seqNumber, opcode_queryResp, tos_discovery);
     
     qry_resp_upper_header_t *respH  = buffer + sizeof(lltd_demultiplex_header_t);
     respH->numDescs                 = 0x00;
     
-    size_t write = sendto(currentNetworkInterface->socket, query, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
+    ssize_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
-    if (write == -1) {
+    if (write < 0) {
         asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on QryResp: %s\n", __FUNCTION__, strerror(write));
+    } else {
+        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write SUCCEEDED?? on QryResp: %s\n", __FUNCTION__, strerror(write));
     }
 }
 
@@ -345,7 +341,7 @@ void parseFrame(void *frame, void *networkInterface){
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryResponse (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_reset:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    //asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     helloSent = 0;
                     probeSent = 0;
                     //setPromiscuous(currentNetworkInterface, false);
