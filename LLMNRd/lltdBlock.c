@@ -113,20 +113,33 @@ void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkI
     probe->frameHeader.ethertype    = htons(lltdEtherType);
     probe->opcode                   = opcode_probe;
     probe->version                  = 0x01;
+    probe->reserved                 = 0x00;
     probe->tos                      = opcode_discover;
-    //probe->seqNumber                = currentNetworkInterface->mapper.seqNumber;
 
     
     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Trying to send probe with seqNumber %d\n", __FUNCTION__, ntohs(probe->seqNumber));
     
     size_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
-    
-//    size_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
-//                          (struct sockaddr *) &currentNetworkInterface->socketAddr,
-//                          sizeof(currentNetworkInterface->socketAddr));
     if (write == -1) {
-        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed: %s\n", __FUNCTION__, strerror(write));
+        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on PROBE: %s\n", __FUNCTION__, strerror(write));
+    } else {
+        // write an ACK too with the seq number
+        memcpy(&(probe->realSource), currentNetworkInterface->hwAddress, sizeof(ethernet_address_t));
+        probe->realDestination          = currentNetworkInterface->mapper.hwAddress;
+        probe->frameHeader.source       = probe->realSource;
+        probe->frameHeader.destination  = currentNetworkInterface->mapper.hwAddress;
+        probe->frameHeader.ethertype    = htons(lltdEtherType);
+        probe->opcode                   = opcode_ack;
+        probe->version                  = 0x01;
+        probe->tos                      = opcode_discover;
+        probe->seqNumber                = currentNetworkInterface->mapper.seqNumber;
+        
+        write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
+                              sizeof(currentNetworkInterface->socketAddr));
+        if (write == -1) {
+            asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on ACK: %s\n", __FUNCTION__, strerror(write));
+        }
     }
     
     
