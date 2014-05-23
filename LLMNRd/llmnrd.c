@@ -193,15 +193,15 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         temp_addr = interfaces;
         while(temp_addr != NULL) {
             if(temp_addr->ifa_addr->sa_family == AF_INET) {
-                if(!strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
-                    currentNetworkInterface->IPv4Addr = ((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr.s_addr;
-                }
+//                if(!strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
+//                    currentNetworkInterface->IPv4Addr = ((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr.s_addr;
+//                }
             }
             if(temp_addr->ifa_addr->sa_family == AF_INET6) {
-                if(!strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
-                    currentNetworkInterface->IPv6Addr = ((struct sockaddr_in6 *)temp_addr->ifa_addr)->sin6_addr;
+//                if(!strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
+//                    currentNetworkInterface->IPv6Addr = ((struct sockaddr_in6 *)temp_addr->ifa_addr)->sin6_addr;
 //                    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "IPv6 Addr: %s, %x", currentNetworkInterface->IPv6Addr, currentNetworkInterface->IPv6Addr);
-                }
+//                }
             }
             temp_addr = temp_addr->ifa_next;
         }

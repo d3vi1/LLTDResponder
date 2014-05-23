@@ -102,20 +102,22 @@ void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkI
     int packageSize = sizeof(lltd_demultiplex_header_t);
     
     void *buffer = malloc( sizeof(packageSize) );
-    bzero(buffer, sizeof(packageSize));
+    //memcpy(buffer, 0, sizeof(packageSize));
 
     lltd_demultiplex_header_t *probe = buffer;
     
+    memcpy(&(probe->realSource), currentNetworkInterface->hwAddress, sizeof(ethernet_address_t));
+    probe->realDestination          = dst;
     probe->frameHeader.source       = src;
     probe->frameHeader.destination  = dst;
     probe->frameHeader.ethertype    = htons(lltdEtherType);
     probe->opcode                   = opcode_probe;
-    probe->realDestination          = dst;
-    memcpy(&(probe->realSource), currentNetworkInterface->hwAddress, sizeof(ethernet_address_t));
     probe->version                  = 0x01;
-    probe->seqNumber                = currentNetworkInterface->mapper.seqNumber;
+    probe->tos                      = opcode_discover;
+    //probe->seqNumber                = currentNetworkInterface->mapper.seqNumber;
+
     
-    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Trying to send probe with seqNumber %d\n", __FUNCTION__, probe->seqNumber);
+    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Trying to send probe with seqNumber %d\n", __FUNCTION__, ntohs(probe->seqNumber));
     
     size_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
