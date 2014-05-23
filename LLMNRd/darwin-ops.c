@@ -421,18 +421,24 @@ void getComponentTable(void *data);
 //
 //==============================================================================
 void setPromiscuous(void *networkInterface, boolean_t set){
-    network_interface_t *currentNetworkInterface = (network_interface_t *) networkInterface;
+    network_interface_t *currentNetworkInterface = networkInterface;
     uint16_t       flags;
     
-    CFNumberGetValue(currentNetworkInterface->flags, kCFNumberIntType, &flags);
+    if (! CFNumberGetValue(currentNetworkInterface->flags, kCFNumberIntType, &flags)) {
+        asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(errno));
+        return -1;
+    };
     if ( ( flags & IFF_UP ) && ( flags & IFF_RUNNING ) ){
         struct ifreq IfRequest;
         
         bzero(&IfRequest, sizeof(IfRequest));
-        (void) CFStringGetCString(currentNetworkInterface->deviceName, IfRequest.ifr_name, sizeof(IfRequest.ifr_name), kCFStringEncodingASCII);
+        if (! CFStringGetCString(currentNetworkInterface->deviceName, IfRequest.ifr_name, sizeof(IfRequest.ifr_name), kCFStringEncodingASCII) ){
+            asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(errno));
+            return -1;
+        };
         
         if (ioctl(currentNetworkInterface->socket, SIOCGIFFLAGS, (caddr_t)&IfRequest) == -1) {
-            asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface \"%s\": %s\n", __FUNCTION__, IfRequest.ifr_name, strerror(errno));
+            asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get network interface name: %s\n", __FUNCTION__, strerror(errno));
             return FALSE;
         }
         

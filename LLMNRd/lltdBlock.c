@@ -29,7 +29,7 @@ void lltdBlock (void *data){
     //
     // Open the AF_NDRV RAW socket
     //
-    fileDescriptor = socket(AF_NDRV, SOCK_RAW, 0);
+    fileDescriptor = socket(AF_NDRV, SOCK_RAW, htons(0x88D9));
     currentNetworkInterface->socket = fileDescriptor;
 
     if (fileDescriptor < 0) {
@@ -98,7 +98,6 @@ void lltdBlock (void *data){
 
 void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkInterface) {
     network_interface_t *currentNetworkInterface = networkInterface;
-    
     // TODO: why, we'll see..
     int packageSize = sizeof(lltd_demultiplex_header_t);
     
@@ -114,27 +113,42 @@ void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkI
     probe->realDestination          = dst;
     memcpy(&(probe->realSource), currentNetworkInterface->hwAddress, sizeof(ethernet_address_t));
     probe->version                  = 0x01;
+    probe->seqNumber                = currentNetworkInterface->mapper.seqNumber;
     
-    size_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
-                          (struct sockaddr *) &currentNetworkInterface->socketAddr,
+    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Trying to send probe with seqNumber %d\n", __FUNCTION__, probe->seqNumber);
+    
+    size_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
+    
+//    size_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
+//                          (struct sockaddr *) &currentNetworkInterface->socketAddr,
+//                          sizeof(currentNetworkInterface->socketAddr));
+    if (write == -1) {
+        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed: %s\n", __FUNCTION__, strerror(write));
+    }
     
     
 }
-
+int probeSent = 0;
 void parseEmit(void *inFrame, void *networkInterface){
-
+    network_interface_t *currentNetworkInterface = networkInterface;
+    if (probeSent) {
+        return;
+    }
+    
     lltd_demultiplex_header_t *lltdHeader = inFrame;
+    
     // Works correctly!!!
     lltd_emit_upper_header_t *emitHeader = (void *) ( (void *)lltdHeader + sizeof(*lltdHeader) );
+    currentNetworkInterface->mapper.seqNumber = lltdHeader->seqNumber;
+    
     int numDescs = ntohs(emitHeader->numDescs);
     uint16_t offsetEmitee = 0;
-    //asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Fucking emit parsed, number of descs: %x\n", __FUNCTION__, ntohs(emitHeader->numDescs));
+    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Emit parsed, number of descs: %x\n", __FUNCTION__, ntohs(emitHeader->numDescs));
     for (int i = 0; i < numDescs; i++) {
         emitee_descs *emitee = ( (void *)emitHeader + sizeof(*emitHeader) + offsetEmitee );
         if (emitee->type == 1) {
             // this is where the magic really happens
-            void *package = NULL;
             sendProbeMsg(emitee->sourceAddr, emitee->destAddr, networkInterface);
         } else if (emitee->type == 2) {
           asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Emitee type=%d !", __FUNCTION__, emitee->type);
@@ -143,7 +157,10 @@ void parseEmit(void *inFrame, void *networkInterface){
         }
        offsetEmitee += sizeof(emitee_descs);
     }
-
+    
+    // TODO: send ACK
+    
+    probeSent = 1;
 }
 
 
@@ -199,7 +216,7 @@ void answerHello(void *inFrame, void *networkInterface){
 
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                             sizeof(currentNetworkInterface->socketAddr));
-    setPromiscuous(currentNetworkInterface, true);
+    //setPromiscuous(currentNetworkInterface, true);
     
     free(buffer);
 
@@ -284,7 +301,8 @@ void parseFrame(void *frame, void *networkInterface){
                 case opcode_reset:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     helloSent = 0;
-                    setPromiscuous(currentNetworkInterface, false);
+                    probeSent = 0;
+                    //setPromiscuous(currentNetworkInterface, false);
                     break;
                 case opcode_charge:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Charge (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
