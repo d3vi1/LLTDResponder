@@ -160,16 +160,76 @@ void parseQuery(void *inFrame, void *networkInterface){
     qry_resp_upper_header_t *respH  = buffer + sizeof(lltd_demultiplex_header_t);
     respH->numDescs                 = 0x00;
     
-    ssize_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
+    offset += sizeof(qry_resp_upper_header_t);
+    
+    ssize_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
-    if (write < 0) {
-        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on QryResp: %s\n", __FUNCTION__, strerror(write));
-    } else {
-        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write SUCCEEDED?? on QryResp: %s\n", __FUNCTION__, strerror(write));
-    }
+//    if (write < 0) {
+//        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on QryResp: %s\n", __FUNCTION__, strerror(write));
+//    }
+    
+//    free(buffer);
 }
 
 int probeSent = 0;
+
+void sendImage(void *networkInterface, uint16_t offset) {
+    network_interface_t *currentNetworkInterface = networkInterface;
+    uint16_t maxSize = currentNetworkInterface->MTU - sizeof(lltd_demultiplex_header_t)
+                    - sizeof(qry_large_tlv_resp_t) + sizeof(ethernet_header_t); //TODO: check if this can be bigger
+    
+    void *icon = NULL;
+    size_t size = 0;
+    getIconImage(&icon, &size);
+    
+    void *buffer = malloc( maxSize );
+    bzero(buffer, maxSize);
+    
+    setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
+                           (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
+                           currentNetworkInterface->mapper.seqNumber, opcode_queryLargeTlvResp, tos_discovery);
+    uint16_t offsetBuf = sizeof(lltd_demultiplex_header_t);
+    
+    qry_large_tlv_resp_t *header = buffer + offsetBuf;
+    offsetBuf += sizeof(qry_large_tlv_resp_t);
+    
+    uint16_t bytesToWrite = 0;
+    boolean_t more_to_come = false;
+    
+    if (size >= offset + maxSize) {
+        bytesToWrite     = maxSize;
+        header->length   = bytesToWrite;
+        more_to_come     = true;
+        header->length  |=  0x8000;
+    } else {
+        bytesToWrite     = size - offset;
+        header->length   = bytesToWrite;
+    }
+    header->length = htons(header->length);
+    
+    size_t packageSize = bytesToWrite + sizeof(qry_large_tlv_resp_t) + sizeof(lltd_demultiplex_header_t);
+    memcpy( buffer + (packageSize - bytesToWrite), icon + offset, bytesToWrite );
+    
+    ssize_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
+                           (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
+    free(icon);
+}
+
+
+void parseQueryLargeTlv(void *inFrame, void *networkInterface) {
+    network_interface_t *currentNetworkInterface = networkInterface;
+    lltd_demultiplex_header_t *lltdHeader = inFrame;
+    if (lltdHeader->seqNumber == 0) {
+        // as per spec, ignore LargeTLV with zeroed sequence Number
+        return;
+    }
+    qry_large_tlv_t *header = inFrame + sizeof(lltd_demultiplex_header_t);
+    if (header->type == tlv_iconImage) {
+        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Image request, responding with QryLargeResp, offset=%d\n", __FUNCTION__, ntohs( header->offset ) );
+        sendImage(networkInterface, ntohs(header->offset));
+    }
+}
+
 void parseEmit(void *inFrame, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
     if (probeSent) {
@@ -251,7 +311,7 @@ void answerHello(void *inFrame, void *networkInterface){
     offset += setHostnameTLV(buffer, offset);
 //     FIXME: we really need to write them properly
     offset += setQosCharacteristicsTLV(buffer, offset);
-//    offset += setIconImageTLV(buffer, offset);
+    offset += setIconImageTLV(buffer, offset);
     offset += setEndOfPropertyTLV(buffer, offset);
 
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
@@ -355,6 +415,7 @@ void parseFrame(void *frame, void *networkInterface){
                     break;
                 case opcode_queryLargeTlv:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryLargeTLV (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    parseQueryLargeTlv(frame, currentNetworkInterface);
                     //setPromiscuous(currentNetworkInterface, false);
                     break;
                 case opcode_queryLargeTlvResp:

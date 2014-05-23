@@ -196,7 +196,7 @@ void getIconImage(void **icon, size_t *iconsize){
                         keys[1] = kCGImageSourceThumbnailMaxPixelSize;
                         values[1] = (CFTypeRef)thumbSizeRef;
                         options = CFDictionaryCreate(NULL, (const void **)keys, (const void **)values, 2, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-                        CFRelease(thumbSizeRef);
+//                        CFRelease(thumbSizeRef); //FIXME
                         
                         // Create the thumbnail image using the options dictionary
                         CGImageRef thumbnailImageRef = CGImageSourceCreateThumbnailAtIndex(myIcon, iconSelected, (CFDictionaryRef)options);

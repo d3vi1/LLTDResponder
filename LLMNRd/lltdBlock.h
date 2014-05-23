@@ -79,6 +79,16 @@ typedef struct {
 
 typedef struct {
     uint8_t            type;
+    uint8_t            reserved;
+    uint16_t           offset;
+} qry_large_tlv_t;
+
+typedef struct {
+    uint16_t           length;
+} qry_large_tlv_resp_t;
+
+typedef struct {
+    uint8_t            type;
     uint8_t            length;
 } tlv_header;
 
