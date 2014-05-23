@@ -144,6 +144,35 @@ void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkI
     
     
 }
+
+//TODO: validate Query
+void parseQuery(void *inFrame, void *networkInterface){
+    network_interface_t *currentNetworkInterface = networkInterface;
+    int packageSize = sizeof( currentNetworkInterface->MTU );
+    
+    void *buffer = malloc( sizeof(packageSize) );
+    
+    lltd_demultiplex_header_t *query = buffer;
+    query->seqNumber                    = currentNetworkInterface->mapper.seqNumber;
+    memcpy(&(query->realSource), currentNetworkInterface->hwAddress, sizeof(ethernet_address_t));
+    query->frameHeader.source       = query->realSource;
+    query->realDestination          = currentNetworkInterface->mapper.hwAddress;
+    query->frameHeader.destination  = query->realDestination;
+    query->frameHeader.ethertype    = htons(lltdEtherType);
+    query->opcode                   = opcode_queryResp;
+    query->version                  = 0x01;
+    query->tos                      = opcode_discover;
+    
+    qry_resp_upper_header_t *respH  = buffer + sizeof(lltd_demultiplex_header_t);
+    respH->numDescs                 = 0x00;
+    
+    size_t write = sendto(currentNetworkInterface->socket, query, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
+                          sizeof(currentNetworkInterface->socketAddr));
+    if (write == -1) {
+        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on QryResp: %s\n", __FUNCTION__, strerror(write));
+    }
+}
+
 int probeSent = 0;
 void parseEmit(void *inFrame, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
@@ -226,7 +255,7 @@ void answerHello(void *inFrame, void *networkInterface){
     offset += setHostnameTLV(buffer, offset);
 //     FIXME: we really need to write them properly
     offset += setQosCharacteristicsTLV(buffer, offset);
-    offset += setIconImageTLV(buffer, offset);
+//    offset += setIconImageTLV(buffer, offset);
     offset += setEndOfPropertyTLV(buffer, offset);
 
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
@@ -275,7 +304,8 @@ void parseFrame(void *frame, void *networkInterface){
     
     asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s: ethertype:%4x, opcode:%4x, tos:%4x, version: %x", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, 0), header->frameHeader.ethertype , header->opcode, header->tos, header->version);
     
-    
+    // FIXME: set the seqNumber each frame we get (for now)
+    currentNetworkInterface->mapper.seqNumber = header->seqNumber;
     //
     // We validate the message demultiplex
     // Anything else is b0rken
@@ -309,6 +339,7 @@ void parseFrame(void *frame, void *networkInterface){
                     break;
                 case opcode_query:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Query (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    parseQuery(frame, currentNetworkInterface);
                     break;
                 case opcode_queryResp:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryResponse (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);

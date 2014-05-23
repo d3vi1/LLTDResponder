@@ -67,6 +67,17 @@ typedef struct {
 } lltd_hello_upper_header_t;
 
 typedef struct {
+    uint16_t           numDescs;
+} qry_resp_upper_header_t;
+
+typedef struct {
+    uint16_t           type;
+    ethernet_address_t realSourceAddr;
+    ethernet_address_t sourceAddr;
+    ethernet_address_t destAddr;
+} probe_t;
+
+typedef struct {
     uint8_t            type;
     uint8_t            length;
 } tlv_header;
