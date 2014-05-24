@@ -432,10 +432,13 @@ void setPromiscuous(void *networkInterface, boolean_t set){
         struct ifreq IfRequest;
         
         bzero(&IfRequest, sizeof(IfRequest));
-        if (! CFStringGetCString(currentNetworkInterface->deviceName, IfRequest.ifr_name, sizeof(IfRequest.ifr_name), kCFStringEncodingASCII) ){
-            asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(errno));
-            return -1;
-        };
+
+        if (flags & IFF_PROMISC) {
+            if (! CFStringGetCString(currentNetworkInterface->deviceName, IfRequest.ifr_name, sizeof(IfRequest.ifr_name), kCFStringEncodingASCII) ){
+                asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(errno));
+                return -1;
+            };
+        }
         
         if (ioctl(currentNetworkInterface->socket, SIOCGIFFLAGS, (caddr_t)&IfRequest) == -1) {
             asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get network interface name: %s\n", __FUNCTION__, strerror(errno));

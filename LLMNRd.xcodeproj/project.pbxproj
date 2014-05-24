@@ -21,6 +21,11 @@
 		E59E8C0318CF4D550054B295 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0218CF4D550054B295 /* CoreWLAN.framework */; };
 		E5A41A0E19082C0B00D5D2FD /* llmnrd.c in Sources */ = {isa = PBXBuildFile; fileRef = E5A41A0D19082C0B00D5D2FD /* llmnrd.c */; };
 		E5FD8AE0192A130900E4EA22 /* tlv-ops.c in Sources */ = {isa = PBXBuildFile; fileRef = E59A5324190BEBB500CF5329 /* tlv-ops.c */; };
+		FAE8A0491930C73D00BCBFDB /* see-list.c in Sources */ = {isa = PBXBuildFile; fileRef = FAE8A0481930C73D00BCBFDB /* see-list.c */; };
+		FAE8A04E1930CD8B00BCBFDB /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
+		FAE8A0501930CD8B00BCBFDB /* lltddaemon.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59C3D6E18E9B38C006836B0 /* lltddaemon.1 */; };
+		FAE8A0551930CDA300BCBFDB /* see-list.h in Sources */ = {isa = PBXBuildFile; fileRef = FAE8A0471930C73100BCBFDB /* see-list.h */; };
+		FAE8A0561930CDA700BCBFDB /* see-list.c in Sources */ = {isa = PBXBuildFile; fileRef = FAE8A0481930C73D00BCBFDB /* see-list.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -41,6 +46,16 @@
 			dstSubfolderSpec = 0;
 			files = (
 				E59E8BFA18CF4D250054B295 /* llmnrd.1 in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		FAE8A04F1930CD8B00BCBFDB /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+				FAE8A0501930CD8B00BCBFDB /* lltddaemon.1 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
@@ -69,6 +84,9 @@
 		E59E8C0018CF4D500054B295 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		E59E8C0218CF4D550054B295 /* CoreWLAN.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreWLAN.framework; path = System/Library/Frameworks/CoreWLAN.framework; sourceTree = SDKROOT; };
 		E5A41A0D19082C0B00D5D2FD /* llmnrd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = llmnrd.c; path = LLMNRd/llmnrd.c; sourceTree = SOURCE_ROOT; };
+		FAE8A0471930C73100BCBFDB /* see-list.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "see-list.h"; path = "LLMNRd/see-list.h"; sourceTree = SOURCE_ROOT; };
+		FAE8A0481930C73D00BCBFDB /* see-list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "see-list.c"; path = "LLMNRd/see-list.c"; sourceTree = SOURCE_ROOT; };
+		FAE8A0541930CD8B00BCBFDB /* lltddaemon copy */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "lltddaemon copy"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +111,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FAE8A04D1930CD8B00BCBFDB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FAE8A04E1930CD8B00BCBFDB /* CoreFoundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -111,6 +137,7 @@
 			children = (
 				E59E8BF318CF4D250054B295 /* llmnrd */,
 				E59C3D6918E9B38C006836B0 /* lltddaemon */,
+				FAE8A0541930CD8B00BCBFDB /* lltddaemon copy */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -152,6 +179,8 @@
 				E54C38B218F191EB00127645 /* net.shmessenger.darwin.llmnrd.plist */,
 				E59A5324190BEBB500CF5329 /* tlv-ops.c */,
 				E59A5326190BEBC600CF5329 /* tlv-ops.h */,
+				FAE8A0471930C73100BCBFDB /* see-list.h */,
+				FAE8A0481930C73D00BCBFDB /* see-list.c */,
 			);
 			path = llmnrd;
 			sourceTree = "<group>";
@@ -193,6 +222,23 @@
 			productReference = E59E8BF318CF4D250054B295 /* llmnrd */;
 			productType = "com.apple.product-type.tool";
 		};
+		FAE8A04A1930CD8B00BCBFDB /* see list test */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FAE8A0511930CD8B00BCBFDB /* Build configuration list for PBXNativeTarget "see list test" */;
+			buildPhases = (
+				FAE8A04B1930CD8B00BCBFDB /* Sources */,
+				FAE8A04D1930CD8B00BCBFDB /* Frameworks */,
+				FAE8A04F1930CD8B00BCBFDB /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "see list test";
+			productName = lltddaemon;
+			productReference = FAE8A0541930CD8B00BCBFDB /* lltddaemon copy */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -216,6 +262,7 @@
 			targets = (
 				E59E8BF218CF4D250054B295 /* llmnrd */,
 				E59C3D6818E9B38C006836B0 /* lltddaemon */,
+				FAE8A04A1930CD8B00BCBFDB /* see list test */,
 			);
 		};
 /* End PBXProject section */
@@ -237,6 +284,16 @@
 				E5A41A0E19082C0B00D5D2FD /* llmnrd.c in Sources */,
 				E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */,
 				E5FD8AE0192A130900E4EA22 /* tlv-ops.c in Sources */,
+				FAE8A0491930C73D00BCBFDB /* see-list.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FAE8A04B1930CD8B00BCBFDB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FAE8A0561930CDA700BCBFDB /* see-list.c in Sources */,
+				FAE8A0551930CDA300BCBFDB /* see-list.h in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -298,6 +355,24 @@
 			};
 			name = Release;
 		};
+		FAE8A0521930CD8B00BCBFDB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				PRODUCT_NAME = "lltddaemon copy";
+			};
+			name = Debug;
+		};
+		FAE8A0531930CD8B00BCBFDB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "lltddaemon copy";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -324,6 +399,15 @@
 			buildConfigurations = (
 				E59E8BFB18CF4D250054B295 /* Debug */,
 				E59E8BFC18CF4D250054B295 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FAE8A0511930CD8B00BCBFDB /* Build configuration list for PBXNativeTarget "see list test" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FAE8A0521930CD8B00BCBFDB /* Debug */,
+				FAE8A0531930CD8B00BCBFDB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
