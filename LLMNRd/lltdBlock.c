@@ -100,8 +100,7 @@ void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkI
     network_interface_t *currentNetworkInterface = networkInterface;
     // TODO: why, we'll see..
     int packageSize = sizeof(lltd_demultiplex_header_t);
-    
-    void *buffer = malloc( sizeof(packageSize) );
+    void *buffer = malloc( packageSize );
     //memcpy(buffer, 0, sizeof(packageSize));
 
     lltd_demultiplex_header_t *probe = buffer;
@@ -167,9 +166,18 @@ void sendImage(void *networkInterface, uint16_t offset) {
     uint16_t maxSize = currentNetworkInterface->MTU - sizeof(lltd_demultiplex_header_t)
                     - sizeof(qry_large_tlv_resp_t) + sizeof(ethernet_header_t); //TODO: check if this can be bigger
     
+    // TODO: Figure out a way to store the icon on all threads, calculate the first time it's req and keep bytes in RAM
     void *icon = NULL;
     size_t size = 0;
-    getIconImage(&icon, &size);
+    if (currentNetworkInterface->icon == NULL || currentNetworkInterface->iconSize == 0) {
+        getIconImage(&icon, &size);
+        currentNetworkInterface->icon = icon;
+        currentNetworkInterface->iconSize = size;
+    } else {
+        icon = currentNetworkInterface->icon;
+        size = currentNetworkInterface->iconSize;
+    }
+    
     
     void *buffer = malloc( maxSize );
     bzero(buffer, maxSize);
@@ -198,7 +206,7 @@ void sendImage(void *networkInterface, uint16_t offset) {
     
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
                            (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
-    free(icon);
+//    free(icon);
 }
 
 
@@ -295,7 +303,7 @@ void answerHello(void *inFrame, void *networkInterface){
     offset += setHostnameTLV(buffer, offset);
 //     FIXME: we really need to write them properly
     offset += setQosCharacteristicsTLV(buffer, offset);
-    offset += setIconImageTLV(buffer, offset);
+//    offset += setIconImageTLV(buffer, offset);
     offset += setEndOfPropertyTLV(buffer, offset);
 
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,

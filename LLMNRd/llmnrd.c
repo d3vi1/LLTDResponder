@@ -498,11 +498,11 @@ int main(int argc, const char *argv[]){
     asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getFriendlyName: %s (%d bytes)\n", friendlyName, (int)sizeOfFriendlyHostname);
     free(friendlyName);
 
-    void *iconImage = NULL;
-    size_t sizeOfIconImage = 0;
-    getIconImage(&iconImage, &sizeOfIconImage);
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getIconImage: %d bytes\n", (int)sizeOfIconImage);
-    free(iconImage);
+//    void *iconImage = NULL;
+//    size_t sizeOfIconImage = 0;
+//    getIconImage(&iconImage, &sizeOfIconImage);
+//    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getIconImage: %d bytes\n", (int)sizeOfIconImage);
+//    free(iconImage);
     
     void *supportURL = NULL;
     size_t sizeOfSupportURL = 0;

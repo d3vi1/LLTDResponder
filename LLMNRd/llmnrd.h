@@ -68,6 +68,9 @@ typedef struct {
         ethernet_address_t  hwAddress;
     } mapper;
     
+    void *                  icon;
+    size_t                  iconSize;
+    
 } network_interface_t;
 
 IONotificationPortRef notificationPort;
