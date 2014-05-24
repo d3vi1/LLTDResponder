@@ -193,15 +193,14 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         temp_addr = interfaces;
         while(temp_addr != NULL) {
             if(temp_addr->ifa_addr->sa_family == AF_INET) {
-//                if(!strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
-//                    currentNetworkInterface->IPv4Addr = ((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr.s_addr;
-//                }
+                if(! strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
+                    currentNetworkInterface->IPv4Addr = ((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr.s_addr;
+                }
             }
             if(temp_addr->ifa_addr->sa_family == AF_INET6) {
-//                if(!strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
-//                    currentNetworkInterface->IPv6Addr = ((struct sockaddr_in6 *)temp_addr->ifa_addr)->sin6_addr;
-//                    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "IPv6 Addr: %s, %x", currentNetworkInterface->IPv6Addr, currentNetworkInterface->IPv6Addr);
-//                }
+                if(! strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
+                    currentNetworkInterface->IPv6Addr = ((struct sockaddr_in6 *)temp_addr->ifa_addr)->sin6_addr;
+                }
             }
             temp_addr = temp_addr->ifa_next;
         }
@@ -298,7 +297,7 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
         CFRelease(currentNetworkInterface->interfaceType);
         CFRelease(currentNetworkInterface->SCNetworkInterface);
         IOObjectRelease(currentNetworkInterface->notification);
-        //TODO: Alex: Kill the listner thread
+        //TODO: Alex: Kill the listener thread
         free(currentNetworkInterface);
     } else if (messageType == kIOMessageServicePropertyChange) {
         asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: A property has changed.\n", __FUNCTION__);
@@ -369,7 +368,6 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
 
 }
 
-
 //==============================================================================
 //
 // main
@@ -382,7 +380,6 @@ int main(int argc, const char *argv[]){
     mach_port_t           masterPort;
     CFRunLoopSourceRef    runLoopSource;
     io_iterator_t         newDevicesIterator;
-
     
     //
     // Create a new Apple System Log facility entry

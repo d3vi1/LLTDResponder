@@ -54,7 +54,6 @@ void getUpnpUuid(void **pointer){
 //
 //==============================================================================
 void getIconImage(void **icon, size_t *iconsize){
-    
     io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault,
                                                               IOServiceMatching("IOPlatformExpertDevice"));
     if (platformExpert) {
@@ -106,6 +105,7 @@ void getIconImage(void **icon, size_t *iconsize){
             }
             CFURLRef CTBundleUrlRef = UTTypeCopyDeclaringBundleURL(UniformTypeIdentifier);
             CFBundleRef CTBundle = CFBundleCreate(kCFAllocatorDefault, CTBundleUrlRef);
+            // FIXME: AICI CRAPA CU EXC_BAD_ACCESS(code=EXC_i386_GPFLT)
             CFURLRef iconURL = CFBundleCopyResourceURL(CTBundle, iconFileNameRef, NULL, NULL);
 
             CFRelease(CTBundleUrlRef);
@@ -260,7 +260,7 @@ void getIconImage(void **icon, size_t *iconsize){
 //
 //==============================================================================
 void getMachineName(char **pointer, size_t *stringSize){
-    
+    //FIXME: also breaks on subsequent scans
     CFStringRef LocalHostName = SCDynamicStoreCopyLocalHostName(NULL);
     *stringSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(LocalHostName), kCFStringEncodingUTF16LE);
     char *data = malloc(*stringSize);

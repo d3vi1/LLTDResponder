@@ -84,7 +84,7 @@ void lltdBlock (void *data){
         
         cyclNo++;
         
-        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: === cycle %d stopped ===\n", __FUNCTION__, cyclNo - 1);
+        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: === cycle %d stopped, %d bytes received ===\n", __FUNCTION__, cyclNo - 1, bytesRecv);
     }
     
     //
@@ -106,17 +106,12 @@ void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkI
 
     lltd_demultiplex_header_t *probe = buffer;
     
-    memcpy(&(probe->realSource), currentNetworkInterface->hwAddress, sizeof(ethernet_address_t));
-    probe->realDestination          = dst;
-    probe->frameHeader.source       = src;
-    probe->frameHeader.destination  = dst;
-    probe->frameHeader.ethertype    = htons(lltdEtherType);
-    probe->opcode                   = opcode_probe;
-    probe->version                  = 0x01;
-    probe->reserved                 = 0x00;
-    probe->tos                      = opcode_discover;
+    setLltdHeader(probe, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
+                  (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
+                  0x00, opcode_probe, tos_discovery);
 
-    
+
+    //FIXME: SIGABRT on subsequent scanning
     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Trying to send probe with seqNumber %d\n", __FUNCTION__, ntohs(probe->seqNumber));
     
     ssize_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
@@ -125,16 +120,10 @@ void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkI
         asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on PROBE: %s\n", __FUNCTION__, strerror(write));
     } else {
         // write an ACK too with the seq number
-        memcpy(&(probe->realSource), currentNetworkInterface->hwAddress, sizeof(ethernet_address_t));
-        probe->realDestination          = currentNetworkInterface->mapper.hwAddress;
-        probe->frameHeader.source       = probe->realSource;
-        probe->frameHeader.destination  = currentNetworkInterface->mapper.hwAddress;
-        probe->frameHeader.ethertype    = htons(lltdEtherType);
-        probe->opcode                   = opcode_ack;
-        probe->version                  = 0x01;
-        probe->tos                      = opcode_discover;
-        probe->seqNumber                = currentNetworkInterface->mapper.seqNumber;
-        
+        setLltdHeader(probe, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
+                      (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
+                      currentNetworkInterface->mapper.seqNumber, opcode_ack, tos_discovery);
+         
         write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                               sizeof(currentNetworkInterface->socketAddr));
         if (write == -1) {
@@ -150,7 +139,7 @@ void parseQuery(void *inFrame, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
     int packageSize = currentNetworkInterface->MTU,
         offset = 0;
-    void *buffer = malloc( sizeof(packageSize) );
+    void *buffer = malloc( packageSize );
     asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Entered parseQuery\n", __FUNCTION__);
     
     offset = setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
@@ -168,7 +157,7 @@ void parseQuery(void *inFrame, void *networkInterface){
 //        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on QryResp: %s\n", __FUNCTION__, strerror(write));
 //    }
     
-//    free(buffer);
+    free(buffer);
 }
 
 int probeSent = 0;
@@ -188,18 +177,15 @@ void sendImage(void *networkInterface, uint16_t offset) {
     setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
                            (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
                            currentNetworkInterface->mapper.seqNumber, opcode_queryLargeTlvResp, tos_discovery);
-    uint16_t offsetBuf = sizeof(lltd_demultiplex_header_t);
     
-    qry_large_tlv_resp_t *header = buffer + offsetBuf;
-    offsetBuf += sizeof(qry_large_tlv_resp_t);
+    qry_large_tlv_resp_t *header = buffer + sizeof(lltd_demultiplex_header_t);
     
     uint16_t bytesToWrite = 0;
-    boolean_t more_to_come = false;
     
     if (size >= offset + maxSize) {
         bytesToWrite     = maxSize;
         header->length   = bytesToWrite;
-        more_to_come     = true;
+        // set "more to come" byte to 1
         header->length  |=  0x8000;
     } else {
         bytesToWrite     = size - offset;
@@ -279,8 +265,6 @@ void answerHello(void *inFrame, void *networkInterface){
     
     lltd_demultiplex_header_t *inFrameHeader = inFrame;
     lltd_demultiplex_header_t *lltdHeader = buffer;
-
-    lltd_hello_upper_header_t *helloHeader = (void *)lltdHeader + sizeof(lltdHeader);
     
     lltd_discover_upper_header_t *discoverHeader = (void *)inFrameHeader + sizeof(lltdHeader);
     
