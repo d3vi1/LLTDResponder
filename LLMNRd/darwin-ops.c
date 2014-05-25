@@ -405,19 +405,10 @@ void getHostCharacteristics (void *data);
 void getComponentTable(void *data);
 
 
+
 //==============================================================================
 //
-// Switches the interface in the argument to promscious mode
-//
-//==============================================================================
-//==============================================================================
-//
-// Switches the interface in the argument to promscious mode
-//
-//==============================================================================
-//==============================================================================
-//
-// Switches the interface in the argument to promscious mode
+// FIXME:Switches the interface in the argument to promscuous mode | DOESN'T WORK
 //
 //==============================================================================
 void setPromiscuous(void *networkInterface, boolean_t set){
@@ -428,21 +419,23 @@ void setPromiscuous(void *networkInterface, boolean_t set){
         asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(errno));
         return -1;
     };
+    
+//    asl_log(asl,log_msg, ASL_LEVEL_DEBUG, "%s: Trying to set PROMISCUOUS=%d on IF=%s\n", __FUNCTION__, set,
+//                CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingASCII));
     if ( ( flags & IFF_UP ) && ( flags & IFF_RUNNING ) ){
         struct ifreq IfRequest;
-        
         bzero(&IfRequest, sizeof(IfRequest));
-
+        
         if (flags & IFF_PROMISC) {
-            if (! CFStringGetCString(currentNetworkInterface->deviceName, IfRequest.ifr_name, sizeof(IfRequest.ifr_name), kCFStringEncodingASCII) ){
-                asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(errno));
-                return -1;
-            };
-        }
+        if (! CFStringGetCString(currentNetworkInterface->deviceName, IfRequest.ifr_name, sizeof(IfRequest.ifr_name), kCFStringEncodingASCII) ){
+            asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(errno));
+            return -1;
+        };
         
         if (ioctl(currentNetworkInterface->socket, SIOCGIFFLAGS, (caddr_t)&IfRequest) == -1) {
             asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get network interface name: %s\n", __FUNCTION__, strerror(errno));
             return FALSE;
+        }
         }
         
         if (set) {

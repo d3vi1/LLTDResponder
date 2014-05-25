@@ -37,8 +37,12 @@ uint64_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_addre
 }
 
 bool compareEthernetAddress(ethernet_address_t *A, ethernet_address_t *B) {
-    if ((A->a[0]==B->a[0])&&(A->a[1]==B->a[1])&&(A->a[2]==B->a[2])&&(A->a[3]==B->a[3])&&(A->a[4]==B->a[4])&&(A->a[5]==B->a[5])) return true;
-    return false;
+    return A->a[0]==B->a[0] &&
+           A->a[1]==B->a[1] &&
+           A->a[2]==B->a[2] &&
+           A->a[3]==B->a[3] &&
+           A->a[4]==B->a[4] &&
+           A->a[5]==B->a[5];
 }
 
 //

@@ -12,6 +12,7 @@
 #define LLMNRd_llmnrd_h
 
 #include <CoreFoundation/CoreFoundation.h>
+#include <CoreFoundation/CFArray.h>
 #include <IOKit/network/IONetworkInterface.h>
 #include <IOKit/network/IONetworkController.h>
 #include <IOKit/network/IOEthernetController.h>
@@ -71,6 +72,7 @@ typedef struct {
     void *                  icon;
     size_t                  iconSize;
     
+    CFMutableArrayRef       seelist;
 } network_interface_t;
 
 IONotificationPortRef notificationPort;

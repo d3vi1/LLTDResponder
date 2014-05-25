@@ -353,7 +353,7 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
         //
         currentNetworkInterface->deviceName = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOBSDNameKey), kCFAllocatorDefault, 0);
         if (currentNetworkInterface->deviceName == NULL) {
-            usleep(50000);
+            usleep(100000);
             currentNetworkInterface->deviceName = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOBSDNameKey), kCFAllocatorDefault, 0);
         }
         

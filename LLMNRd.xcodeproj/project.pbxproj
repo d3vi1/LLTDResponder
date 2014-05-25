@@ -24,7 +24,6 @@
 		FAE8A0491930C73D00BCBFDB /* see-list.c in Sources */ = {isa = PBXBuildFile; fileRef = FAE8A0481930C73D00BCBFDB /* see-list.c */; };
 		FAE8A04E1930CD8B00BCBFDB /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
 		FAE8A0501930CD8B00BCBFDB /* lltddaemon.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59C3D6E18E9B38C006836B0 /* lltddaemon.1 */; };
-		FAE8A0551930CDA300BCBFDB /* see-list.h in Sources */ = {isa = PBXBuildFile; fileRef = FAE8A0471930C73100BCBFDB /* see-list.h */; };
 		FAE8A0561930CDA700BCBFDB /* see-list.c in Sources */ = {isa = PBXBuildFile; fileRef = FAE8A0481930C73D00BCBFDB /* see-list.c */; };
 /* End PBXBuildFile section */
 
@@ -84,7 +83,6 @@
 		E59E8C0018CF4D500054B295 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		E59E8C0218CF4D550054B295 /* CoreWLAN.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreWLAN.framework; path = System/Library/Frameworks/CoreWLAN.framework; sourceTree = SDKROOT; };
 		E5A41A0D19082C0B00D5D2FD /* llmnrd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = llmnrd.c; path = LLMNRd/llmnrd.c; sourceTree = SOURCE_ROOT; };
-		FAE8A0471930C73100BCBFDB /* see-list.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "see-list.h"; path = "LLMNRd/see-list.h"; sourceTree = SOURCE_ROOT; };
 		FAE8A0481930C73D00BCBFDB /* see-list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "see-list.c"; path = "LLMNRd/see-list.c"; sourceTree = SOURCE_ROOT; };
 		FAE8A0541930CD8B00BCBFDB /* lltddaemon copy */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "lltddaemon copy"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -179,7 +177,6 @@
 				E54C38B218F191EB00127645 /* net.shmessenger.darwin.llmnrd.plist */,
 				E59A5324190BEBB500CF5329 /* tlv-ops.c */,
 				E59A5326190BEBC600CF5329 /* tlv-ops.h */,
-				FAE8A0471930C73100BCBFDB /* see-list.h */,
 				FAE8A0481930C73D00BCBFDB /* see-list.c */,
 			);
 			path = llmnrd;
@@ -293,7 +290,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				FAE8A0561930CDA700BCBFDB /* see-list.c in Sources */,
-				FAE8A0551930CDA300BCBFDB /* see-list.h in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

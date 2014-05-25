@@ -100,7 +100,7 @@ void lltdBlock (void *data){
 
 }
 
-void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkInterface) {
+boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkInterface, int pause) {
     network_interface_t *currentNetworkInterface = networkInterface;
     // TODO: why, we'll see..
     int packageSize = sizeof(lltd_demultiplex_header_t);
@@ -110,14 +110,14 @@ void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkI
                   (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
                   0x00, opcode_probe, tos_discovery);
 
-
-    //FIXME: SIGABRT on subsequent scanning
     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Trying to send probe with seqNumber %d\n", __FUNCTION__, ntohs(probe->seqNumber));
     
+    //usleep(1000 * pause);
     ssize_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
     if (write < 0) {
         asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on PROBE: %s\n", __FUNCTION__, strerror(write));
+        return false;
     } else {
         // write an ACK too with the seq number, the algorithm will not conitnue without it
         setLltdHeader(probe, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
@@ -135,21 +135,34 @@ void sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkI
 //TODO: validate Query
 void parseQuery(void *inFrame, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
-    int packageSize = currentNetworkInterface->MTU,
+    int packageSize = currentNetworkInterface->MTU + sizeof(ethernet_header_t),
         offset = 0;
     void *buffer = malloc( packageSize );
-    asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Entered parseQuery\n", __FUNCTION__);
     
     offset = setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
                                    (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
                                     currentNetworkInterface->mapper.seqNumber, opcode_queryResp, tos_discovery);
     
     qry_resp_upper_header_t *respH  = buffer + sizeof(lltd_demultiplex_header_t);
+    // HERE I AM
     
-    //TODO: see the contents of currentNetworkInterface->seelist and respond with its contents.
-    respH->numDescs                 = 0x00;
+    long probesNo = CFArrayGetCount(currentNetworkInterface->seelist);
+    asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: I've seen %ld probes\n", __FUNCTION__, probesNo);
     
+    for(long i = 0; i < probesNo; i++) {
+        const probe_t *probe = CFArrayGetValueAtIndex(currentNetworkInterface->seelist , i);
+        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "\t%s: Type %d, Source: "ETHERNET_ADDR_FMT", Dest: "ETHERNET_ADDR_FMT", RealSource: "ETHERNET_ADDR_FMT" \n", __FUNCTION__,
+                    probe->type, ETHERNET_ADDR(probe->sourceAddr.a), ETHERNET_ADDR(probe->destAddr.a), ETHERNET_ADDR(probe->realSourceAddr.a) );
+        
+    }
+    // TODO: split this into multiple messages if it's the case
+    respH->numDescs                 = probesNo;
     offset += sizeof(qry_resp_upper_header_t);
+    
+    CFArrayGetValues( currentNetworkInterface->seelist, CFRangeMake(0, probesNo), buffer + offset);
+    offset += sizeof(probe_t) * probesNo;
+    
+    CFArrayRemoveAllValues(currentNetworkInterface->seelist);
     
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
@@ -228,16 +241,39 @@ void parseProbe(void *inFrame, void *networkInterface) {
     // if the probe is destined to us, we record it
     lltd_demultiplex_header_t * header = inFrame;
     
-    if ( compareEthernetAddress(&(header->realDestination), &currentNetworkInterface->hwAddress) )  {
-        // store it then
+    // see if it's intended for us
+    if ( compareEthernetAddress(&(header->frameHeader.destination), (ethernet_address_t *) &currentNetworkInterface->hwAddress) )  {
+        // store it then, unless we have it already??
         probe_t * probe = malloc( sizeof(probe_t) );
         
+        // initialize the probe, then search for it in our array
         probe->type             = header->opcode;
         probe->sourceAddr       = header->frameHeader.source;
         probe->destAddr         = header->frameHeader.destination;
         probe->realSourceAddr   = header->realSource;
         
-        CFArrayAppendValue(currentNetworkInterface->seelist, probe);
+        long count = CFArrayGetCount(currentNetworkInterface->seelist);
+        
+        boolean_t found = false;
+        
+        //if (count > 1) {
+            asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Searching through already %ld seen probes\n", __FUNCTION__, count);
+            for(long i = 0; i < count; i++) {
+                const probe_t *searchProbe = CFArrayGetValueAtIndex(currentNetworkInterface->seelist, i);
+                // destination and type are already equal, we'll compare just the source addresses
+                asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s:\tSource1: "ETHERNET_ADDR_FMT", Source2: "ETHERNET_ADDR_FMT" ,RealSource1: "ETHERNET_ADDR_FMT", RealSource2: "ETHERNET_ADDR_FMT",\n", __FUNCTION__,
+                        ETHERNET_ADDR(probe->sourceAddr.a), ETHERNET_ADDR(searchProbe->sourceAddr.a), ETHERNET_ADDR(probe->realSourceAddr.a), ETHERNET_ADDR(searchProbe->realSourceAddr.a) );
+                if ( compareEthernetAddress( &(probe->sourceAddr), &(searchProbe->sourceAddr)) &&
+                    compareEthernetAddress( &(probe->realSourceAddr), &(searchProbe->realSourceAddr)) ) {
+                    found = true;
+                }
+            }
+        //}
+        
+        if (!found) {
+            CFArrayAppendValue(currentNetworkInterface->seelist, probe);
+            asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Adding probe to seen list\n", __FUNCTION__ );
+        }
     }
 }
 
@@ -257,7 +293,7 @@ void parseEmit(void *inFrame, void *networkInterface){
         emitee_descs *emitee = ( (void *)emitHeader + sizeof(*emitHeader) + offsetEmitee );
         if (emitee->type == 1) {
             // this is where the magic really happens
-            sendProbeMsg(emitee->sourceAddr, emitee->destAddr, networkInterface);
+            sendProbeMsg(emitee->sourceAddr, emitee->destAddr, networkInterface, emitee->pause);
         } else if (emitee->type == 2) {
           asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Emitee type=%d !", __FUNCTION__, emitee->type);
         } else {
@@ -313,7 +349,7 @@ void answerHello(void *inFrame, void *networkInterface){
     offset += setHostnameTLV(buffer, offset);
 //     FIXME: we really need to write them properly
     offset += setQosCharacteristicsTLV(buffer, offset);
-//    offset += setIconImageTLV(buffer, offset);
+    offset += setIconImageTLV(buffer, offset);
     offset += setEndOfPropertyTLV(buffer, offset);
 
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
@@ -375,7 +411,7 @@ void parseFrame(void *frame, void *networkInterface){
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Discover (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     if (!helloSent) {
                         helloSent = 1;
-                        usleep(350000);
+                        usleep(150000);
                         answerHello(frame, currentNetworkInterface);
                     }
                     break;
