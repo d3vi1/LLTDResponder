@@ -65,18 +65,30 @@ void getIconImage(void **icon, size_t *iconsize){
         //
         (void) IOObjectRelease(platformExpert);
         
-        CFStringRef modelCode = CFStringCreateWithCString(NULL, (char*)CFDataGetBytePtr(modelCodeData), kCFStringEncodingASCII);
+        CFStringRef modelCode = CFStringCreateWithCString(kCFAllocatorDefault, (char*)CFDataGetBytePtr(modelCodeData), kCFStringEncodingASCII);
         CFStringRef UniformTypeIdentifier = NULL;
         
+        char * myDarling = malloc(16);
+        CFStringGetCString(modelCode, myDarling, 16, kCFStringEncodingASCII);
+        
+        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Model Code: %s\n", __FUNCTION__, myDarling);
+        
         if (modelCode != NULL) {
-            if(!(CFStringGetLength(modelCode)==0)){
+            if((long) CFStringGetLength(modelCode) > 0) {
                 UniformTypeIdentifier = UTTypeCreatePreferredIdentifierForTag(CFSTR("com.apple.device-model-code"), modelCode, NULL);
-            } else UniformTypeIdentifier = CFSTR("com.apple.mac");
+            } else {
+                UniformTypeIdentifier = CFSTR("com.apple.mac");
+            }
 
             CFRelease(modelCode);
         } else {
+            CFRelease(modelCode);
             CFRelease(modelCodeData);
             return;
+        }
+
+        if (CFStringHasPrefix(UniformTypeIdentifier, CFSTR("dyn"))) {
+            UniformTypeIdentifier = CFSTR("com.apple.mac");
         }
         
         // Use to change the represented icon to another one
