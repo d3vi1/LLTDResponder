@@ -453,7 +453,7 @@ void parseFrame(void *frame, void *networkInterface){
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryResponse (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     break;
                 case opcode_reset:
-                    //asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
                     helloSent = 0;
                     CFArrayRemoveAllValues(currentNetworkInterface->seelist);
                     setPromiscuous(currentNetworkInterface, false);
