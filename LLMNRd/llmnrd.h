@@ -56,7 +56,7 @@ typedef struct {
     CFNumberRef            flags;               // kIOInterfaceFlags from the Interface
     CFNumberRef            linkStatus;          // kIOLinkStatus from the Controller
     uint32_t               MTU;                 // We'll set the buffer size to the MTU size
-    CFNumberRef            MediumType;          // Get the current medium Type
+    uint64_t               MediumType;          // Get the current medium Type
     uint64_t               LinkSpeed;           // The current link speed, automatically updated when the property changes
     uint32_t               IPv4Addr;
     int                    socket;

@@ -169,7 +169,7 @@ void getIconImage(void **icon, size_t *iconsize){
                                 haveIconSelected = TRUE;
                             }
 
-//                            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI) %dx%d (%d)\n", __FUNCTION__, index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
+                            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI) %dx%d (%d)\n", __FUNCTION__, index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
                             
                             // FIXME: Doesn't get released
                             CFRelease(imageProperties);
@@ -196,7 +196,6 @@ void getIconImage(void **icon, size_t *iconsize){
                         keys[1] = kCGImageSourceThumbnailMaxPixelSize;
                         values[1] = (CFTypeRef)thumbSizeRef;
                         options = CFDictionaryCreate(NULL, (const void **)keys, (const void **)values, 2, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-//                        CFRelease(thumbSizeRef); //FIXME
                         
                         // Create the thumbnail image using the options dictionary
                         CGImageRef thumbnailImageRef = CGImageSourceCreateThumbnailAtIndex(myIcon, iconSelected, (CFDictionaryRef)options);
@@ -208,6 +207,7 @@ void getIconImage(void **icon, size_t *iconsize){
                         CGImageDestinationAddImage(myImage, thumbnailImageRef, NULL);
                         //FIXME: Doesn't get released
                         CFRelease(thumbnailImageRef);
+                        CFRelease(thumbSizeRef);
                         CGImageDestinationFinalize(myImage);
                         //FIXME: Doesn't get released
                         CFRelease(myImage);
@@ -413,45 +413,59 @@ void getComponentTable(void *data);
 //==============================================================================
 void setPromiscuous(void *networkInterface, boolean_t set){
     network_interface_t *currentNetworkInterface = networkInterface;
+    
     uint16_t       flags;
     
+    uint8_t        ifNameLength = CFStringGetMaximumSizeForEncoding(CFStringGetLength(currentNetworkInterface->deviceName), kCFStringEncodingUTF8);
+    char          *interfaceName = malloc (ifNameLength);
+
+    //Get the interface name
+    if (! CFStringGetCString(currentNetworkInterface->deviceName, interfaceName, ifNameLength, kCFStringEncodingUTF8)){
+        asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s:  could not get network interface name\n", __FUNCTION__);
+        goto cleanup;
+    }
+    
     if (! CFNumberGetValue(currentNetworkInterface->flags, kCFNumberIntType, &flags)) {
-        asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(errno));
-        return -1;
+        asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface %s: %s\n", __FUNCTION__, interfaceName, strerror(errno) );
+        goto cleanup;
     };
     
-//    asl_log(asl,log_msg, ASL_LEVEL_DEBUG, "%s: Trying to set PROMISCUOUS=%d on IF=%s\n", __FUNCTION__, set,
-//                CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingASCII));
+    asl_log(asl,log_msg, ASL_LEVEL_DEBUG, "%s: Trying to set PROMISCUOUS=%d on IF=%s\n", __FUNCTION__, set, interfaceName);
     if ( ( flags & IFF_UP ) && ( flags & IFF_RUNNING ) ){
         struct ifreq IfRequest;
         bzero(&IfRequest, sizeof(IfRequest));
+
+        #define min(a, b) (((a) < (b)) ? (a) : (b))
+
+        memcpy(&(IfRequest.ifr_name), interfaceName, min(ifNameLength, 16));
+//        CFStringGetCString(currentNetworkInterface->deviceName, IfRequest.ifr_name, sizeof(IfRequest.ifr_name), kCFStringEncodingASCII);
         
-        if (flags & IFF_PROMISC) {
-        if (! CFStringGetCString(currentNetworkInterface->deviceName, IfRequest.ifr_name, sizeof(IfRequest.ifr_name), kCFStringEncodingASCII) ){
-            asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(errno));
-            return -1;
-        };
-        
-        if (ioctl(currentNetworkInterface->socket, SIOCGIFFLAGS, (caddr_t)&IfRequest) == -1) {
-            asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get network interface name: %s\n", __FUNCTION__, strerror(errno));
-            return FALSE;
-        }
+        //If we're already PROMISC and we're supposed to set it!
+        if ((flags & IFF_PROMISC) & set) {
+            goto cleanup;
         }
         
+        printf("%s: before get flags %s\n", __FUNCTION__, interfaceName);
+        int ioctlError  = ioctl(currentNetworkInterface->socket, SIOCGIFFLAGS, (caddr_t)&IfRequest);
+        if (ioctlError) {
+            asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(ioctlError));
+//            goto cleanup;
+        }
+        printf("%s: before operation flags %s\n", __FUNCTION__, interfaceName);
         if (set) {
             IfRequest.ifr_flags |= IFF_PROMISC;
         } else {
             IfRequest.ifr_flags &= ~IFF_PROMISC;
         }
         
+        printf("%s: before write %s\n", __FUNCTION__, interfaceName);
         if (ioctl(currentNetworkInterface->socket, SIOCSIFFLAGS, (caddr_t)&IfRequest) == -1) {
             asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not set flags for interface \"%s\": %s\n", __FUNCTION__, IfRequest.ifr_name, strerror(errno));
-            return FALSE;
+            goto cleanup;
         }
-        
-        return TRUE;
+        printf("at set\n");
     }
-    
+    cleanup:
+    free(interfaceName);
 }
-
 

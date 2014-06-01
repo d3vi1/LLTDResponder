@@ -160,12 +160,19 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     //Let's get the Medium Type
     //
     CFDictionaryRef properties = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOMediumDictionary), kCFAllocatorDefault, kNilOptions);
-    CFNumberRef activeMediumValue = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOActiveMedium), kCFAllocatorDefault, kNilOptions);
     if (properties!=NULL){
-        CFDictionaryRef activeMedium = (CFDictionaryRef)CFDictionaryGetValue(properties, activeMediumValue);
-        if (activeMedium!=NULL){
-            currentNetworkInterface->MediumType = CFDictionaryGetValue(activeMedium, CFSTR(kIOMediumType));
-            CFRelease(activeMedium);
+        CFNumberRef activeMediumIndex = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOActiveMedium), kCFAllocatorDefault, kNilOptions);
+        if (activeMediumIndex!=NULL) {
+            CFDictionaryRef activeMedium = (CFDictionaryRef)CFDictionaryGetValue(properties, activeMediumIndex);
+            if (activeMedium!=NULL){
+                uint64_t mediumType;
+                CFNumberRef mediumTypeCF = CFDictionaryGetValue(activeMedium, CFSTR(kIOMediumType));
+                CFNumberGetValue(mediumTypeCF, kCFNumberLongLongType, &mediumType);
+                currentNetworkInterface->MediumType = mediumType;
+                CFRelease(mediumTypeCF);
+                CFRelease(activeMedium);
+            }
+            CFRelease(activeMediumIndex);
         }
         CFRelease(properties);
     }

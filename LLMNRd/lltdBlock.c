@@ -354,7 +354,7 @@ void answerHello(void *inFrame, void *networkInterface){
 
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                             sizeof(currentNetworkInterface->socketAddr));
-    setPromiscuous(currentNetworkInterface, true);
+    setPromiscuous(networkInterface, true);
     
     free(buffer);
 

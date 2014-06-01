@@ -96,7 +96,7 @@ uint64_t setCharacteristicsTLV(void *buffer, uint64_t offset, void *networkInter
     characteristicsTLV->TLVLength = sizeof(*characteristicsValue);
     
     //Checking if we're full duplex
-    if (currentNetworkInterface->MediumType || IFM_FDX){
+    if (currentNetworkInterface->MediumType & IFM_FDX){
         *characteristicsValue = htons(Config_TLV_NetworkInterfaceDuplex_Value);
     }
     uint32_t flags;
