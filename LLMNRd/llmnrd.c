@@ -201,19 +201,20 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     if (success == 0) {
         temp_addr = interfaces;
         while(temp_addr != NULL) {
+            char *ifName = malloc(16);
+            CFStringGetCString(currentNetworkInterface->deviceName,ifName, 16,kCFStringEncodingUTF8);
+            if (! strcmp(ifName, temp_addr->ifa_name)) {
             
-            if(temp_addr->ifa_addr->sa_family == AF_INET && !foundIPv4) {
-//                if(! strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
+                if(temp_addr->ifa_addr->sa_family == AF_INET && !foundIPv4) {
                     currentNetworkInterface->IPv4Addr = ((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr.s_addr;
                     foundIPv4 = true;
-//                }
-            }
-            if(temp_addr->ifa_addr->sa_family == AF_INET6 && !foundIPv6) {
-//                if(! strcmp(temp_addr->ifa_name, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8))) {
+                }
+                if(temp_addr->ifa_addr->sa_family == AF_INET6 && !foundIPv6) {
                     currentNetworkInterface->IPv6Addr = ((struct sockaddr_in6 *)temp_addr->ifa_addr)->sin6_addr;
                     foundIPv6 = true;
-//                }
+                }
             }
+            free(ifName);
             temp_addr = temp_addr->ifa_next;
         }
     }
