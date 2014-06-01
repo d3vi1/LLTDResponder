@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>net.shmessenger.darwin.llmnrd</string>
+	<string>net.shmessenger.darwin.lltddaemon</string>
 	<key>KeepAlive</key>
 	<true/>
 	<key>OnDemand</key>
