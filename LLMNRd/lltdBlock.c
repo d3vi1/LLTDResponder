@@ -105,10 +105,16 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
     // TODO: why, we'll see..
     int packageSize = sizeof(lltd_demultiplex_header_t);
     lltd_demultiplex_header_t *probe = malloc( packageSize );
-    
+   
+    // This line is WRONG !
     setLltdHeader(probe, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
                   (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
                   0x00, opcode_probe, tos_discovery);
+    // This one should be correct
+    setLltdHeader(probe, (ethernet_address_t *) &src,
+                  (ethernet_address_t *) &dst,
+                  0x00, opcode_probe, tos_discovery);
+
 
     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Trying to send probe with seqNumber %d\n", __FUNCTION__, ntohs(probe->seqNumber));
     
@@ -161,7 +167,6 @@ void parseQuery(void *inFrame, void *networkInterface){
     offset += sizeof(qry_resp_upper_header_t);
     
     if (probesNo) {
-        //CFArrayGetValues( currentNetworkInterface->seelist, CFRangeMake(0, probesNo), buffer + offset);
         
         void * viewList = malloc(sizeof(probe_t) * probesNo);
         for (int i = 0; i< probesNo; i++) {
@@ -255,12 +260,12 @@ void parseProbe(void *inFrame, void *networkInterface) {
     lltd_demultiplex_header_t * header = inFrame;
     
     // see if it's intended for us
-    if ( compareEthernetAddress(&(header->frameHeader.destination), (ethernet_address_t *) &currentNetworkInterface->hwAddress) )  {
+    if ( compareEthernetAddress(&(header->frameHeader.destination), (ethernet_address_t *) &currentNetworkInterface->hwAddress) || true	 )  {
         // store it then, unless we have it already??
         probe_t * probe = malloc( sizeof(probe_t) );
         
         // initialize the probe, then search for it in our array
-        probe->type             = header->opcode;
+        probe->type             = 0x00;
         probe->sourceAddr       = header->frameHeader.source;
         probe->destAddr         = header->frameHeader.destination;
         probe->realSourceAddr   = header->realSource;
@@ -437,6 +442,7 @@ void parseFrame(void *frame, void *networkInterface){
                     break;
                 case opcode_train:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Train (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    //parseProbe(frame, currentNetworkInterface);
                     break;
                 case opcode_probe:
                     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Probe (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
