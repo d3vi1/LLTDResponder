@@ -112,7 +112,7 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
 
     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Trying to send probe with seqNumber %d\n", __FUNCTION__, ntohs(probe->seqNumber));
     
-    //usleep(1000 * pause);
+    usleep(1000 * pause);
     ssize_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
     if (write < 0) {
@@ -138,6 +138,7 @@ void parseQuery(void *inFrame, void *networkInterface){
     int packageSize = currentNetworkInterface->MTU + sizeof(ethernet_header_t),
         offset = 0;
     void *buffer = malloc( packageSize );
+    bzero(buffer, packageSize);
     
     offset = setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
                                    (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
@@ -146,8 +147,8 @@ void parseQuery(void *inFrame, void *networkInterface){
     qry_resp_upper_header_t *respH  = buffer + sizeof(lltd_demultiplex_header_t);
     // HERE I AM
     
-    long probesNo = CFArrayGetCount(currentNetworkInterface->seelist);
-    asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: I've seen %ld probes\n", __FUNCTION__, probesNo);
+    int probesNo = (int) CFArrayGetCount(currentNetworkInterface->seelist);
+    asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: I've seen %d probes\n", __FUNCTION__, probesNo);
     
     for(long i = 0; i < probesNo; i++) {
         const probe_t *probe = CFArrayGetValueAtIndex(currentNetworkInterface->seelist , i);
@@ -156,13 +157,25 @@ void parseQuery(void *inFrame, void *networkInterface){
         
     }
     // TODO: split this into multiple messages if it's the case
-    respH->numDescs                 = probesNo;
+    respH->numDescs                 = htons(probesNo);
     offset += sizeof(qry_resp_upper_header_t);
     
-    CFArrayGetValues( currentNetworkInterface->seelist, CFRangeMake(0, probesNo), buffer + offset);
-    offset += sizeof(probe_t) * probesNo;
+    if (probesNo) {
+        //CFArrayGetValues( currentNetworkInterface->seelist, CFRangeMake(0, probesNo), buffer + offset);
+        
+        void * viewList = malloc(sizeof(probe_t) * probesNo);
+        for (int i = 0; i< probesNo; i++) {
+            memcpy(viewList + (i * sizeof(probe_t)),CFArrayGetValueAtIndex(currentNetworkInterface->seelist, i) ,sizeof(probe_t));
+        }
+        
+        memcpy( buffer + offset, viewList, sizeof(probe_t) * probesNo );
+        free(viewList);
+        
+        offset += sizeof(probe_t) * probesNo;
+        
+        CFArrayRemoveAllValues(currentNetworkInterface->seelist);
+    }
     
-    CFArrayRemoveAllValues(currentNetworkInterface->seelist);
     
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
