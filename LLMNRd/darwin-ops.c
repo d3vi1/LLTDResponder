@@ -416,8 +416,7 @@ void getHostCharacteristics (void *data);
 //==============================================================================
 void getComponentTable(void *data);
 
-
-
+#define min(a, b) (((a) < (b)) ? (a) : (b))
 //==============================================================================
 //
 // FIXME:Switches the interface in the argument to promscuous mode | DOESN'T WORK
@@ -426,9 +425,9 @@ void getComponentTable(void *data);
 void setPromiscuous(void *networkInterface, boolean_t set){
     network_interface_t *currentNetworkInterface = networkInterface;
     
-    uint16_t       flags;
+    long           flags;
     
-    uint8_t        ifNameLength = CFStringGetMaximumSizeForEncoding(CFStringGetLength(currentNetworkInterface->deviceName), kCFStringEncodingUTF8);
+    uint8_t        ifNameLength = min(CFStringGetMaximumSizeForEncoding(CFStringGetLength(currentNetworkInterface->deviceName), kCFStringEncodingUTF8), 16);
     char          *interfaceName = malloc (ifNameLength);
 
     //Get the interface name
@@ -437,23 +436,21 @@ void setPromiscuous(void *networkInterface, boolean_t set){
         goto cleanup;
     }
     
-    if (! CFNumberGetValue(currentNetworkInterface->flags, kCFNumberIntType, &flags)) {
+    if (! CFNumberGetValue(currentNetworkInterface->flags, kCFNumberLongType, &flags)) {
         asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface %s: %s\n", __FUNCTION__, interfaceName, strerror(errno) );
         goto cleanup;
-    };
+    }
     
     asl_log(asl,log_msg, ASL_LEVEL_DEBUG, "%s: Trying to set PROMISCUOUS=%d on IF=%s\n", __FUNCTION__, set, interfaceName);
     if ( ( flags & IFF_UP ) && ( flags & IFF_RUNNING ) ){
         struct ifreq IfRequest;
         bzero(&IfRequest, sizeof(IfRequest));
 
-        #define min(a, b) (((a) < (b)) ? (a) : (b))
-
-        memcpy(&(IfRequest.ifr_name), interfaceName, min(ifNameLength, 16));
+        memcpy(&(IfRequest.ifr_name), interfaceName, ifNameLength);
 //        CFStringGetCString(currentNetworkInterface->deviceName, IfRequest.ifr_name, sizeof(IfRequest.ifr_name), kCFStringEncodingASCII);
         
         //If we're already PROMISC and we're supposed to set it!
-        if ((flags & IFF_PROMISC) & set) {
+        if ((flags & IFF_PROMISC) && set) {
             goto cleanup;
         }
         
