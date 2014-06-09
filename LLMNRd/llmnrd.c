@@ -169,6 +169,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
                 CFNumberRef mediumTypeCF = CFDictionaryGetValue(activeMedium, CFSTR(kIOMediumType));
                 CFNumberGetValue(mediumTypeCF, kCFNumberLongLongType, &mediumType);
                 currentNetworkInterface->MediumType = mediumType;
+                CFRetain(mediumType);
                 CFRelease(mediumTypeCF);
                 CFRelease(activeMedium);
             }

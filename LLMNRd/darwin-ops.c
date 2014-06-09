@@ -68,10 +68,10 @@ void getIconImage(void **icon, size_t *iconsize){
         CFStringRef modelCode = CFStringCreateWithCString(kCFAllocatorDefault, (char*)CFDataGetBytePtr(modelCodeData), kCFStringEncodingASCII);
         CFStringRef UniformTypeIdentifier = NULL;
         
-        char * myDarling = malloc(16);
-        CFStringGetCString(modelCode, myDarling, 16, kCFStringEncodingASCII);
+        //char * myDarling = malloc(16);
+        //CFStringGetCString(modelCode, myDarling, 16, kCFStringEncodingASCII);
         
-        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Model Code: %s\n", __FUNCTION__, myDarling);
+        //asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Model Code: %s\n", __FUNCTION__, myDarling);
         
         if (modelCode != NULL) {
             if((long) CFStringGetLength(modelCode) > 0) {
@@ -82,7 +82,6 @@ void getIconImage(void **icon, size_t *iconsize){
 
             CFRelease(modelCode);
         } else {
-            CFRelease(modelCode);
             CFRelease(modelCodeData);
             return;
         }
@@ -94,13 +93,13 @@ void getIconImage(void **icon, size_t *iconsize){
         // Use to change the represented icon to another one
         // if you want to test the looks of another system
         // Uncomment to get an iphone-4 icon
-        //UniformTypeIdentifier = CFSTR("com.apple.iphone-4");
         
         CFRelease(modelCodeData);
 
         
         CFDictionaryRef utiDeclaration = UTTypeCopyDeclaration(UniformTypeIdentifier);
-        
+
+
         if (utiDeclaration){
             
             CFStringRef iconFileNameRef = CFDictionaryGetValue(utiDeclaration, CFSTR("UTTypeIconFile"));
@@ -117,21 +116,15 @@ void getIconImage(void **icon, size_t *iconsize){
             }
             CFURLRef CTBundleUrlRef = UTTypeCopyDeclaringBundleURL(UniformTypeIdentifier);
             CFBundleRef CTBundle = CFBundleCreate(kCFAllocatorDefault, CTBundleUrlRef);
-            // FIXME: AICI CRAPA CU EXC_BAD_ACCESS(code=EXC_i386_GPFLT)
+
             CFURLRef iconURL = CFBundleCopyResourceURL(CTBundle, iconFileNameRef, NULL, NULL);
 
             CFRelease(CTBundleUrlRef);
-            //FIXME: Doesn't get released
             CFRelease(CTBundle);
-//            CFRelease(iconFileNameRef);//Gets released by releasing utiDeclaration
-            
-            //FIXME: Doesn't get released
             CFRelease(utiDeclaration);
-            //FIXME: Doesn't get released
             CFRelease(UniformTypeIdentifier);
 
             
-//            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Icon URL: %s\n", __FUNCTION__, CFStringGetCStringPtr(CFURLGetString(iconURL), kCFStringEncodingUTF8));
 
             // Load the icns file
             CGImageSourceRef myIcon = CGImageSourceCreateWithURL(iconURL, NULL);
@@ -141,7 +134,6 @@ void getIconImage(void **icon, size_t *iconsize){
             if( myIcon != NULL){
                     size_t iconCount = CGImageSourceGetCount (myIcon);
 
-//                    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: icon count: %zu\n", __FUNCTION__, iconCount);
 
                     Boolean haveIconSelected = FALSE;
                     size_t iconSelected = 0;
@@ -183,7 +175,6 @@ void getIconImage(void **icon, size_t *iconsize){
 
                             asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI) %dx%d (%d)\n", __FUNCTION__, index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
                             
-                            // FIXME: Doesn't get released
                             CFRelease(imageProperties);
                         }
                         
@@ -217,11 +208,9 @@ void getIconImage(void **icon, size_t *iconsize){
                         CFMutableDataRef myImageStream = CFDataCreateMutable(kCFAllocatorDefault, 0);
                         CGImageDestinationRef myImage = CGImageDestinationCreateWithData(myImageStream, kUTTypePNG, 1, NULL);
                         CGImageDestinationAddImage(myImage, thumbnailImageRef, NULL);
-                        //FIXME: Doesn't get released
                         CFRelease(thumbnailImageRef);
                         CFRelease(thumbSizeRef);
                         CGImageDestinationFinalize(myImage);
-                        //FIXME: Doesn't get released
                         CFRelease(myImage);
                         
                         // Now let's make an ICO out of that PNG. We have:
@@ -252,14 +241,11 @@ void getIconImage(void **icon, size_t *iconsize){
                         CFRelease(myImageStream);
                     }
                 
-                    //FIXME: Doesn't get released
                     CFRelease(myIcon);
                 }
 
-        } else {
+        } else CFRelease(UniformTypeIdentifier);
 
-            CFRelease(UniformTypeIdentifier);
-        }
 
     }
 }
