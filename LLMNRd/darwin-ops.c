@@ -244,9 +244,9 @@ void getIconImage(void **icon, size_t *iconsize){
                     CFRelease(myIcon);
                 }
 
-        } else CFRelease(UniformTypeIdentifier);
-
-
+        } else {
+            CFRelease(UniformTypeIdentifier);
+        }
     }
 }
 
@@ -440,20 +440,18 @@ void setPromiscuous(void *networkInterface, boolean_t set){
             goto cleanup;
         }
         
-        printf("%s: before get flags %s\n", __FUNCTION__, interfaceName);
         int ioctlError  = ioctl(currentNetworkInterface->socket, SIOCGIFFLAGS, (caddr_t)&IfRequest);
         if (ioctlError) {
             asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(ioctlError));
 //            goto cleanup;
         }
-        printf("%s: before operation flags %s\n", __FUNCTION__, interfaceName);
+        
         if (set) {
             IfRequest.ifr_flags |= IFF_PROMISC;
         } else {
             IfRequest.ifr_flags &= ~IFF_PROMISC;
         }
         
-        printf("%s: before write %s\n", __FUNCTION__, interfaceName);
         if (ioctl(currentNetworkInterface->socket, SIOCSIFFLAGS, (caddr_t)&IfRequest) == -1) {
             asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not set flags for interface \"%s\": %s\n", __FUNCTION__, IfRequest.ifr_name, strerror(errno));
             goto cleanup;

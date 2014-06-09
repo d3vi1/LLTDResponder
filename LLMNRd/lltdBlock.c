@@ -100,31 +100,28 @@ void lltdBlock (void *data){
 
 }
 
-boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkInterface, int pause) {
+boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkInterface, int pause, uint8_t type, boolean_t ack) {
     network_interface_t *currentNetworkInterface = networkInterface;
     // TODO: why, we'll see..
     int packageSize = sizeof(lltd_demultiplex_header_t);
     lltd_demultiplex_header_t *probe = malloc( packageSize );
    
-    // This line is WRONG !
-    setLltdHeader(probe, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
-                  (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
-                  0x00, opcode_probe, tos_discovery);
     // This one should be correct
+    uint8_t code = type == 0x01 ? opcode_probe : opcode_train;
     setLltdHeader(probe, (ethernet_address_t *) &src,
                   (ethernet_address_t *) &dst,
-                  0x00, opcode_probe, tos_discovery);
+                  0x00, code, tos_discovery);
 
 
-    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Trying to send probe with seqNumber %d\n", __FUNCTION__, ntohs(probe->seqNumber));
+    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Trying to send probe/train with seqNumber %d\n", __FUNCTION__, ntohs(probe->seqNumber));
     
     usleep(1000 * pause);
     ssize_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
     if (write < 0) {
-        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on PROBE: %s\n", __FUNCTION__, strerror(write));
+        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on PROBE/TRAIN: %s\n", __FUNCTION__, strerror(write));
         return false;
-    } else {
+    } else if (ack) {
         // write an ACK too with the seq number, the algorithm will not conitnue without it
         setLltdHeader(probe, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
                       (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
@@ -184,9 +181,9 @@ void parseQuery(void *inFrame, void *networkInterface){
     
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
-//    if (write < 0) {
-//        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on QryResp: %s\n", __FUNCTION__, strerror(write));
-//    }
+    if (write < 1) {
+        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on QryResp: %s\n", __FUNCTION__, strerror(write));
+    }
     
     free(buffer);
 }
@@ -236,6 +233,9 @@ void sendImage(void *networkInterface, uint16_t offset) {
     
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
                            (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
+    if (write < 1) {
+        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on sendImage: %s\n", __FUNCTION__, strerror(write));
+    }
 //    free(icon);
 }
 
@@ -249,7 +249,7 @@ void parseQueryLargeTlv(void *inFrame, void *networkInterface) {
     }
     qry_large_tlv_t *header = inFrame + sizeof(lltd_demultiplex_header_t);
     if (header->type == tlv_iconImage) {
-        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Image request, responding with QryLargeResp, offset=%d\n", __FUNCTION__, ntohs( header->offset ) );
+        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Image request, responding with QryLargeResp, offset=%d\n", __FUNCTION__, ntohs( header->offset ) );
         sendImage(networkInterface, ntohs(header->offset));
     }
 }
@@ -308,12 +308,15 @@ void parseEmit(void *inFrame, void *networkInterface){
     uint16_t offsetEmitee = 0;
     asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Emit parsed, number of descs: %x\n", __FUNCTION__, ntohs(emitHeader->numDescs));
     for (int i = 0; i < numDescs; i++) {
+        boolean_t ack = i == numDescs -1 ? true : false;
         emitee_descs *emitee = ( (void *)emitHeader + sizeof(*emitHeader) + offsetEmitee );
         if (emitee->type == 1) {
             // this is where the magic really happens
-            sendProbeMsg(emitee->sourceAddr, emitee->destAddr, networkInterface, emitee->pause);
-        } else if (emitee->type == 2) {
-          asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Emitee type=%d !", __FUNCTION__, emitee->type);
+            sendProbeMsg(emitee->sourceAddr, emitee->destAddr, networkInterface, emitee->pause, emitee->type, ack);
+        } else if (emitee->type == 0) {
+            // send train probes
+            sendProbeMsg(emitee->sourceAddr, emitee->destAddr, networkInterface, emitee->pause, emitee->type, ack);
+//            asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Emitee type=%d !", __FUNCTION__, emitee->type);
         } else {
           asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Unknown emitee type=%d !", __FUNCTION__, emitee->type);
         }
@@ -372,6 +375,10 @@ void answerHello(void *inFrame, void *networkInterface){
 
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                             sizeof(currentNetworkInterface->socketAddr));
+    if (write < 1) {
+        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed: %s\n", __FUNCTION__, strerror(write));
+    }
+    
     setPromiscuous(networkInterface, true);
     
     free(buffer);
