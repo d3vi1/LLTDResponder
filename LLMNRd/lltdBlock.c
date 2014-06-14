@@ -300,7 +300,6 @@ void parseEmit(void *inFrame, void *networkInterface){
     
     lltd_demultiplex_header_t *lltdHeader = inFrame;
     
-    // Works correctly!!!
     lltd_emit_upper_header_t *emitHeader = (void *) ( (void *)lltdHeader + sizeof(*lltdHeader) );
     currentNetworkInterface->mapper.seqNumber = lltdHeader->seqNumber;
     
@@ -311,10 +310,10 @@ void parseEmit(void *inFrame, void *networkInterface){
         boolean_t ack = i == numDescs -1 ? true : false;
         emitee_descs *emitee = ( (void *)emitHeader + sizeof(*emitHeader) + offsetEmitee );
         if (emitee->type == 1) {
-            // this is where the magic really happens
+            // this probes
             sendProbeMsg(emitee->sourceAddr, emitee->destAddr, networkInterface, emitee->pause, emitee->type, ack);
         } else if (emitee->type == 0) {
-            // send train probes
+            // send trains
             sendProbeMsg(emitee->sourceAddr, emitee->destAddr, networkInterface, emitee->pause, emitee->type, ack);
 //            asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Emitee type=%d !", __FUNCTION__, emitee->type);
         } else {
@@ -349,7 +348,7 @@ void answerHello(void *inFrame, void *networkInterface){
     //
     if (!compareEthernetAddress(&lltdHeader->realSource, &lltdHeader->frameHeader.source)){
         asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Discovery validation failed real mac is not equal to source.\n", __FUNCTION__);
-//        return;
+        return;
     }
     
     offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->hwAddress), (ethernet_address_t *) &EthernetBroadcast, 0x00, opcode_hello, inFrameHeader->tos);
