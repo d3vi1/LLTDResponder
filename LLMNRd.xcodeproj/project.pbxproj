@@ -199,7 +199,7 @@
 		E52240F018CF0CA200DD9E2F /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0500;
+				LastUpgradeCheck = 0600;
 				ORGANIZATIONNAME = "Răzvan Corneliu C.R. VILT";
 			};
 			buildConfigurationList = E52240F318CF0CA200DD9E2F /* Build configuration list for PBXProject "LLMNRd" */;
@@ -248,7 +248,9 @@
 			buildSettings = {
 				GCC_OPTIMIZATION_LEVEL = 0;
 				MACOSX_DEPLOYMENT_TARGET = 10.4;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "-DDEBUG=1";
+				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = NO;
 			};
 			name = Debug;

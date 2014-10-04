@@ -327,7 +327,6 @@ void parseEmit(void *inFrame, void *networkInterface){
 //==============================================================================
 //
 // This is the Hello answer to any Discovery package.
-// FIXME: Hello header casting is b0rken.
 //
 //==============================================================================
 void answerHello(void *inFrame, void *networkInterface){
@@ -367,7 +366,6 @@ void answerHello(void *inFrame, void *networkInterface){
     offset += setPerfCounterTLV(buffer, offset);
     offset += setLinkSpeedTLV(buffer, offset, currentNetworkInterface);
     offset += setHostnameTLV(buffer, offset);
-//     FIXME: we really need to write them properly
     offset += setQosCharacteristicsTLV(buffer, offset);
     offset += setIconImageTLV(buffer, offset);
     offset += setEndOfPropertyTLV(buffer, offset);

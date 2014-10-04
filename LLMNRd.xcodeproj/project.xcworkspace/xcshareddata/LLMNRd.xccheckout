@@ -10,29 +10,29 @@
 	<string>LLMNRd</string>
 	<key>IDESourceControlProjectOriginsDictionary</key>
 	<dict>
-		<key>5380DF8F-3788-44F0-964E-E5CF48EE0A5B</key>
+		<key>680731AE88F0A0E322754FD4E6419E245E922974</key>
 		<string>https://imac.d3vi1.linux360.ro/git/LLMNRd.git</string>
 	</dict>
 	<key>IDESourceControlProjectPath</key>
 	<string>LLMNRd.xcodeproj/project.xcworkspace</string>
 	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
 	<dict>
-		<key>5380DF8F-3788-44F0-964E-E5CF48EE0A5B</key>
+		<key>680731AE88F0A0E322754FD4E6419E245E922974</key>
 		<string>../..</string>
 	</dict>
 	<key>IDESourceControlProjectURL</key>
 	<string>https://imac.d3vi1.linux360.ro/git/LLMNRd.git</string>
 	<key>IDESourceControlProjectVersion</key>
-	<integer>110</integer>
+	<integer>111</integer>
 	<key>IDESourceControlProjectWCCIdentifier</key>
-	<string>5380DF8F-3788-44F0-964E-E5CF48EE0A5B</string>
+	<string>680731AE88F0A0E322754FD4E6419E245E922974</string>
 	<key>IDESourceControlProjectWCConfigurations</key>
 	<array>
 		<dict>
 			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
 			<string>public.vcs.git</string>
 			<key>IDESourceControlWCCIdentifierKey</key>
-			<string>5380DF8F-3788-44F0-964E-E5CF48EE0A5B</string>
+			<string>680731AE88F0A0E322754FD4E6419E245E922974</string>
 			<key>IDESourceControlWCCName</key>
 			<string>LLMNRd</string>
 		</dict>
