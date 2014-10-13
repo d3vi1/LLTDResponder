@@ -21,6 +21,16 @@
 		E59E8C0318CF4D550054B295 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0218CF4D550054B295 /* CoreWLAN.framework */; };
 		E5A41A0E19082C0B00D5D2FD /* llmnrd.c in Sources */ = {isa = PBXBuildFile; fileRef = E5A41A0D19082C0B00D5D2FD /* llmnrd.c */; };
 		E5FD8AE0192A130900E4EA22 /* tlv-ops.c in Sources */ = {isa = PBXBuildFile; fileRef = E59A5324190BEBB500CF5329 /* tlv-ops.c */; };
+		FAD3A21C19EACF54000FB445 /* automata.c in Sources */ = {isa = PBXBuildFile; fileRef = FAD3A21A19EACF54000FB445 /* automata.c */; };
+		FAD3A21D19EACF54000FB445 /* automata.c in Sources */ = {isa = PBXBuildFile; fileRef = FAD3A21A19EACF54000FB445 /* automata.c */; };
+		FAD3A22719EACFF8000FB445 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7E218E0427200863EAC /* CoreServices.framework */; };
+		FAD3A22819EACFF8000FB445 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7DC18E02F3900863EAC /* ImageIO.framework */; };
+		FAD3A22919EACFF8000FB445 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0218CF4D550054B295 /* CoreWLAN.framework */; };
+		FAD3A22A19EACFF8000FB445 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0018CF4D500054B295 /* SystemConfiguration.framework */; };
+		FAD3A22B19EACFF8000FB445 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BFE18CF4D4A0054B295 /* IOKit.framework */; };
+		FAD3A22C19EACFF8000FB445 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
+		FAD3A22E19EACFF8000FB445 /* llmnrd.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59E8BF918CF4D250054B295 /* llmnrd.1 */; };
+		FAD3A23419EAD02E000FB445 /* main_autom.c in Sources */ = {isa = PBXBuildFile; fileRef = FAD3A21E19EACF76000FB445 /* main_autom.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -41,6 +51,16 @@
 			dstSubfolderSpec = 0;
 			files = (
 				E59E8BFA18CF4D250054B295 /* llmnrd.1 in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		FAD3A22D19EACFF8000FB445 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+				FAD3A22E19EACFF8000FB445 /* llmnrd.1 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
@@ -69,6 +89,10 @@
 		E59E8C0018CF4D500054B295 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		E59E8C0218CF4D550054B295 /* CoreWLAN.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreWLAN.framework; path = System/Library/Frameworks/CoreWLAN.framework; sourceTree = SDKROOT; };
 		E5A41A0D19082C0B00D5D2FD /* llmnrd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = llmnrd.c; path = LLMNRd/llmnrd.c; sourceTree = SOURCE_ROOT; };
+		FAD3A21A19EACF54000FB445 /* automata.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = automata.c; sourceTree = "<group>"; };
+		FAD3A21B19EACF54000FB445 /* automata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = automata.h; sourceTree = "<group>"; };
+		FAD3A21E19EACF76000FB445 /* main_autom.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main_autom.c; sourceTree = "<group>"; };
+		FAD3A23219EACFF8000FB445 /* llmnrd copy */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "llmnrd copy"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +117,19 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FAD3A22619EACFF8000FB445 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FAD3A22719EACFF8000FB445 /* CoreServices.framework in Frameworks */,
+				FAD3A22819EACFF8000FB445 /* ImageIO.framework in Frameworks */,
+				FAD3A22919EACFF8000FB445 /* CoreWLAN.framework in Frameworks */,
+				FAD3A22A19EACFF8000FB445 /* SystemConfiguration.framework in Frameworks */,
+				FAD3A22B19EACFF8000FB445 /* IOKit.framework in Frameworks */,
+				FAD3A22C19EACFF8000FB445 /* CoreFoundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -111,6 +148,7 @@
 			children = (
 				E59E8BF318CF4D250054B295 /* llmnrd */,
 				E59C3D6918E9B38C006836B0 /* lltddaemon */,
+				FAD3A23219EACFF8000FB445 /* llmnrd copy */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -142,6 +180,7 @@
 		E59E8BF618CF4D250054B295 /* llmnrd */ = {
 			isa = PBXGroup;
 			children = (
+				FAD3A21E19EACF76000FB445 /* main_autom.c */,
 				E59E8BF918CF4D250054B295 /* llmnrd.1 */,
 				E5A41A0D19082C0B00D5D2FD /* llmnrd.c */,
 				E5774FA718D61F5E00988358 /* llmnrd.h */,
@@ -150,6 +189,8 @@
 				E53E69BE1908293B0033F651 /* lltdBlock.c */,
 				E53E69C0190829540033F651 /* lltdBlock.h */,
 				E54C38B218F191EB00127645 /* net.shmessenger.darwin.llmnrd.plist */,
+				FAD3A21A19EACF54000FB445 /* automata.c */,
+				FAD3A21B19EACF54000FB445 /* automata.h */,
 				E59A5324190BEBB500CF5329 /* tlv-ops.c */,
 				E59A5326190BEBC600CF5329 /* tlv-ops.h */,
 			);
@@ -193,6 +234,23 @@
 			productReference = E59E8BF318CF4D250054B295 /* llmnrd */;
 			productType = "com.apple.product-type.tool";
 		};
+		FAD3A21F19EACFF8000FB445 /* automata */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FAD3A22F19EACFF8000FB445 /* Build configuration list for PBXNativeTarget "automata" */;
+			buildPhases = (
+				FAD3A22019EACFF8000FB445 /* Sources */,
+				FAD3A22619EACFF8000FB445 /* Frameworks */,
+				FAD3A22D19EACFF8000FB445 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = automata;
+			productName = llmnrd;
+			productReference = FAD3A23219EACFF8000FB445 /* llmnrd copy */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -216,6 +274,7 @@
 			targets = (
 				E59E8BF218CF4D250054B295 /* llmnrd */,
 				E59C3D6818E9B38C006836B0 /* lltddaemon */,
+				FAD3A21F19EACFF8000FB445 /* automata */,
 			);
 		};
 /* End PBXProject section */
@@ -226,6 +285,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E59C3D6D18E9B38C006836B0 /* main.c in Sources */,
+				FAD3A21D19EACF54000FB445 /* automata.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -234,9 +294,18 @@
 			buildActionMask = 2147483647;
 			files = (
 				E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */,
+				FAD3A21C19EACF54000FB445 /* automata.c in Sources */,
 				E5A41A0E19082C0B00D5D2FD /* llmnrd.c in Sources */,
 				E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */,
 				E5FD8AE0192A130900E4EA22 /* tlv-ops.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FAD3A22019EACFF8000FB445 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FAD3A23419EAD02E000FB445 /* main_autom.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -304,6 +373,26 @@
 			};
 			name = Release;
 		};
+		FAD3A23019EACFF8000FB445 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				INSTALL_PATH = /usr/sbin;
+				PRODUCT_NAME = "llmnrd copy";
+			};
+			name = Debug;
+		};
+		FAD3A23119EACFF8000FB445 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /usr/sbin;
+				PRODUCT_NAME = "llmnrd copy";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -330,6 +419,15 @@
 			buildConfigurations = (
 				E59E8BFB18CF4D250054B295 /* Debug */,
 				E59E8BFC18CF4D250054B295 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FAD3A22F19EACFF8000FB445 /* Build configuration list for PBXNativeTarget "automata" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FAD3A23019EACFF8000FB445 /* Debug */,
+				FAD3A23119EACFF8000FB445 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

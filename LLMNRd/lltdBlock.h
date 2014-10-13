@@ -93,11 +93,12 @@ typedef struct {
 } tlv_header;
 
 #pragma pack ( pop )
-#endif
 
 #define tos_discovery             0x00
 #define tos_quick_discovery       0x01
 #define tos_qos_diagnostics       0x02
+
+#ifndef __opcode_constants__
 #define opcode_discover           0x00
 #define opcode_hello              0x01
 #define opcode_emit               0x02
@@ -122,6 +123,8 @@ typedef struct {
 #define opcode_qosCounterSnapshot 0x08
 #define opcode_qosCounterResult   0x09
 #define opcode_qosCounterLease    0x0A
+#endif
+
 #define tlv_hostId                0x01
 #define tlv_characterisics        0x02
 #define tlv_ifType                0x03
@@ -151,3 +154,5 @@ typedef struct {
 #define Config_TLV_QOS_VLAN       0x4000
 #define Config_TLV_QOS_PrioTag    0x2000
 #define eofpropmarker             0x00
+
+#endif /* defined(LLMNRd_lltdBlock_h) */
