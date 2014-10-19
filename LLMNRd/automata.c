@@ -18,7 +18,7 @@ automata* init_automata_mapping() {
     quiescent.name = "Quiescent";
     quiescent.timeout = 0;
     command.name = "Command";
-    command.timeout = 60;
+    command.timeout = 1;
     emit.name = "Emit";
     emit.timeout = 30;
     
@@ -50,7 +50,8 @@ automata* init_automata_mapping() {
     return autom;
 }
 
-automata* switch_state_mapping(automata* autom, int input) {
+//TODO: when timeout arrives, process it and process also the input arriving next
+automata* switch_state_mapping(automata* autom, int input, char* debug) {
     uint8_t new_state = autom->current_state;
     state* current_state = &autom->states_table[ autom->current_state ];
     bool timeout = FALSE;
@@ -66,22 +67,27 @@ automata* switch_state_mapping(automata* autom, int input) {
     
     int find = -1;
     for (int i = 0; i < autom->transitions_no; i++) {
-        state *left = &autom->states_table[autom->transitions_table[i].from];
-        if ( !strcmp( left->name, current_state->name ) && left->timeout == current_state->timeout && autom->transitions_table[i].with == input ) {
+        if ( autom->current_state == autom->transitions_table[i].from
+                && autom->transitions_table[i].with == input ) {
             new_state = autom->transitions_table[i].to;
             find = i;
         }
     }
-    if (autom->current_state != new_state || find > 0 || timeout) {
+    
+    if (autom->current_state != new_state || find >= 0 || timeout) {
         printf("Switching from %s with %d ", current_state->name, input);
         if (timeout) printf("(timeout) ");
         printf("to %s\n", autom->states_table[new_state].name);
         
         autom->current_state = new_state;
     }
-    
+
     autom->last_ts = now;
     
+    if (timeout) {
+        return switch_state_mapping(autom, input, "timeout");
+    }
+
     return autom;
 }
 

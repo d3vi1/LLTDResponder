@@ -22,24 +22,35 @@ int main(int argc, const char * argv[]) {
     switch_state_sample(automat, 2);
     */
     
+    
+    
     automata *en = init_automata_mapping();
-    switch_state_mapping(en, opcode_ack);
-    switch_state_mapping(en, opcode_charge);
-    switch_state_mapping(en, opcode_discover);
     
-    switch_state_mapping(en, opcode_reset);
-    switch_state_mapping(en, opcode_discover);
+    /*
+    for (int i = 0; i < en->transitions_no; i++) {
+        transition tr = en->transitions_table[i];
+        printf("%d -> %d with %d\n", tr.from, tr.to, tr.with);
+    }
+    */
     
-    switch_state_mapping(en, opcode_query);
-    switch_state_mapping(en, opcode_queryLargeTlv);
-    switch_state_mapping(en, opcode_charge);
+    switch_state_mapping(en, opcode_ack, "ack");
+    switch_state_mapping(en, opcode_charge, "charge");
+    switch_state_mapping(en, opcode_discover, "disc");
     
-    switch_state_mapping(en, opcode_emit);
-    switch_state_mapping(en, opcode_charge);
-    switch_state_mapping(en, -2);
-    switch_state_mapping(en, -3);
+    switch_state_mapping(en, opcode_reset, "reset");
+    switch_state_mapping(en, opcode_discover, "discover");
     
-    switch_state_mapping(en, opcode_reset);
+    sleep(2);
+    switch_state_mapping(en, opcode_query, "query");
+    switch_state_mapping(en, opcode_queryLargeTlv, "qryLrg");
+    switch_state_mapping(en, opcode_charge, "charge");
+    
+    switch_state_mapping(en, opcode_emit, "emit");
+    switch_state_mapping(en, opcode_charge, "charge");
+    switch_state_mapping(en, -2, "-2");
+    switch_state_mapping(en, -3, "-3");
+    
+    switch_state_mapping(en, opcode_reset, "reset");
     
     return 0;
 }

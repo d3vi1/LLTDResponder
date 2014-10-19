@@ -57,7 +57,7 @@ typedef struct state {
 typedef struct transition {
     uint8_t     from;
     uint8_t     to;
-    uint8_t     with;
+    int8_t      with;
 } transition;
 
 typedef struct automata {
@@ -70,7 +70,7 @@ typedef struct automata {
 } automata;
 
 automata* init_automata_mapping(void);
-automata* switch_state_mapping(automata*, int);
+automata* switch_state_mapping(automata*, int, char*);
 
 automata* init_automata_enumeration(void);
 automata* switch_state_enumeration(automata*, int);
