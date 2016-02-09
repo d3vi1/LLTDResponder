@@ -76,6 +76,7 @@
 		E54C38B218F191EB00127645 /* net.shmessenger.darwin.lltdDaemon.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = net.shmessenger.darwin.lltdDaemon.plist; path = LLMNRd/net.shmessenger.darwin.lltdDaemon.plist; sourceTree = SOURCE_ROOT; };
 		E54C38B318F1920500127645 /* net.shmessenger.darwin.llmnrDaemon.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = net.shmessenger.darwin.llmnrDaemon.plist; sourceTree = "<group>"; };
 		E55B08981C6A3C930020A136 /* lltdDaemon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lltdDaemon.h; path = LLMNRd/lltdDaemon.h; sourceTree = SOURCE_ROOT; };
+		E55B08991C6A4E8B0020A136 /* msIcoFormat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = msIcoFormat.h; sourceTree = "<group>"; };
 		E5774FA718D61F5E00988358 /* darwin-main.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "darwin-main.h"; path = "LLMNRd/darwin-main.h"; sourceTree = SOURCE_ROOT; };
 		E59A5324190BEBB500CF5329 /* lltdTlvOps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdTlvOps.c; path = LLMNRd/lltdTlvOps.c; sourceTree = SOURCE_ROOT; };
 		E59A5326190BEBC600CF5329 /* lltdTlvOps.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lltdTlvOps.h; path = ../LLMNRd/lltdTlvOps.h; sourceTree = "<group>"; };
@@ -137,7 +138,7 @@
 			isa = PBXGroup;
 			children = (
 				E59E8BF618CF4D250054B295 /* lltdDaemon */,
-				E59C3D6B18E9B38C006836B0 /* llmnrdaemon */,
+				E59C3D6B18E9B38C006836B0 /* llmnrDaemon */,
 				E52240FA18CF0CA200DD9E2F /* Frameworks */,
 				E52240F918CF0CA200DD9E2F /* Products */,
 			);
@@ -167,14 +168,14 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		E59C3D6B18E9B38C006836B0 /* llmnrdaemon */ = {
+		E59C3D6B18E9B38C006836B0 /* llmnrDaemon */ = {
 			isa = PBXGroup;
 			children = (
 				E59C3D6C18E9B38C006836B0 /* darwin-main.c */,
 				E59C3D6E18E9B38C006836B0 /* llmnrDaemon.1 */,
 				E54C38B318F1920500127645 /* net.shmessenger.darwin.llmnrDaemon.plist */,
 			);
-			name = llmnrdaemon;
+			name = llmnrDaemon;
 			path = lltddaemon;
 			sourceTree = "<group>";
 		};
@@ -195,6 +196,7 @@
 				FAD3A21B19EACF54000FB445 /* lltdAutomata.h */,
 				E59A5324190BEBB500CF5329 /* lltdTlvOps.c */,
 				E59A5326190BEBC600CF5329 /* lltdTlvOps.h */,
+				E55B08991C6A4E8B0020A136 /* msIcoFormat.h */,
 			);
 			name = lltdDaemon;
 			path = llmnrd;
@@ -260,7 +262,7 @@
 		E52240F018CF0CA200DD9E2F /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0600;
+				LastUpgradeCheck = 0720;
 				ORGANIZATIONNAME = "Răzvan Corneliu C.R. VILT";
 			};
 			buildConfigurationList = E52240F318CF0CA200DD9E2F /* Build configuration list for PBXProject "lltdDaemon" */;
@@ -317,6 +319,7 @@
 		E522410618CF0CA200DD9E2F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_TESTABILITY = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				MACOSX_DEPLOYMENT_TARGET = 10.4;
 				ONLY_ACTIVE_ARCH = YES;

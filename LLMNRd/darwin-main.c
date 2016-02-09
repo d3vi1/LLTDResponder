@@ -1,16 +1,15 @@
 /******************************************************************************
  *                                                                            *
- *   llmnrd.c                                                                 *
- *   LLMNRd                                                                   *
+ *   darwin-main.c                                                            *
+ *   lltdDaemon                                                               *
  *                                                                            *
  *   Created by Răzvan Corneliu C.R. VILT on 16.03.2014.                      *
- *   Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.       *
+ *   Copyright © 2014 Răzvan Corneliu C.R. VILT. All rights reserved.         *
  *                                                                            *
  ******************************************************************************/
 
 
 #include "lltdDaemon.h"
-#define debug 1
 
 void SignalHandler(int Signal) {
     asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "\nInterrupted by signal #%d\n", Signal);
@@ -133,13 +132,10 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not read ifMaxTransferUnit.\n", __FUNCTION__);
     }
 
-
-#ifdef debug
     //
     // DEBUG: Print the network interfaces to stdout
     //
     asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Found interface:   %s  MAC: "ETHERNET_ADDR_FMT"  Type: %s (0x%000x)\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8), ETHERNET_ADDR(currentNetworkInterface->hwAddress), CFStringGetCStringPtr(currentNetworkInterface->interfaceType, kCFStringEncodingUTF8), currentNetworkInterface->ifType);
-#endif
     
     //
     // Check if we're UP, BROADCAST and not LOOPBACK

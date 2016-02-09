@@ -1,23 +1,20 @@
-//
-//  automata.h
-//  Automata
-//
-//  Created by Alex Georoceanu on 06/10/14.
-//  Copyright (c) 2014 Alex Georoceanu. All rights reserved.
-//
+/******************************************************************************
+ *                                                                            *
+ *   lltdAutomata.c                                                           *
+ *   lltdDaemon                                                               *
+ *                                                                            *
+ *   Created by Răzvan Corneliu C.R. VILT on 06.10.2014.                      *
+ *   Copyright © 2014 Răzvan Corneliu C.R. VILT. All rights reserved.         *
+ *                                                                            *
+ ******************************************************************************/
 
 #ifndef __LLTDd__automata__
 #define __LLTDd__automata__
 
+#include "lltdDaemon.h"
+
 #define MAX_STATES 5 // LLTD protocol only needs 4 maximum
 #define MAX_TRANSITIONS 128
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <mach/mach.h>
-#include <mach/mach_time.h>
 
 #ifndef __opcode_constants__
 

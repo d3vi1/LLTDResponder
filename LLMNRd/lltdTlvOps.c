@@ -1,23 +1,17 @@
-//
-//  tlv-ops.c
-//  LLMNRd
-//
-//  Created by Răzvan Corneliu C.R. VILT on 26.04.2014.
-//  Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.
-//
+/******************************************************************************
+ *                                                                            *
+ *   lltdTlvOps.c                                                             *
+ *   lltdDaemon                                                               *
+ *                                                                            *
+ *   Created by Răzvan Corneliu C.R. VILT on 26.04.2014.                      *
+ *   Copyright © 2014 Răzvan Corneliu C.R. VILT. All rights reserved.         *
+ *                                                                            *
+ ******************************************************************************/
 
 #include    "lltdTlvOps.h"
 
 #pragma mark -
 #pragma mark Header generation
-
-#pragma pack( push )
-#pragma pack( 2 )
-typedef struct {
-    uint8_t     TLVType;
-    uint8_t     TLVLength;
-}  generic_tlv_t;
-#pragma pop
 
 uint64_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_address_t *destination, uint16_t seqNumber, uint8_t opcode, uint8_t tos){
     

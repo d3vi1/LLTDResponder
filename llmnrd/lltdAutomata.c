@@ -1,10 +1,12 @@
-//
-//  automata.c
-//  Automata
-//
-//  Created by Alex Georoceanu on 06/10/14.
-//  Copyright (c) 2014 Alex Georoceanu. All rights reserved.
-//
+/******************************************************************************
+ *                                                                            *
+ *   lltdAutomata.c                                                           *
+ *   lltdDaemon                                                               *
+ *                                                                            *
+ *   Created by Răzvan Corneliu C.R. VILT on 06.10.2014.                      *
+ *   Copyright © 2014 Răzvan Corneliu C.R. VILT. All rights reserved.         *
+ *                                                                            *
+ ******************************************************************************/
 
 #include "lltdAutomata.h"
 

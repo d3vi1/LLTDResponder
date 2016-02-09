@@ -1,14 +1,14 @@
 /******************************************************************************
  *                                                                            *
  *   darwin-ops.c                                                             *
- *   LLMNRd                                                                   *
+ *   lltdDaemon                                                               *
  *                                                                            *
  *   Created by Răzvan Corneliu C.R. VILT on 24.03.2014.                      *
  *   Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.       *
  *                                                                            *
  ******************************************************************************/
+
 #include "lltdDaemon.h"
-#define debug 1
 
 #pragma mark Functions that return machine information
 #pragma mark -

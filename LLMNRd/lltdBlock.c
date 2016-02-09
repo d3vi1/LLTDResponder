@@ -1,7 +1,7 @@
 /******************************************************************************
  *                                                                            *
  *   lltdBlock.c                                                              *
- *   LLMNRd                                                                   *
+ *   lltdDaemon                                                               *
  *                                                                            *
  *   Created by Răzvan Corneliu C.R. VILT on 23.03.2014.                      *
  *   Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.       *
@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "lltdBlock.h"
+
 //==============================================================================
 //
 // This is the thread that is opened for each valid interface
