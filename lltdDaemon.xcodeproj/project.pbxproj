@@ -71,7 +71,6 @@
 		E500D7D718E01E1800863EAC /* darwin-ops.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "darwin-ops.h"; path = "lltdDaemon/darwin-ops.h"; sourceTree = SOURCE_ROOT; };
 		E500D7DC18E02F3900863EAC /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
 		E500D7E218E0427200863EAC /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
-		E500D7E418E08F6C00863EAC /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		E53E69BE1908293B0033F651 /* lltdBlock.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdBlock.c; path = lltdDaemon/lltdBlock.c; sourceTree = SOURCE_ROOT; };
 		E53E69C0190829540033F651 /* lltdBlock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lltdBlock.h; path = lltdDaemon/lltdBlock.h; sourceTree = SOURCE_ROOT; };
 		E53FA3A31C6A787F009E43DD /* linux-main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "linux-main.c"; path = "lltdDaemon/linux-main.c"; sourceTree = SOURCE_ROOT; };
@@ -160,7 +159,6 @@
 		E52240FA18CF0CA200DD9E2F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				E500D7E418E08F6C00863EAC /* CoreGraphics.framework */,
 				E500D7E218E0427200863EAC /* CoreServices.framework */,
 				E500D7DC18E02F3900863EAC /* ImageIO.framework */,
 				E59E8C0218CF4D550054B295 /* CoreWLAN.framework */,
@@ -303,9 +301,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E5A41A0E19082C0B00D5D2FD /* darwin-main.c in Sources */,
 				E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */,
 				FAD3A21C19EACF54000FB445 /* lltdAutomata.c in Sources */,
-				E5A41A0E19082C0B00D5D2FD /* darwin-main.c in Sources */,
 				E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */,
 				E5FD8AE0192A130900E4EA22 /* lltdTlvOps.c in Sources */,
 			);
