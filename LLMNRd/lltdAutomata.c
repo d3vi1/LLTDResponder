@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 Alex Georoceanu. All rights reserved.
 //
 
-#include "automata.h"
+#include "lltdAutomata.h"
 
 automata* init_automata_mapping() {
     automata *autom = malloc( sizeof(automata) );

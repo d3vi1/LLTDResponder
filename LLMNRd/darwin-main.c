@@ -8,9 +8,8 @@
  *                                                                            *
  ******************************************************************************/
 
-#include <ifaddrs.h>
-#include <arpa/inet.h>
-#include "llmnrd.h"
+
+#include "lltdDaemon.h"
 #define debug 1
 
 void SignalHandler(int Signal) {
@@ -279,17 +278,18 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     
     int threadError = pthread_create(&posixThreadID, &threadAttributes, (void *)&lltdBlock, currentNetworkInterface);
     
+    currentNetworkInterface->posixThreadID = posixThreadID;
     returnVal = pthread_attr_destroy(&threadAttributes);
     
     assert(!returnVal);
     if (threadError != 0)
     {
-        // Report an error.
+        // TODO: Report an error.
     }
     
     
     //
-    // Clean-up the SC stuff
+    // TODO: Clean-up the SC stuff
     //
     
 }
@@ -311,24 +311,17 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
         CFRelease(currentNetworkInterface->interfaceType);
         CFRelease(currentNetworkInterface->SCNetworkInterface);
         IOObjectRelease(currentNetworkInterface->notification);
-        //TODO: Alex: Kill the listener thread
         free(currentNetworkInterface);
+        pthread_kill(currentNetworkInterface->posixThreadID, 0);
     } else if (messageType == kIOMessageServicePropertyChange) {
         asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: A property has changed.\n", __FUNCTION__);
-        //TODO: Now let's see what property changed. Let's compare with the saved information
-        /* CFStringRef            deviceName;
-        uint8_t                hwAddress [ kIOEthernetAddressSize ];
-        uint32_t               ifType;              // The generic kernel interface type
-        // (csma/cd applies to ethernet/firware
-        // and wireless, although they are
-        // different and wireless is CSMA/CA
-        CFStringRef            interfaceType;       // A string describing the interface
-        // type (Ethernet/Firewire/IEEE80211)
-        SCNetworkInterfaceRef  SCNetworkInterface;
-        SCNetworkConnectionRef SCNetworkConnection;
-        CFNumberRef            flags;               // kIOInterfaceFlags from the Interface
-        CFNumberRef            linkStatus;          // kIOLinkStatus from the Controller
-        uint32_t               MTU;                 // We'll set the buffer size to the MTU size*/
+        //Let's release the interface and validate it again.
+        CFRelease(currentNetworkInterface->interfaceType);
+        CFRelease(currentNetworkInterface->SCNetworkInterface);
+        IOObjectRelease(currentNetworkInterface->notification);
+        pthread_kill(currentNetworkInterface->posixThreadID, 0);
+        validateInterface(currentNetworkInterface, service);
+        
         
     }
 }
@@ -361,9 +354,6 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
         // Let's get the device name. If we don't have a BSD name, we are
         // letting it stabilize for 50ms since SCNetwork didn't do it's thing
         // yet.
-        // FIXME: I don't like using sleep. We should use events or a pooling loop.
-        // It's a candidate for conversion from hard-coded time to
-        // SystemConfiguration event monitoring.
         //
         currentNetworkInterface->deviceName = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOBSDNameKey), kCFAllocatorDefault, 0);
         if (currentNetworkInterface->deviceName == NULL) {
@@ -405,41 +395,6 @@ int main(int argc, const char *argv[]){
     log_msg = asl_new(ASL_TYPE_MSG);
     asl_set(log_msg, ASL_KEY_SENDER, "LLTD");
 
-    
-/*  //
-    // Register ourselves with LaunchD
-    //
-    launch_data_t sockets_dict, checkin_response;
-    launch_data_t checkin_request;
-    launch_data_t listening_fd_array;
-    if ((checkin_request = launch_data_new_string(LAUNCH_KEY_CHECKIN)) == NULL) {
-        asl_log(asl, log_msg, ASL_LEVEL_ERR, "launch_data_new_string(\"" LAUNCH_KEY_CHECKIN "\") Unable to create string.");
-        asl_close(asl);
-        return EXIT_FAILURE;
-    }
-    
-    if ((checkin_response = launch_msg(checkin_request)) == NULL) {
-        asl_log(asl, log_msg, ASL_LEVEL_ERR, "launch_msg(\"" LAUNCH_KEY_CHECKIN "\") IPC failure: %m");
-        asl_close(asl);
-        return EXIT_FAILURE;
-    }
-    
-    if (LAUNCH_DATA_ERRNO == launch_data_get_type(checkin_response)) {
-        errno = launch_data_get_errno(checkin_response);
-        asl_log(asl, log_msg, ASL_LEVEL_ERR, "Check-in failed: %m");
-        asl_close(asl);
-        return EXIT_FAILURE;
-    }
-    
-    launch_data_t the_label = launch_data_dict_lookup(checkin_response, LAUNCH_JOBKEY_LABEL);
-    if (NULL == the_label) {
-        asl_log(asl, log_msg, ASL_LEVEL_ERR, "No label found");
-        asl_close(asl);
-        return EXIT_FAILURE;
-    }
-
-    asl_log(asl, log_msg, ASL_LEVEL_NOTICE, "Label: %s", launch_data_get_string(the_label));
-*/
     
     //
     // Set up a signal handler so we can clean up when we're interrupted from
@@ -496,40 +451,6 @@ int main(int argc, const char *argv[]){
     deviceAppeared(NULL, newDevicesIterator);
 
     
-    //
-    // XXX: Testing the functions in darwin-ops. Not for production.
-    //
-#ifdef debug
-    void *hostname = NULL;
-    size_t sizeOfHostname = 0;
-    getMachineName((char **)&hostname, &sizeOfHostname);
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getHostname: %s (%d bytes)\n", hostname, (int)sizeOfHostname);
-    free(hostname);
-
-    void *friendlyName = NULL;
-    size_t sizeOfFriendlyHostname = 0;
-    getFriendlyName((char **)&friendlyName, &sizeOfFriendlyHostname);
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getFriendlyName: %s (%d bytes)\n", friendlyName, (int)sizeOfFriendlyHostname);
-    free(friendlyName);
-
-//    void *iconImage = NULL;
-//    size_t sizeOfIconImage = 0;
-//    getIconImage(&iconImage, &sizeOfIconImage);
-//    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getIconImage: %d bytes\n", (int)sizeOfIconImage);
-//    free(iconImage);
-    
-    void *supportURL = NULL;
-    size_t sizeOfSupportURL = 0;
-    getSupportInfo(&supportURL, &sizeOfSupportURL);
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "getSupportInfo: %s\n", (char *)supportURL);
-    free(supportURL);
-    
-    void *uuid = NULL;
-    getUpnpUuid(&uuid);
-//    asl_log(asl,log_msg, ASL_LEVEL_DEBUG, "getUpnpUuid: %d");
-    free(uuid);
-#endif
-
     //
     // Start the run loop.
     //

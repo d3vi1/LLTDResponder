@@ -6,8 +6,8 @@
 //  Copyright (c) 2014 Alex Georoceanu. All rights reserved.
 //
 
-#ifndef __Automata__automata__
-#define __Automata__automata__
+#ifndef __LLTDd__automata__
+#define __LLTDd__automata__
 
 #define MAX_STATES 5 // LLTD protocol only needs 4 maximum
 #define MAX_TRANSITIONS 128
@@ -75,4 +75,4 @@ automata* switch_state_mapping(automata*, int, char*);
 automata* init_automata_enumeration(void);
 automata* switch_state_enumeration(automata*, int);
 
-#endif /* defined(__Automata__automata__) */
+#endif /* defined(__LLTDd__automata__) */

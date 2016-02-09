@@ -6,14 +6,10 @@
 //  Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.
 //
 
-#ifndef LLMNRd_lltdBlock_h
-#define LLMNRd_lltdBlock_h
-#include <netinet/in.h>
-#include <net/if.h>
-#include <net/ndrv.h>
-#include "llmnrd.h"
-#include "darwin-ops.h"
-//#include "tlv-ops.h"
+#ifndef LLTDBlock_h
+#define LLTDBlock_h
+
+#include "lltdDaemon.h"
 
 
 void lltdBlock (void *data);
@@ -155,4 +151,4 @@ typedef struct {
 #define Config_TLV_QOS_PrioTag    0x2000
 #define eofpropmarker             0x00
 
-#endif /* defined(LLMNRd_lltdBlock_h) */
+#endif /* defined(LLTDBlock_h) */

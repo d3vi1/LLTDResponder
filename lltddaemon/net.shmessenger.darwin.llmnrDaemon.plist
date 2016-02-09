@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>net.shmessenger.darwin.lltddaemon</string>
+	<string>net.shmessenger.darwin.llmnrDaemon</string>
 	<key>KeepAlive</key>
 	<true/>
 	<key>OnDemand</key>
 	<false/>
 	<key>Program</key>
-	<string>/usr/sbin/lltddaemon</string>
+	<string>/usr/sbin/llmnrDaemon</string>
 	<key>ProgramArguments</key>
 	<array>
 		<string>-launchDaemon</string>

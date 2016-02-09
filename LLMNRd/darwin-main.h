@@ -8,8 +8,8 @@
  *                                                                            *
  ******************************************************************************/
 
-#ifndef LLMNRd_llmnrd_h
-#define LLMNRd_llmnrd_h
+#ifndef LLTDd_darwin_h
+#define LLTDd_darwin_h
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreFoundation/CFArray.h>
@@ -32,11 +32,14 @@
 #include <launch.h>                                         // LaunchD Notification
 #include <net/if.h>                                         // For IFFlags
 #include <pthread.h>                                        // For POSIX Threads
-#include "darwin-ops.h"
-#include "lltdBlock.h"
-#include "tlv-ops.h"
 #include <ifaddrs.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <net/ndrv.h>
+#include <sys/ioctl.h>
+#include "darwin-ops.h"
+#include "lltdBlock.h"
+#include "lltdTlvOps.h"
 
 
 
@@ -63,7 +66,7 @@ typedef struct {
     struct sockaddr_ndrv   socketAddr;
     struct in6_addr        IPv6Addr;
     //TODO: Add the pthread struct here in case we need to stop the thread
-    
+    pthread_t              posixThreadID;
     struct {
         uint16_t            seqNumber;
         ethernet_address_t  hwAddress;

@@ -6,10 +6,9 @@
 //  Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.
 //
 
-#ifndef LLMNRd_tlv_ops_h
-#define LLMNRd_tlv_ops_h
-#include "llmnrd.h"
-#include "darwin-ops.h"
+#ifndef LLTDd_tlv_ops_h
+#define LLTDd_tlv_ops_h
+#include "lltdDaemon.h"
 #include "lltdBlock.h"
 
 static const ethernet_address_t EthernetBroadcast = (ethernet_address_t) {{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};

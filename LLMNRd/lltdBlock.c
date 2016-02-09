@@ -8,8 +8,7 @@
  *                                                                            *
  ******************************************************************************/
 
-#include "llmnrd.h"
-#include "darwin-ops.h"
+#include "lltdBlock.h"
 //==============================================================================
 //
 // This is the thread that is opened for each valid interface

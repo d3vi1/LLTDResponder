@@ -7,7 +7,7 @@
  *   Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.       *
  *                                                                            *
  ******************************************************************************/
-#include "llmnrd.h"
+#include "lltdDaemon.h"
 #define debug 1
 
 #pragma mark Functions that return machine information

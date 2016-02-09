@@ -8,11 +8,10 @@
  *                                                                            *
  ******************************************************************************/
 
-#ifndef LLMNRd_darwin_ops_h
-#define LLMNRd_darwin_ops_h
+#ifndef LLTDd_darwin_ops_h
+#define LLTDd_darwin_ops_h
 
-#include <sys/ioctl.h>
-#include "llmnrd.h"
+#include "lltdDaemon.h"
 
 #pragma mark Functions that return machine information
 // Returned in UCS-2LE
