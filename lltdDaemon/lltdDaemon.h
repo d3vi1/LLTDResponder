@@ -32,7 +32,7 @@
     #include <CoreFoundation/CFArray.h>
     #include <CoreServices/CoreServices.h>                      // darwin-ops::getIconImage()
     #include <ImageIO/ImageIO.h>                                // darwin-ops::getIconImage() For ICNS to ICO
-                                                                //                conversion using Thumbnails
+                                                                //             conversion using Thumbnails
     #include <IOKit/network/IONetworkInterface.h>               // darwinMain::validateInterface()
     #include <IOKit/network/IONetworkController.h>              // darwinMain::validateInterface()
     #include <IOKit/network/IOEthernetController.h>             // darwinMain::validateInterface()
@@ -52,6 +52,12 @@
 
 #endif /*__darwin__ */
 
+/*
+ Optionally use posix threads. Otherwise use forking.
+ Optionally use SystemD with instances.
+ Optionally use Syslog of not on systemd.
+ Optionally get the interfaces from NetworkManager via D-Bus (kernel agnostic).
+ */
 #ifdef __linux__
     #include <linux/netlink.h>
     #include <linux/rtnetlink.h>
@@ -69,11 +75,21 @@
     #define  MYMGRP RTMGRP_IPV4_ROUTE
 #endif /*__linux__*/
 
+/*
+ IFNET(9)
+ struct ifnethead or DevD for listing and events
+ RC Script and optional RelaunchD support
+ */
 #ifdef __FreeBSD__
     #include "freebsd-main.h"
     #include "freebsd-ops.h"
 #endif /*__FreeBSD__*/
 
+/*
+ Optionally use NWAM for listing the interfaces.
+ Fallback to if.h otherwise.
+ Optionally use SMF.
+ */
 #ifdef __sunos_5_10
     #include "sunos-main.h"
     #include "sunos-ops.h"

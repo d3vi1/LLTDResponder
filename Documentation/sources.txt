@@ -1,0 +1,18 @@
+LLTD:
+https://msdn.microsoft.com/en-us/library/cc233983.aspx         - MS-LLTD
+
+LLMNR:
+https://msdn.microsoft.com/en-us/library/dd240328.aspx         - MS-LLMNRP
+http://www.ietf.org/rfc/rfc4795.txt                            - IETF-LLMNRP
+
+HomeGroup:
+https://msdn.microsoft.com/en-us/library/ff362232.aspx         - MS-HGRP
+https://msdn.microsoft.com/en-us/library/ff361892.aspx         - MS-DPWSRP
+https://msdn.microsoft.com/en-us/library/ff362038.aspx         - MS-PPSEC
+https://msdn.microsoft.com/en-us/library/ff362675.aspx         - MS-PPGRH
+http://specs.xmlsoap.org/ws/2006/02/devprof/devicesprofile.pdf - DPWS
+https://forge.soa4d.org                                        - DPWS implementations (dpwscore)
+
+SSDP:
+https://msdn.microsoft.com/en-us/library/cc247298.aspx               - MS-SSDP
+http://www.upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v1.0.pdf - UPNPARCH1
