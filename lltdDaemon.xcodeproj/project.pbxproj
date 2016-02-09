@@ -12,7 +12,7 @@
 		E500D7E318E0427200863EAC /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7E218E0427200863EAC /* CoreServices.framework */; };
 		E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */ = {isa = PBXBuildFile; fileRef = E53E69BE1908293B0033F651 /* lltdBlock.c */; };
 		E59C3D6A18E9B38C006836B0 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
-		E59C3D6D18E9B38C006836B0 /* darwin-main.c in Sources */ = {isa = PBXBuildFile; fileRef = E59C3D6C18E9B38C006836B0 /* darwin-main.c */; };
+		E59C3D6D18E9B38C006836B0 /* (null) in Sources */ = {isa = PBXBuildFile; };
 		E59C3D6F18E9B38C006836B0 /* llmnrDaemon.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59C3D6E18E9B38C006836B0 /* llmnrDaemon.1 */; };
 		E59E8BF518CF4D250054B295 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
 		E59E8BFA18CF4D250054B295 /* lltdDaemon.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59E8BF918CF4D250054B295 /* lltdDaemon.1 */; };
@@ -20,6 +20,7 @@
 		E59E8C0118CF4D500054B295 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0018CF4D500054B295 /* SystemConfiguration.framework */; };
 		E59E8C0318CF4D550054B295 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0218CF4D550054B295 /* CoreWLAN.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		E5A41A0E19082C0B00D5D2FD /* darwin-main.c in Sources */ = {isa = PBXBuildFile; fileRef = E5A41A0D19082C0B00D5D2FD /* darwin-main.c */; };
+		E5C7F9021C6A8509002B9A1D /* darwin-main.c in Sources */ = {isa = PBXBuildFile; fileRef = E5C7F9001C6A84FD002B9A1D /* darwin-main.c */; };
 		E5FD8AE0192A130900E4EA22 /* lltdTlvOps.c in Sources */ = {isa = PBXBuildFile; fileRef = E59A5324190BEBB500CF5329 /* lltdTlvOps.c */; };
 		FAD3A21C19EACF54000FB445 /* lltdAutomata.c in Sources */ = {isa = PBXBuildFile; fileRef = FAD3A21A19EACF54000FB445 /* lltdAutomata.c */; };
 		FAD3A22719EACFF8000FB445 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7E218E0427200863EAC /* CoreServices.framework */; };
@@ -66,35 +67,35 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		E500D7D518E01E0900863EAC /* darwin-ops.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "darwin-ops.c"; path = "LLMNRd/darwin-ops.c"; sourceTree = SOURCE_ROOT; };
-		E500D7D718E01E1800863EAC /* darwin-ops.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "darwin-ops.h"; path = "LLMNRd/darwin-ops.h"; sourceTree = SOURCE_ROOT; };
+		E500D7D518E01E0900863EAC /* darwin-ops.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "darwin-ops.c"; path = "lltdDaemon/darwin-ops.c"; sourceTree = SOURCE_ROOT; };
+		E500D7D718E01E1800863EAC /* darwin-ops.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "darwin-ops.h"; path = "lltdDaemon/darwin-ops.h"; sourceTree = SOURCE_ROOT; };
 		E500D7DC18E02F3900863EAC /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
 		E500D7E218E0427200863EAC /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
 		E500D7E418E08F6C00863EAC /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
-		E53E69BE1908293B0033F651 /* lltdBlock.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdBlock.c; path = LLMNRd/lltdBlock.c; sourceTree = SOURCE_ROOT; };
-		E53E69C0190829540033F651 /* lltdBlock.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lltdBlock.h; path = ../LLMNRd/lltdBlock.h; sourceTree = "<group>"; };
-		E53FA3A31C6A787F009E43DD /* linux-main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "linux-main.c"; path = "LLMNRd/linux-main.c"; sourceTree = SOURCE_ROOT; };
-		E53FA3A41C6A787F009E43DD /* linux-main.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "linux-main.h"; path = "LLMNRd/linux-main.h"; sourceTree = SOURCE_ROOT; };
-		E54C38B218F191EB00127645 /* net.shmessenger.darwin.lltdDaemon.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = net.shmessenger.darwin.lltdDaemon.plist; path = LLMNRd/net.shmessenger.darwin.lltdDaemon.plist; sourceTree = SOURCE_ROOT; };
-		E54C38B318F1920500127645 /* net.shmessenger.darwin.llmnrDaemon.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = net.shmessenger.darwin.llmnrDaemon.plist; sourceTree = "<group>"; };
-		E55B08981C6A3C930020A136 /* lltdDaemon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lltdDaemon.h; path = LLMNRd/lltdDaemon.h; sourceTree = SOURCE_ROOT; };
-		E55B08991C6A4E8B0020A136 /* msIcoFormat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = msIcoFormat.h; sourceTree = "<group>"; };
-		E5774FA718D61F5E00988358 /* darwin-main.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "darwin-main.h"; path = "LLMNRd/darwin-main.h"; sourceTree = SOURCE_ROOT; };
-		E59A5324190BEBB500CF5329 /* lltdTlvOps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdTlvOps.c; path = LLMNRd/lltdTlvOps.c; sourceTree = SOURCE_ROOT; };
-		E59A5326190BEBC600CF5329 /* lltdTlvOps.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lltdTlvOps.h; path = ../LLMNRd/lltdTlvOps.h; sourceTree = "<group>"; };
+		E53E69BE1908293B0033F651 /* lltdBlock.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdBlock.c; path = lltdDaemon/lltdBlock.c; sourceTree = SOURCE_ROOT; };
+		E53E69C0190829540033F651 /* lltdBlock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lltdBlock.h; path = lltdDaemon/lltdBlock.h; sourceTree = SOURCE_ROOT; };
+		E53FA3A31C6A787F009E43DD /* linux-main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "linux-main.c"; path = "lltdDaemon/linux-main.c"; sourceTree = SOURCE_ROOT; };
+		E53FA3A41C6A787F009E43DD /* linux-main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "linux-main.h"; path = "lltdDaemon/linux-main.h"; sourceTree = SOURCE_ROOT; };
+		E54C38B218F191EB00127645 /* lltdDaemon.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = lltdDaemon.plist; path = lltdDaemon/net.shmessenger.darwin.lltdDaemon.plist; sourceTree = SOURCE_ROOT; };
+		E54C38B318F1920500127645 /* llmnrDaemon.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = llmnrDaemon.plist; path = llmnrDaemon/net.shmessenger.darwin.llmnrDaemon.plist; sourceTree = SOURCE_ROOT; };
+		E55B08981C6A3C930020A136 /* lltdDaemon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lltdDaemon.h; path = lltdDaemon/lltdDaemon.h; sourceTree = SOURCE_ROOT; };
+		E55B08991C6A4E8B0020A136 /* msIcoFormat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = msIcoFormat.h; path = lltdDaemon/msIcoFormat.h; sourceTree = SOURCE_ROOT; };
+		E5774FA718D61F5E00988358 /* darwin-main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "darwin-main.h"; path = "lltdDaemon/darwin-main.h"; sourceTree = SOURCE_ROOT; };
+		E59A5324190BEBB500CF5329 /* lltdTlvOps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdTlvOps.c; path = lltdDaemon/lltdTlvOps.c; sourceTree = SOURCE_ROOT; };
+		E59A5326190BEBC600CF5329 /* lltdTlvOps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lltdTlvOps.h; path = lltdDaemon/lltdTlvOps.h; sourceTree = SOURCE_ROOT; };
 		E59C3D6918E9B38C006836B0 /* llmnrDaemon */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = llmnrDaemon; sourceTree = BUILT_PRODUCTS_DIR; };
-		E59C3D6C18E9B38C006836B0 /* darwin-main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "darwin-main.c"; sourceTree = "<group>"; };
-		E59C3D6E18E9B38C006836B0 /* llmnrDaemon.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = llmnrDaemon.1; sourceTree = "<group>"; };
+		E59C3D6E18E9B38C006836B0 /* llmnrDaemon.1 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.man; name = llmnrDaemon.1; path = llmnrDaemon/llmnrDaemon.1; sourceTree = SOURCE_ROOT; };
 		E59E8BF318CF4D250054B295 /* lltdDaemon */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lltdDaemon; sourceTree = BUILT_PRODUCTS_DIR; };
 		E59E8BF418CF4D250054B295 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
-		E59E8BF918CF4D250054B295 /* lltdDaemon.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = lltdDaemon.1; sourceTree = "<group>"; };
+		E59E8BF918CF4D250054B295 /* lltdDaemon.1 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.man; name = lltdDaemon.1; path = lltdDaemon/lltdDaemon.1; sourceTree = SOURCE_ROOT; };
 		E59E8BFE18CF4D4A0054B295 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		E59E8C0018CF4D500054B295 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		E59E8C0218CF4D550054B295 /* CoreWLAN.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreWLAN.framework; path = System/Library/Frameworks/CoreWLAN.framework; sourceTree = SDKROOT; };
-		E5A41A0D19082C0B00D5D2FD /* darwin-main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "darwin-main.c"; path = "LLMNRd/darwin-main.c"; sourceTree = SOURCE_ROOT; };
-		FAD3A21A19EACF54000FB445 /* lltdAutomata.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lltdAutomata.c; sourceTree = "<group>"; };
-		FAD3A21B19EACF54000FB445 /* lltdAutomata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lltdAutomata.h; sourceTree = "<group>"; };
-		FAD3A21E19EACF76000FB445 /* main_autom.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main_autom.c; sourceTree = "<group>"; };
+		E5A41A0D19082C0B00D5D2FD /* darwin-main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "darwin-main.c"; path = "lltdDaemon/darwin-main.c"; sourceTree = SOURCE_ROOT; };
+		E5C7F9001C6A84FD002B9A1D /* darwin-main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "darwin-main.c"; path = "llmnrDaemon/darwin-main.c"; sourceTree = SOURCE_ROOT; };
+		FAD3A21A19EACF54000FB445 /* lltdAutomata.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdAutomata.c; path = lltdDaemon/lltdAutomata.c; sourceTree = SOURCE_ROOT; };
+		FAD3A21B19EACF54000FB445 /* lltdAutomata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lltdAutomata.h; path = lltdDaemon/lltdAutomata.h; sourceTree = SOURCE_ROOT; };
+		FAD3A21E19EACF76000FB445 /* main_autom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main_autom.c; path = lltdDaemon/main_autom.c; sourceTree = SOURCE_ROOT; };
 		FAD3A23219EACFF8000FB445 /* llmnrd copy */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "llmnrd copy"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -173,9 +174,9 @@
 		E59C3D6B18E9B38C006836B0 /* llmnrDaemon */ = {
 			isa = PBXGroup;
 			children = (
-				E59C3D6C18E9B38C006836B0 /* darwin-main.c */,
+				E5C7F9001C6A84FD002B9A1D /* darwin-main.c */,
 				E59C3D6E18E9B38C006836B0 /* llmnrDaemon.1 */,
-				E54C38B318F1920500127645 /* net.shmessenger.darwin.llmnrDaemon.plist */,
+				E54C38B318F1920500127645 /* llmnrDaemon.plist */,
 			);
 			name = llmnrDaemon;
 			path = lltddaemon;
@@ -186,7 +187,7 @@
 			children = (
 				FAD3A21E19EACF76000FB445 /* main_autom.c */,
 				E59E8BF918CF4D250054B295 /* lltdDaemon.1 */,
-				E54C38B218F191EB00127645 /* net.shmessenger.darwin.lltdDaemon.plist */,
+				E54C38B218F191EB00127645 /* lltdDaemon.plist */,
 				E5A41A0D19082C0B00D5D2FD /* darwin-main.c */,
 				E5774FA718D61F5E00988358 /* darwin-main.h */,
 				E500D7D518E01E0900863EAC /* darwin-ops.c */,
@@ -293,7 +294,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E59C3D6D18E9B38C006836B0 /* darwin-main.c in Sources */,
+				E59C3D6D18E9B38C006836B0 /* (null) in Sources */,
+				E5C7F9021C6A8509002B9A1D /* darwin-main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
