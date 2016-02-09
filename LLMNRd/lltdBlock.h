@@ -21,10 +21,6 @@ void parseFrame(void *frame, void *networkInterface);
 #pragma pack( 2 )
 
 typedef struct {
-    uint8_t            a[6];
-} ethernet_address_t;
-
-typedef struct {
     ethernet_address_t destination;
     ethernet_address_t source;
     uint16_t           ethertype;

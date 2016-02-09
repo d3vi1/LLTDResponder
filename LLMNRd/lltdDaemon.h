@@ -30,17 +30,18 @@
     #include <sys/ioctl.h>
     #include <CoreFoundation/CoreFoundation.h>
     #include <CoreFoundation/CFArray.h>
-    #include <CoreServices/CoreServices.h>                      // For UTIIdentification
-    #include <ImageIO/ImageIO.h>                                // For ICNS to ICO conversion using Thumbnails
+    #include <CoreServices/CoreServices.h>                      // darwin-ops::getIconImage()
+    #include <ImageIO/ImageIO.h>                                // darwin-ops::getIconImage() For ICNS to ICO
+                                                                //                conversion using Thumbnails
     #include <IOKit/network/IONetworkInterface.h>               // darwinMain::validateInterface()
     #include <IOKit/network/IONetworkController.h>              // darwinMain::validateInterface()
     #include <IOKit/network/IOEthernetController.h>             // darwinMain::validateInterface()
-    #include <IOKit/network/IONetworkMedium.h>                  // For link status and speed
-    #include <IOKit/IOKitLib.h>
-    #include <IOKit/IOBSD.h>
-    #include <IOKit/IOMessage.h>
-    #include <IOKit/IOCFPlugIn.h>
-    #include <SystemConfiguration/SCNetwork.h>
+    #include <IOKit/network/IONetworkMedium.h>                  // darwinMain::validateInterface()
+    #include <IOKit/IOKitLib.h>                                 // darwinMain::validateInterface()
+    #include <IOKit/IOBSD.h>                                    // darwinMain::validateInterface()
+    #include <IOKit/IOMessage.h>                                // darwinMain::validateInterface()
+    #include <IOKit/IOCFPlugIn.h>                               // darwinMain::validateInterface()
+    #include <SystemConfiguration/SCNetwork.h>                  // darwinMain::validateInterface()
     #include <SystemConfiguration/SCNetworkConfiguration.h>     // For IP Configuration
     #include <SystemConfiguration/SCNetworkConnection.h>        // For Connection status
     #include <SystemConfiguration/SCDynamicStoreCopyDHCPInfo.h> // For DHCPInfoGetOptionData
@@ -52,24 +53,36 @@
 #endif /*__darwin__ */
 
 #ifdef __linux__
+    #include <linux/netlink.h>
+    #include <linux/rtnetlink.h>
+    #include <net/if.h>
+    #include <netinet/in.h>
+    #include <asm/types.h>
+    #include <sys/socket.h>
+    #include <errno.h>
+    #include <stdio.h>
+    #include <string.h>
+    #include <unistd.h>
     #include "linux-main.h"
     #include "linux-ops.h"
-#endif
+    #define  MYPROTO NETLINK_ROUTE
+    #define  MYMGRP RTMGRP_IPV4_ROUTE
+#endif /*__linux__*/
 
 #ifdef __FreeBSD__
     #include "freebsd-main.h"
     #include "freebsd-ops.h"
-#endif
+#endif /*__FreeBSD__*/
 
 #ifdef __sunos_5_10
     #include "sunos-main.h"
     #include "sunos-ops.h"
-#endif
+#endif /*__sunos_5_10__*/
 
 #ifdef __BEOS__
     #include "beos-main.h"
     #include "beos-ops.h"
-#endif
+#endif /*__BEOS__*/
 
 #include "lltdBlock.h"
 #include "lltdTlvOps.h"

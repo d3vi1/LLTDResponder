@@ -73,6 +73,8 @@
 		E500D7E418E08F6C00863EAC /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		E53E69BE1908293B0033F651 /* lltdBlock.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdBlock.c; path = LLMNRd/lltdBlock.c; sourceTree = SOURCE_ROOT; };
 		E53E69C0190829540033F651 /* lltdBlock.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lltdBlock.h; path = ../LLMNRd/lltdBlock.h; sourceTree = "<group>"; };
+		E53FA3A31C6A787F009E43DD /* linux-main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "linux-main.c"; path = "LLMNRd/linux-main.c"; sourceTree = SOURCE_ROOT; };
+		E53FA3A41C6A787F009E43DD /* linux-main.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "linux-main.h"; path = "LLMNRd/linux-main.h"; sourceTree = SOURCE_ROOT; };
 		E54C38B218F191EB00127645 /* net.shmessenger.darwin.lltdDaemon.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = net.shmessenger.darwin.lltdDaemon.plist; path = LLMNRd/net.shmessenger.darwin.lltdDaemon.plist; sourceTree = SOURCE_ROOT; };
 		E54C38B318F1920500127645 /* net.shmessenger.darwin.llmnrDaemon.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = net.shmessenger.darwin.llmnrDaemon.plist; sourceTree = "<group>"; };
 		E55B08981C6A3C930020A136 /* lltdDaemon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lltdDaemon.h; path = LLMNRd/lltdDaemon.h; sourceTree = SOURCE_ROOT; };
@@ -197,6 +199,8 @@
 				E59A5324190BEBB500CF5329 /* lltdTlvOps.c */,
 				E59A5326190BEBC600CF5329 /* lltdTlvOps.h */,
 				E55B08991C6A4E8B0020A136 /* msIcoFormat.h */,
+				E53FA3A31C6A787F009E43DD /* linux-main.c */,
+				E53FA3A41C6A787F009E43DD /* linux-main.h */,
 			);
 			name = lltdDaemon;
 			path = llmnrd;

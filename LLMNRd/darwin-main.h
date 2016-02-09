@@ -15,6 +15,15 @@
 
 #pragma mark -
 
+#pragma pack( push )
+#pragma pack( 2 )
+
+typedef struct {
+    uint8_t            a[6];
+} ethernet_address_t;
+
+#pragma pack( pop )
+
 typedef struct {
     io_object_t            notification;
     CFStringRef            deviceName;
