@@ -68,11 +68,6 @@ void getIconImage(void **icon, size_t *iconsize){
         CFStringRef modelCode = CFStringCreateWithCString(kCFAllocatorDefault, (char*)CFDataGetBytePtr(modelCodeData), kCFStringEncodingASCII);
         CFStringRef UniformTypeIdentifier = NULL;
         
-        //char * myDarling = malloc(16);
-        //CFStringGetCString(modelCode, myDarling, 16, kCFStringEncodingASCII);
-        
-        //asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Model Code: %s\n", __FUNCTION__, myDarling);
-        
         if (modelCode != NULL) {
             if((long) CFStringGetLength(modelCode) > 0) {
                 UniformTypeIdentifier = UTTypeCreatePreferredIdentifierForTag(CFSTR("com.apple.device-model-code"), modelCode, NULL);
@@ -90,12 +85,7 @@ void getIconImage(void **icon, size_t *iconsize){
             UniformTypeIdentifier = CFSTR("com.apple.mac");
         }
         
-        // Use to change the represented icon to another one
-        // if you want to test the looks of another system
-        // Uncomment to get an iphone-4 icon
-        
         CFRelease(modelCodeData);
-
         
         CFDictionaryRef utiDeclaration = UTTypeCopyDeclaration(UniformTypeIdentifier);
 
@@ -124,21 +114,18 @@ void getIconImage(void **icon, size_t *iconsize){
             CFRelease(utiDeclaration);
             CFRelease(UniformTypeIdentifier);
 
-            
-
             // Load the icns file
             CGImageSourceRef myIcon = CGImageSourceCreateWithURL(iconURL, NULL);
                 
             CFRelease(iconURL);
                 
             if( myIcon != NULL){
-                    size_t iconCount = CGImageSourceGetCount (myIcon);
-
-
-                    Boolean haveIconSelected = FALSE;
-                    size_t iconSelected = 0;
-                    long iconSelectedWidth = 0;
-                    long iconSelectedHeight = 0;
+                    size_t  iconCount          = CGImageSourceGetCount (myIcon);
+                    Boolean haveIconSelected   = FALSE;
+                    size_t  iconSelected       = 0;
+                    long    iconSelectedWidth  = 0;
+                    long    iconSelectedHeight = 0;
+                
                     if(iconCount > 0) {
                         
                         //
@@ -190,15 +177,15 @@ void getIconImage(void **icon, size_t *iconsize){
                         // find alternatives. Google wasn't much of a friend here.
                         //
                         CFDictionaryRef options = NULL;
-                        CFStringRef keys[2];
-                        CFTypeRef values[2];
-                        uint32 iconSize = 48;
-                        CFNumberRef thumbSizeRef = CFNumberCreate(NULL, kCFNumberIntType, &iconSize);
-                        keys[0] = kCGImageSourceCreateThumbnailFromImageIfAbsent;
+                        CFStringRef     keys[2];
+                        CFTypeRef       values[2];
+                        uint32          iconSize = 48;
+                        CFNumberRef     thumbSizeRef = CFNumberCreate(NULL, kCFNumberIntType, &iconSize);
+                        keys[0]   = kCGImageSourceCreateThumbnailFromImageIfAbsent;
                         values[0] = (CFTypeRef)kCFBooleanTrue;
-                        keys[1] = kCGImageSourceThumbnailMaxPixelSize;
+                        keys[1]   = kCGImageSourceThumbnailMaxPixelSize;
                         values[1] = (CFTypeRef)thumbSizeRef;
-                        options = CFDictionaryCreate(NULL, (const void **)keys, (const void **)values, 2, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+                        options   = CFDictionaryCreate(NULL, (const void **)keys, (const void **)values, 2, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
                         
                         // Create the thumbnail image using the options dictionary
                         CGImageRef thumbnailImageRef = CGImageSourceCreateThumbnailAtIndex(myIcon, iconSelected, (CFDictionaryRef)options);
@@ -261,10 +248,10 @@ void getMachineName(char **pointer, size_t *stringSize){
     //FIXME: also breaks on subsequent scans
     CFStringRef LocalHostName = SCDynamicStoreCopyLocalHostName(NULL);
     *stringSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(LocalHostName), kCFStringEncodingUTF16LE);
-    char *data = malloc(*stringSize);
+    char *data  = malloc(*stringSize);
     CFStringGetCString(LocalHostName, data, (CFIndex)stringSize, kCFStringEncodingUTF16LE);
     CFRelease(LocalHostName);
-    *pointer = data;
+    *pointer    = data;
 }
 
 
@@ -278,10 +265,10 @@ void getFriendlyName(char **pointer, size_t *stringSize){
     CFStringEncoding UCS2LE = kCFStringEncodingUTF16LE;
     CFStringRef FriendlyName = SCDynamicStoreCopyComputerName(NULL, &UCS2LE);
     *stringSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(FriendlyName), kCFStringEncodingUTF16LE);
-    char *data = malloc(*stringSize);
+    char *data  = malloc(*stringSize);
     CFStringGetCString(FriendlyName, data, (CFIndex)stringSize, kCFStringEncodingUTF16LE);
     CFRelease(FriendlyName);
-    *pointer = data;
+    *pointer    = data;
 }
 
 
@@ -308,12 +295,9 @@ void getSupportInfo(void **data, size_t *stringSize){
         IOObjectRelease(platformExpert);
         
         if (serialNumber != NULL) {
-            //
             //If the serial number is in the classic 11 digit format pe get
             //the last 3 digits
-            //
             if(CFStringGetLength(serialNumber)==11) {
-//                asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: 11 character serial number %s\n", __FUNCTION__, CFStringGetCStringPtr(serialNumber, 0));
                 CFMutableStringRef URLString = CFStringCreateMutable(kCFAllocatorDefault, 0);
                 if (URLString != NULL){
                     CFStringAppend(URLString, CFSTR("http://support-sp.apple.com/sp/index?page=psp&cc="));
@@ -324,11 +308,8 @@ void getSupportInfo(void **data, size_t *stringSize){
                     CFStringGetCString(URLString, *data, CFStringGetMaximumSizeForEncoding(CFStringGetLength(URLString), kCFStringEncodingUTF8),    kCFStringEncodingUTF8);
                     CFRelease(URLString);
                 }
-                //
-                //If it's in the modern 12 digit format, we get the last 4 digits.
-                //
+            //If it's in the modern 12 digit format, we get the last 4 digits.
             } else if (CFStringGetLength(serialNumber)==12){
-                asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: 12 character serial number %s\n", __FUNCTION__, CFStringGetCStringPtr(serialNumber, 0));
                 CFMutableStringRef URLString = CFStringCreateMutable(kCFAllocatorDefault, 0);
                 if (URLString != NULL){
                     CFStringAppend(URLString, CFSTR("http://support-sp.apple.com/sp/index?page=psp&cc="));
@@ -339,9 +320,7 @@ void getSupportInfo(void **data, size_t *stringSize){
                     CFStringGetCString(URLString, *data, CFStringGetMaximumSizeForEncoding(CFStringGetLength(URLString), kCFStringEncodingUTF8), kCFStringEncodingUTF8);
                     CFRelease(URLString);
                 }
-                //
-                //If it's not 11 or 12 digits, we have no idea.
-                //
+            //Not 12 and not 11 digits, probably not a Mac
             } else {
                 data = NULL;
             }
@@ -401,6 +380,7 @@ void getHostCharacteristics (void *data);
 //
 //==============================================================================
 void getComponentTable(void *data);
+
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 //==============================================================================
