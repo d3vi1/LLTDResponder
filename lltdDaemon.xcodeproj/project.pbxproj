@@ -92,6 +92,7 @@
 		E59E8C0218CF4D550054B295 /* CoreWLAN.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreWLAN.framework; path = System/Library/Frameworks/CoreWLAN.framework; sourceTree = SDKROOT; };
 		E5A41A0D19082C0B00D5D2FD /* darwin-main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "darwin-main.c"; path = "lltdDaemon/darwin-main.c"; sourceTree = SOURCE_ROOT; };
 		E5C7F9001C6A84FD002B9A1D /* darwin-main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "darwin-main.c"; path = "llmnrDaemon/darwin-main.c"; sourceTree = SOURCE_ROOT; };
+		E5E475591C6B7E850054AC33 /* distribution.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = distribution.xml; sourceTree = "<group>"; };
 		FAD3A21A19EACF54000FB445 /* lltdAutomata.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdAutomata.c; path = lltdDaemon/lltdAutomata.c; sourceTree = SOURCE_ROOT; };
 		FAD3A21B19EACF54000FB445 /* lltdAutomata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lltdAutomata.h; path = lltdDaemon/lltdAutomata.h; sourceTree = SOURCE_ROOT; };
 		FAD3A21E19EACF76000FB445 /* main_autom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main_autom.c; path = lltdDaemon/main_autom.c; sourceTree = SOURCE_ROOT; };
@@ -139,6 +140,7 @@
 		E52240EF18CF0CA200DD9E2F = {
 			isa = PBXGroup;
 			children = (
+				E5E475591C6B7E850054AC33 /* distribution.xml */,
 				E59E8BF618CF4D250054B295 /* lltdDaemon */,
 				E59C3D6B18E9B38C006836B0 /* llmnrDaemon */,
 				E52240FA18CF0CA200DD9E2F /* Frameworks */,
