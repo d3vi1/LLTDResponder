@@ -53,7 +53,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         CFTypeRef macAddressAsData = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOMACAddress), kCFAllocatorDefault, 0);
         
         
-        CFDataGetBytes((CFDataRef)macAddressAsData, CFRangeMake(0,CFDataGetLength(macAddressAsData)), currentNetworkInterface->hwAddress);
+        CFDataGetBytes((CFDataRef)macAddressAsData, CFRangeMake(0,CFDataGetLength(macAddressAsData)), currentNetworkInterface->macAddress);
         CFRelease(macAddressAsData);
         currentNetworkInterface->linkStatus = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOLinkStatus), kCFAllocatorDefault, 0);
         
@@ -135,7 +135,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     //
     // DEBUG: Print the network interfaces to stdout
     //
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Found interface:   %s  MAC: "ETHERNET_ADDR_FMT"  Type: %s (0x%000x)\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8), ETHERNET_ADDR(currentNetworkInterface->hwAddress), CFStringGetCStringPtr(currentNetworkInterface->interfaceType, kCFStringEncodingUTF8), currentNetworkInterface->ifType);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Found interface:   %s  MAC: "ETHERNET_ADDR_FMT"  Type: %s (0x%000x)\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, kCFStringEncodingUTF8), ETHERNET_ADDR(currentNetworkInterface->macAddress), CFStringGetCStringPtr(currentNetworkInterface->interfaceType, kCFStringEncodingUTF8), currentNetworkInterface->ifType);
     
     //
     // Check if we're UP, BROADCAST and not LOOPBACK

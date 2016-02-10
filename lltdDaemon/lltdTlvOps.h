@@ -11,8 +11,6 @@
 #ifndef LLTDd_tlv_ops_h
 #define LLTDd_tlv_ops_h
 
-#include "lltdDaemon.h"
-
 static const ethernet_address_t EthernetBroadcast = (ethernet_address_t) {{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
 
 bool compareEthernetAddress      (const ethernet_address_t *A, const ethernet_address_t *B);

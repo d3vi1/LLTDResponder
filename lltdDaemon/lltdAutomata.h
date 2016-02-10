@@ -11,8 +11,6 @@
 #ifndef __LLTDd__automata__
 #define __LLTDd__automata__
 
-#include "lltdDaemon.h"
-
 #define MAX_STATES 5 // LLTD protocol only needs 4 maximum
 #define MAX_TRANSITIONS 128
 

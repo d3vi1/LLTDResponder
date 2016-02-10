@@ -12,6 +12,7 @@
 #define lltdDaemon_h
 
 
+
 #ifdef __APPLE__
     #include <stdio.h>
     #include <stdlib.h>
@@ -45,11 +46,12 @@
     #include <SystemConfiguration/SCNetworkConfiguration.h>     // For IP Configuration
     #include <SystemConfiguration/SCNetworkConnection.h>        // For Connection status
     #include <SystemConfiguration/SCDynamicStoreCopyDHCPInfo.h> // For DHCPInfoGetOptionData
-    #include "msIcoFormat.h"
-    #include "lltdBlock.h"
     #include "darwin-main.h"
     #include "darwin-ops.h"
-
+    #include "msIcoFormat.h"
+    #include "lltdBlock.h"
+    #include "lltdTlvOps.h"
+    #include "lltdAutomata.h"
 #endif /*__darwin__ */
 
 /*
@@ -99,9 +101,6 @@
     #include "beos-main.h"
     #include "beos-ops.h"
 #endif /*__BEOS__*/
-
-#include "lltdBlock.h"
-#include "lltdTlvOps.h"
 
 
 #endif /* lltdDaemon_h */

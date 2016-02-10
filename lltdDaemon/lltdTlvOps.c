@@ -8,7 +8,7 @@
  *                                                                            *
  ******************************************************************************/
 
-#include    "lltdTlvOps.h"
+#include    "lltdDaemon.h"
 
 #pragma mark -
 #pragma mark Header generation
@@ -66,7 +66,6 @@ uint64_t setHostnameTLV(void *buffer, uint64_t offset){
     generic_tlv_t *hostnameTLV = (generic_tlv_t *) (buffer + offset);
     hostnameTLV->TLVType = tlv_hostname;
     hostnameTLV->TLVLength = sizeOfHostname;
-//    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %d %d %zu\n", __FUNCTION__, hostnameTLV->TLVType, hostnameTLV->TLVLength, sizeOfHostname);
     memcpy((void *)(buffer + offset + sizeof(generic_tlv_t)), hostname, sizeOfHostname);
     free(hostname);
     return (sizeof(generic_tlv_t) + sizeOfHostname);
@@ -78,9 +77,8 @@ uint64_t setHostIdTLV(void *buffer, uint64_t offset, void *networkInterface) {
     network_interface_t *currentNetworkInterface = networkInterface;
     host_id->TLVType = tlv_hostId;
     host_id->TLVLength = sizeof(ethernet_address_t);
-    memcpy((void *)(buffer+offset+sizeof(*host_id)), &(currentNetworkInterface->hwAddress), sizeof(ethernet_address_t));
-//    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %d %d %d\n", __FUNCTION__, host_id->TLVType, host_id->TLVLength, currentNetworkInterface->hwAddress[0]);
-    return (sizeof(*host_id) + sizeof(currentNetworkInterface->hwAddress));
+    memcpy((void *)(buffer+offset+sizeof(*host_id)), &(currentNetworkInterface->macAddress), sizeof(ethernet_address_t));
+    return (sizeof(*host_id) + sizeof(currentNetworkInterface->macAddress));
 }
 
 uint64_t setCharacteristicsTLV(void *buffer, uint64_t offset, void *networkInterface) {
@@ -99,24 +97,22 @@ uint64_t setCharacteristicsTLV(void *buffer, uint64_t offset, void *networkInter
     if (flags & IFF_LOOPBACK){
         *characteristicsValue = htons(Config_TLV_InterfaceIsLoopback_Value);
     }
-//    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %d %d %d\n", __FUNCTION__, characteristicsTLV->TLVType, characteristicsTLV->TLVLength, *characteristicsValue);
     return (sizeof(*characteristicsTLV) + sizeof(*characteristicsValue));
 }
 
 uint64_t setPerfCounterTLV(void *buffer, uint64_t offset){
     generic_tlv_t *perf = (generic_tlv_t *) (buffer+offset);
     uint32_t *perfValue = (void *) (perf + sizeof(*perf));
-    perf->TLVType = tlv_perfCounterFrequency;
-    perf->TLVLength = sizeof(*perfValue);
-    *perfValue = htonl(1000000);
-//    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %d %d %d\n", __FUNCTION__, perf->TLVType, perf->TLVLength, *perfValue);
+    perf->TLVType       = tlv_perfCounterFrequency;
+    perf->TLVLength     = sizeof(*perfValue);
+   *perfValue           = htonl(1000000);
     return sizeof(*perf)+sizeof(*perfValue);
 }
 
 uint64_t setIconImageTLV(void *buffer, uint64_t offset){
     generic_tlv_t *icon = (generic_tlv_t *) (buffer+offset);
-    icon->TLVType = tlv_iconImage;
-    icon->TLVLength = 0x00;
+    icon->TLVType       = tlv_iconImage;
+    icon->TLVLength     = 0x00;
     return sizeof(*icon);
 }
 uint64_t setMachineNameTLV(void *buffer, uint64_t offset){
@@ -138,11 +134,10 @@ uint64_t setHardwareIdTLV(void *buffer, uint64_t offset){
 //TODO: see if there really is support for Level2 Forwarding.. ? or just leave it hardcoded
 uint64_t setQosCharacteristicsTLV(void *buffer, uint64_t offset){
     generic_tlv_t *QosCharacteristicsTLV = (generic_tlv_t *) (buffer + offset);
-    uint16_t *qosCharacteristics = (void *)(buffer + offset + sizeof(generic_tlv_t));
-    QosCharacteristicsTLV->TLVType = tlv_qos_characteristics;
-    QosCharacteristicsTLV->TLVLength = sizeof(*qosCharacteristics);
-    *qosCharacteristics = htons(Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN);
-//    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %d %d %x\n", __FUNCTION__, QosCharacteristicsTLV->TLVType, QosCharacteristicsTLV->TLVLength, *qosCharacteristics);
+    uint16_t *qosCharacteristics         = (void *)(buffer + offset + sizeof(generic_tlv_t));
+    QosCharacteristicsTLV->TLVType       = tlv_qos_characteristics;
+    QosCharacteristicsTLV->TLVLength     = sizeof(*qosCharacteristics);
+    *qosCharacteristics                  = htons(Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN);
     return sizeof(generic_tlv_t) + sizeof(uint16_t);
 }
 
@@ -168,8 +163,7 @@ uint64_t setPhysicalMediumTLV(void *buffer, uint64_t offset, void *networkInterf
     hdr->TLVLength = sizeof(uint32_t);
 
     uint32_t *ifType = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
-    *ifType = htonl((uint32_t)currentNetworkInterface->ifType);
-//    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %d %d %d\n", __FUNCTION__, hdr->TLVType, hdr->TLVLength, *ifType);
+    *ifType          = htonl((uint32_t)currentNetworkInterface->ifType);
     return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 

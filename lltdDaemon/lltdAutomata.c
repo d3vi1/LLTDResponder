@@ -8,7 +8,7 @@
  *                                                                            *
  ******************************************************************************/
 
-#include "lltdAutomata.h"
+#include "lltdDaemon.h"
 
 automata* init_automata_mapping() {
     automata *autom = malloc( sizeof(automata) );

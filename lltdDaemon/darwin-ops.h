@@ -11,8 +11,6 @@
 #ifndef LLTDd_darwin_ops_h
 #define LLTDd_darwin_ops_h
 
-#include "lltdDaemon.h"
-
 #pragma mark Functions that return machine information
 
 void getMachineName                (char **data, size_t *stringSize);

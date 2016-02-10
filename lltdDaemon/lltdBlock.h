@@ -11,14 +11,15 @@
 #ifndef LLTDBlock_h
 #define LLTDBlock_h
 
-#include "lltdDaemon.h"
-
-
 void lltdBlock (void *data);
 void parseFrame(void *frame, void *networkInterface);
 
 #pragma pack( push )
 #pragma pack( 2 )
+
+typedef struct {
+    uint8_t            a[6];
+} ethernet_address_t;
 
 typedef struct {
     ethernet_address_t destination;

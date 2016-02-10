@@ -8,7 +8,7 @@
  *                                                                            *
  ******************************************************************************/
 
-#include "lltdBlock.h"
+#include "lltdDaemon.h"
 
 //==============================================================================
 //
@@ -123,9 +123,9 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
         return false;
     } else if (ack) {
         // write an ACK too with the seq number, the algorithm will not conitnue without it
-        setLltdHeader(probe, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
-                      (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
-                      currentNetworkInterface->mapper.seqNumber, opcode_ack, tos_discovery);
+        setLltdHeader(probe, (ethernet_address_t *) &(currentNetworkInterface->macAddress),
+                      (ethernet_address_t *) &(currentNetworkInterface->MapperHwAddress),
+                      currentNetworkInterface->MapperSeqNumber, opcode_ack, tos_discovery);
          
         write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                               sizeof(currentNetworkInterface->socketAddr));
@@ -143,9 +143,9 @@ void parseQuery(void *inFrame, void *networkInterface){
     void *buffer = malloc( packageSize );
     bzero(buffer, packageSize);
     
-    offset = setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
-                                   (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
-                                    currentNetworkInterface->mapper.seqNumber, opcode_queryResp, tos_discovery);
+    offset = setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->macAddress),
+                                   (ethernet_address_t *) &(currentNetworkInterface->MapperHwAddress),
+                                    currentNetworkInterface->MapperSeqNumber, opcode_queryResp, tos_discovery);
     
     qry_resp_upper_header_t *respH  = buffer + sizeof(lltd_demultiplex_header_t);
     // HERE I AM
@@ -209,9 +209,9 @@ void sendImage(void *networkInterface, uint16_t offset) {
     void *buffer = malloc( maxSize );
     bzero(buffer, maxSize);
     
-    setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->hwAddress),
-                           (ethernet_address_t *) &(currentNetworkInterface->mapper.hwAddress),
-                           currentNetworkInterface->mapper.seqNumber, opcode_queryLargeTlvResp, tos_discovery);
+    setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->macAddress),
+                           (ethernet_address_t *) &(currentNetworkInterface->MapperHwAddress),
+                           currentNetworkInterface->MapperSeqNumber, opcode_queryLargeTlvResp, tos_discovery);
     
     qry_large_tlv_resp_t *header = buffer + sizeof(lltd_demultiplex_header_t);
     
@@ -260,7 +260,7 @@ void parseProbe(void *inFrame, void *networkInterface) {
     lltd_demultiplex_header_t * header = inFrame;
     
     // see if it's intended for us
-    if ( compareEthernetAddress(&(header->frameHeader.destination), (ethernet_address_t *) &currentNetworkInterface->hwAddress) || true	 )  {
+    if ( compareEthernetAddress(&(header->frameHeader.destination), (ethernet_address_t *) &currentNetworkInterface->macAddress) || true	 )  {
         // store it then, unless we have it already??
         probe_t * probe = malloc( sizeof(probe_t) );
         
@@ -301,7 +301,7 @@ void parseEmit(void *inFrame, void *networkInterface){
     lltd_demultiplex_header_t *lltdHeader = inFrame;
     
     lltd_emit_upper_header_t *emitHeader = (void *) ( (void *)lltdHeader + sizeof(*lltdHeader) );
-    currentNetworkInterface->mapper.seqNumber = lltdHeader->seqNumber;
+    currentNetworkInterface->MapperSeqNumber = lltdHeader->seqNumber;
     
     int numDescs = ntohs(emitHeader->numDescs);
     uint16_t offsetEmitee = 0;
@@ -350,12 +350,17 @@ void answerHello(void *inFrame, void *networkInterface){
         return;
     }
     
-    offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->hwAddress), (ethernet_address_t *) &EthernetBroadcast, 0x00, opcode_hello, inFrameHeader->tos);
+    offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->macAddress), (ethernet_address_t *) &EthernetBroadcast, 0x00, opcode_hello, inFrameHeader->tos);
     
     //offset = setLltdHeader(buffer, currentNetworkInterface->hwAddress, (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, tos_quick_discovery);
     
-    currentNetworkInterface->mapper.seqNumber = inFrameHeader->seqNumber;
-    currentNetworkInterface->mapper.hwAddress = inFrameHeader->realSource;
+    currentNetworkInterface->MapperSeqNumber = inFrameHeader->seqNumber;
+    currentNetworkInterface->MapperHwAddress[0] = inFrameHeader->realSource.a[0];
+    currentNetworkInterface->MapperHwAddress[1] = inFrameHeader->realSource.a[1];
+    currentNetworkInterface->MapperHwAddress[2] = inFrameHeader->realSource.a[2];
+    currentNetworkInterface->MapperHwAddress[3] = inFrameHeader->realSource.a[3];
+    currentNetworkInterface->MapperHwAddress[4] = inFrameHeader->realSource.a[4];
+    currentNetworkInterface->MapperHwAddress[5] = inFrameHeader->realSource.a[5];
     
     offset += setHelloHeader(buffer, offset, &inFrameHeader->frameHeader.source, &inFrameHeader->realSource, discoverHeader->generation );
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
@@ -422,7 +427,7 @@ void parseFrame(void *frame, void *networkInterface){
     asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s: ethertype:%4x, opcode:%4x, tos:%4x, version: %x", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, 0), header->frameHeader.ethertype , header->opcode, header->tos, header->version);
     
     // FIXME: set the seqNumber each frame we get (for now)
-    currentNetworkInterface->mapper.seqNumber = header->seqNumber;
+    currentNetworkInterface->MapperSeqNumber = header->seqNumber;
     
     //
     // We validate the message demultiplex

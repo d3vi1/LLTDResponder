@@ -11,23 +11,17 @@
 #ifndef LLTDd_darwin_h
 #define LLTDd_darwin_h
 
-#include "lltdDaemon.h"
-
 #pragma mark -
 
 #pragma pack( push )
 #pragma pack( 2 )
-
-typedef struct {
-    uint8_t            a[6];
-} ethernet_address_t;
 
 #pragma pack( pop )
 
 typedef struct {
     io_object_t            notification;
     CFStringRef            deviceName;
-    uint8_t                hwAddress [ kIOEthernetAddressSize ];
+    uint8_t                macAddress [ kIOEthernetAddressSize ];
     uint32_t               ifType;              // The generic kernel interface type
                                                 // (csma/cd applies to ethernet/firware
                                                 // and wireless, although they are
@@ -49,10 +43,8 @@ typedef struct {
     void *                 icon;
     size_t                 iconSize;
     CFMutableArrayRef      seelist;
-    struct {
-        uint16_t            seqNumber;
-        ethernet_address_t  hwAddress[6];
-    } mapper;
+    uint16_t               MapperSeqNumber;
+    uint8_t                MapperHwAddress[ kIOEthernetAddressSize ];
 
 } network_interface_t;
 
