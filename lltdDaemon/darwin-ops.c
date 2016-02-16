@@ -33,7 +33,6 @@ void getUpnpUuid(void **pointer){
 
         CFUUIDRef cfUUID = CFUUIDCreateFromString(kCFAllocatorDefault, uuidStr);
         CFUUIDBytes uuidBytes = CFUUIDGetUUIDBytes(cfUUID);
-        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s %x\n", __FUNCTION__, CFStringGetCStringPtr(uuidStr, 0), uuidBytes.byte0);
         *pointer = malloc(sizeof(uuidBytes));
         memcpy(*pointer, &uuidBytes, sizeof(CFUUIDBytes));
         CFRelease(cfUUID);
@@ -393,14 +392,10 @@ void setPromiscuous(void *networkInterface, boolean_t set){
     
     long           flags;
     
-    uint8_t        ifNameLength = min(CFStringGetMaximumSizeForEncoding(CFStringGetLength(currentNetworkInterface->deviceName), kCFStringEncodingUTF8), 16);
+    uint8_t        ifNameLength = min(strlen(currentNetworkInterface->deviceName), 16);
     char          *interfaceName = malloc (ifNameLength);
-
-    //Get the interface name
-    if (! CFStringGetCString(currentNetworkInterface->deviceName, interfaceName, ifNameLength, kCFStringEncodingUTF8)){
-        asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s:  could not get network interface name\n", __FUNCTION__);
-        goto cleanup;
-    }
+    
+    strcpy(*interfaceName, currentNetworkInterface->deviceName);
     
     if (! CFNumberGetValue(currentNetworkInterface->flags, kCFNumberLongType, &flags)) {
         asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface %s: %s\n", __FUNCTION__, interfaceName, strerror(errno) );
@@ -413,9 +408,7 @@ void setPromiscuous(void *networkInterface, boolean_t set){
         bzero(&IfRequest, sizeof(IfRequest));
 
         memcpy(&(IfRequest.ifr_name), interfaceName, ifNameLength);
-//        CFStringGetCString(currentNetworkInterface->deviceName, IfRequest.ifr_name, sizeof(IfRequest.ifr_name), kCFStringEncodingASCII);
-        
-        //If we're already PROMISC and we're supposed to set it!
+
         if ((flags & IFF_PROMISC) && set) {
             goto cleanup;
         }
@@ -423,7 +416,6 @@ void setPromiscuous(void *networkInterface, boolean_t set){
         int ioctlError  = ioctl(currentNetworkInterface->socket, SIOCGIFFLAGS, (caddr_t)&IfRequest);
         if (ioctlError) {
             asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(ioctlError));
-//            goto cleanup;
         }
         
         if (set) {

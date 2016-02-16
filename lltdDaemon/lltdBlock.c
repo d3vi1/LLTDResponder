@@ -33,18 +33,18 @@ void lltdBlock (void *data){
     currentNetworkInterface->socket = fileDescriptor;
 
     if (fileDescriptor < 0) {
-        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not create socket on %s.\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, 0));
+        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not create socket on %s.\n", __FUNCTION__, currentNetworkInterface->deviceName);
         return -1;
     }
     
     //
     // Bind to the socket
     //
-    CFStringGetCString(currentNetworkInterface->deviceName, (char *) socketAddress.snd_name, sizeof(socketAddress.snd_name), 0);
+    strcpy((char *)&(socketAddress.snd_name), currentNetworkInterface->deviceName);
     socketAddress.snd_len = sizeof(socketAddress);
     socketAddress.snd_family = AF_NDRV;
     if (bind(fileDescriptor, (struct sockaddr *)&socketAddress, sizeof(socketAddress)) < 0) {
-        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not bind socket on %s.\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, 0));
+        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not bind socket on %s.\n", __FUNCTION__, currentNetworkInterface->deviceName);
         return -1;
     }
     
@@ -73,7 +73,7 @@ void lltdBlock (void *data){
     // Set the protocol on the socket
     //
     setsockopt(fileDescriptor, SOL_NDRVPROTO, NDRV_SETDMXSPEC, (caddr_t)&protocolDescription, sizeof(protocolDescription));
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Successfully binded to interface %s\n", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, 0));
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Successfully binded to interface %s\n", __FUNCTION__, currentNetworkInterface->deviceName);
 
     //
     // Start the run loop
@@ -86,9 +86,6 @@ void lltdBlock (void *data){
         
         parseFrame(buffer, currentNetworkInterface);
         
-        cyclNo++;
-        
-        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: === cycle %d stopped, %d bytes received ===\n", __FUNCTION__, cyclNo - 1, bytesRecv);
     }
     
     //
@@ -330,8 +327,8 @@ void parseEmit(void *inFrame, void *networkInterface){
 //
 //==============================================================================
 void answerHello(void *inFrame, void *networkInterface){
-    network_interface_t *currentNetworkInterface = networkInterface;
 
+    network_interface_t *currentNetworkInterface = networkInterface;
     void *buffer = malloc(currentNetworkInterface->MTU);
     memset(buffer, 0, currentNetworkInterface->MTU);
     uint64_t offset = 0;
@@ -416,15 +413,14 @@ int helloSent = 0;
 //
 // Here we validate the frame and make sure that the TOS/OpCode is a valid
 // combination.
-// TODO: Add a method to validate that we have the correct TLV combinations
-// TODO: for each frame.
+// TODO: Add a method to validate that we have the correct TLV combinations for each frame.
 //
 //==============================================================================
 void parseFrame(void *frame, void *networkInterface){
     lltd_demultiplex_header_t *header = frame;
     network_interface_t *currentNetworkInterface = networkInterface;
     
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s: ethertype:%4x, opcode:%4x, tos:%4x, version: %x", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName, 0), header->frameHeader.ethertype , header->opcode, header->tos, header->version);
+    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s: ethertype:%4x, opcode:%4x, tos:%4x, version: %x", __FUNCTION__, currentNetworkInterface->deviceName, header->frameHeader.ethertype , header->opcode, header->tos, header->version);
     
     // FIXME: set the seqNumber each frame we get (for now)
     currentNetworkInterface->MapperSeqNumber = header->seqNumber;
@@ -436,7 +432,7 @@ void parseFrame(void *frame, void *networkInterface){
         case tos_discovery:
             switch (header->opcode) {
                 case opcode_discover:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Discover (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Discover (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     if (!helloSent) {
                         helloSent = 1;
                         usleep(150000);
@@ -444,110 +440,110 @@ void parseFrame(void *frame, void *networkInterface){
                     }
                     break;
                 case opcode_hello:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Hello (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Hello (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_emit:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Emit (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Emit (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     parseEmit(frame, currentNetworkInterface);
                     break;
                 case opcode_train:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Train (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Train (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     //parseProbe(frame, currentNetworkInterface);
                     break;
                 case opcode_probe:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Probe (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Probe (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     parseProbe(frame, currentNetworkInterface);
                     break;
                 case opcode_ack:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s ACK (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s ACK (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_query:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Query (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Query (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     parseQuery(frame, currentNetworkInterface);
                     break;
                 case opcode_queryResp:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryResponse (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryResponse (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_reset:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     helloSent = 0;
                     CFArrayRemoveAllValues(currentNetworkInterface->seelist);
                     setPromiscuous(currentNetworkInterface, false);
                     break;
                 case opcode_charge:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Charge (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Charge (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     
                     break;
                 case opcode_flat:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Flat (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Flat (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_queryLargeTlv:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryLargeTLV (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryLargeTLV (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     parseQueryLargeTlv(frame, currentNetworkInterface);
                     //setPromiscuous(currentNetworkInterface, false);
                     break;
                 case opcode_queryLargeTlvResp:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryLargeTLVResponse (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryLargeTLVResponse (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 default:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Invalid opcode (%d) for TOS_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Invalid opcode (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
             }
             break;
         case tos_quick_discovery:
             switch (header->opcode) {
                 case opcode_discover:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Discover (%d) for TOS_Quick_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Discover (%d) for TOS_Quick_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     answerHello(frame, currentNetworkInterface);
                     break;
                 case opcode_hello:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Hello (%d) for TOS_Quick_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Hello (%d) for TOS_Quick_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_reset:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Quick_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Quick_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 default:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Invalid opcode (%d) for TOS_Quick_Discovery", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Invalid opcode (%d) for TOS_Quick_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
             }
             break;
         case tos_qos_diagnostics:
             switch (header->opcode) {
                 case opcode_qosInitializeSink:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Initialize Sink (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Initialize Sink (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosReady:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Ready (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Ready (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosProbe:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Probe (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Probe (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosQuery:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Query (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Query (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosQueryResp:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Query Response (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Query Response (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosReset:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosError:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Error (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Error (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosAck:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Ack (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Ack (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosCounterSnapshot:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Counter Snapshot (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Counter Snapshot (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosCounterResult:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Counter Result (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Counter Result (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosCounterLease:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Counter Lease (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Counter Lease (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
                 default:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Invalid opcode (%d) for TOS_QOS", __FUNCTION__, CFStringGetCStringPtr(currentNetworkInterface->deviceName,0), header->opcode);
+                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Invalid opcode (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
                     break;
             }
             break;

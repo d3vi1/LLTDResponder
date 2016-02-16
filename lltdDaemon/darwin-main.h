@@ -17,17 +17,24 @@
 #pragma pack( 2 )
 
 #pragma pack( pop )
-
+/*
+extern const CFStringRef kSCNetworkInterfaceTypeBond
+extern const CFStringRef kSCNetworkInterfaceTypeEthernet
+extern const CFStringRef kSCNetworkInterfaceTypeFireWire
+extern const CFStringRef kSCNetworkInterfaceTypeIEEE80211
+extern const CFStringRef kSCNetworkInterfaceTypeVLAN
+extern const CFStringRef kSCNetworkInterfaceTypeWWAN
+ */
 typedef struct {
     io_object_t            notification;
-    CFStringRef            deviceName;
+    const char            *deviceName;
     uint8_t                macAddress [ kIOEthernetAddressSize ];
     uint32_t               ifType;              // The generic kernel interface type
                                                 // (csma/cd applies to ethernet/firware
                                                 // and wireless, although they are
                                                 // different and wireless is CSMA/CA
-    CFStringRef            interfaceType;       // A string describing the interface
-                                                // type (Ethernet/Firewire/IEEE80211)
+    enum { NetworkInterfaceTypeBond, NetworkInterfaceTypeEthernet, NetworkInterfaceTypeIEEE80211, NetworkInterfaceTypeVLAN} interfaceType;
+    
     SCNetworkInterfaceRef  SCNetworkInterface;
     SCNetworkConnectionRef SCNetworkConnection;
     CFNumberRef            flags;               // kIOInterfaceFlags from the Interface
@@ -57,9 +64,11 @@ void deviceAppeared   (void *refCon, io_iterator_t iterator);
 void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType, void *messageArgument);
 void validateInterface(void *refCon, io_service_t IONetworkInterface);
 
+#define PRINT_IP_FMT      "%i.%i.%i.%i"
+#define PRINT_IP(x)       (x >> 24) & 0xFF, (x >> 16) & 0xFF, (x >> 8) & 0xFF, x & 0xFF
 #define ETHERNET_ADDR_FMT "%02x:%02x:%02x:%02x:%02x:%02x"
-#define ETHERNET_ADDR(x) x[0], x[1], x[2], x[3], x[4], x[5]
-#define lltdEtherType 0x88D9
-#define lltdOUI       0x000D3A
+#define ETHERNET_ADDR(x)  x[0], x[1], x[2], x[3], x[4], x[5]
+#define lltdEtherType     0x88D9
+#define lltdOUI           0x000D3A
 
 #endif
