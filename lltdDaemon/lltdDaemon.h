@@ -32,8 +32,7 @@
     #include <CoreFoundation/CoreFoundation.h>
     #include <CoreFoundation/CFArray.h>
     #include <CoreServices/CoreServices.h>                      // darwin-ops::getIconImage()
-    #include <ImageIO/ImageIO.h>                                // darwin-ops::getIconImage() For ICNS to ICO
-                                                                //             conversion using Thumbnails
+    #include <ImageIO/ImageIO.h>                                // darwin-ops::getIconImage() For ICNS to ICO conversion using Thumbnails
     #include <IOKit/network/IONetworkInterface.h>               // darwinMain::validateInterface()
     #include <IOKit/network/IONetworkController.h>              // darwinMain::validateInterface()
     #include <IOKit/network/IOEthernetController.h>             // darwinMain::validateInterface()
@@ -52,6 +51,14 @@
     #include "lltdBlock.h"
     #include "lltdTlvOps.h"
     #include "lltdAutomata.h"
+    #define log_debug(x, ...)   asl_log(asl, log_msg, ASL_LEVEL_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_info(x, ...)    asl_log(asl, log_msg, ASL_LEVEL_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_notice(x, ...)  asl_log(asl, log_msg, ASL_LEVEL_NOTICE,  "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_warning(x, ...) asl_log(asl, log_msg, ASL_LEVEL_WARNING, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_err(x, ...)     asl_log(asl, log_msg, ASL_LEVEL_ERR,     "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_crit(x, ...)    asl_log(asl, log_msg, ASL_LEVEL_CRIT,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_alert(x, ...)   asl_log(asl, log_msg, ASL_LEVEL_ALERT,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_emerg(x, ...)   asl_log(asl, log_msg, ASL_LEVEL_EMERG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
 #endif /*__darwin__ */
 
 /*
@@ -75,6 +82,18 @@
     #include "linux-ops.h"
     #define  MYPROTO NETLINK_ROUTE
     #define  MYMGRP RTMGRP_IPV4_ROUTE
+    #ifdef USE_SYSTEMD
+
+    #else
+        #define log_debug(x, s)   syslog(LOG_DEBUG, ""x"", __FUNCTION__, s)
+        #define log_info(x, s)    syslog(LOG_INFO, ""x"", __FUNCTION__, s)
+        #define log_notice(x, s)  syslog(LOG_NOTICE, ""x"", __FUNCTION__, s)
+        #define log_warning(x, s) syslog(LOG_WARNING, ""x"", __FUNCTION__, s)
+        #define log_err(x, s)     syslog(LOG_ERR, ""x"", __FUNCTION__, s)
+        #define log_crit(x, s)    syslog(LOG_CRIT, ""x"", __FUNCTION__, s)
+        #define log_alert(x, s)   syslog(LOG_ALERT, ""x"", __FUNCTION__, s)
+        #define log_emerg(x, s)   syslog(LOG_EMERG, ""x"", __FUNCTION__, s)
+    #endif /* USE_SYSTEMD */
 #endif /*__linux__*/
 
 /*

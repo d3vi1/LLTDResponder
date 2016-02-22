@@ -114,7 +114,7 @@ automata* init_automata_enumeration() {
     autom->states_table[1] = pausing;
     autom->states_table[2] = wait;
     
-    transition *t = autom->transitions_table;
+//    transition *t = autom->transitions_table;
     
     return autom;
 }

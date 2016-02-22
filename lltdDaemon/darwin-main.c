@@ -12,10 +12,11 @@
 #include "lltdDaemon.h"
 
 void SignalHandler(int Signal) {
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "\nInterrupted by signal #%d\n", Signal);
+    log_debug("Interrupted by signal #%d", Signal);
     printf("\nInterrupted by signal #%d\n", Signal);
     exit(0);
 }
+
 
 //==============================================================================
 //
@@ -30,15 +31,17 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     kern_return_t         kernel_return;
     io_service_t          IONetworkController;
     network_interface_t  *currentNetworkInterface = (network_interface_t*) refCon;
+    CFNumberRef           CFLinkStatus;
     
     
     //
     // Get the object's parent (the interface controller) in order to get the
     // Mac Address from it.
     //
+    log_debug("%s Getting the interface controller", currentNetworkInterface->deviceName);
     kernel_return = IORegistryEntryGetParentEntry( IONetworkInterface, kIOServicePlane, &IONetworkController);
     
-    if (kernel_return != KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not get the parent of the interface\n", __FUNCTION__);
+    if (kernel_return != KERN_SUCCESS) log_err("%s Could not get the parent of the interface", currentNetworkInterface->deviceName);
     
     if(IONetworkController) {
         CFTypeRef macAddressAsData = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOMACAddress), kCFAllocatorDefault, 0);
@@ -46,18 +49,17 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         
         CFDataGetBytes((CFDataRef)macAddressAsData, CFRangeMake(0,CFDataGetLength(macAddressAsData)), currentNetworkInterface->macAddress);
         CFRelease(macAddressAsData);
-        currentNetworkInterface->linkStatus = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOLinkStatus), kCFAllocatorDefault, 0);
+        CFLinkStatus = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOLinkStatus), kCFAllocatorDefault, 0);
         
         CFTypeRef ioLinkSpeed = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOLinkSpeed), kCFAllocatorDefault, 0);
         if (ioLinkSpeed) {
             CFNumberGetValue((CFNumberRef)ioLinkSpeed, kCFNumberLongLongType, &currentNetworkInterface->LinkSpeed);
             CFRelease(ioLinkSpeed);
         } else {
-            asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not read ifLinkSpeed.\n", __FUNCTION__);
+            log_err("%s Could not read ifLinkSpeed.", currentNetworkInterface->deviceName);
         }
     }
     
-    // We're not releasing the controller here because
     IOObjectRelease(IONetworkController);
 
     //
@@ -68,10 +70,11 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     
     CFArrayRef          scInterfaces;
     uint32              Index;
-    
+
+    log_debug("%s Getting the System Configuration Framework Interfaces", currentNetworkInterface->deviceName);
 	scInterfaces = SCNetworkInterfaceCopyAll();
 	if (scInterfaces == NULL) {
-        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: could not find any SCNetworkInterfaces. Is configd running?\n", __FUNCTION__);
+        log_err("%s Could not find any SCNetworkInterfaces. Is configd running?", currentNetworkInterface->deviceName);
         return;
     }
     
@@ -79,81 +82,104 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     // Go through the array, get the current interface SCNetwork
     // and save it in the currentNetworkInterface struct
     //
+    log_debug("%s Matching the interface to the SCNetworkInterfaces entry.", currentNetworkInterface->deviceName);
     for (Index = 0; Index < CFArrayGetCount(scInterfaces); Index++) {
 		SCNetworkInterfaceRef	currentSCInterface;
         const char            * scDeviceName = NULL;
         
 		currentSCInterface = CFArrayGetValueAtIndex(scInterfaces, Index);
+        
+
 		while ((currentSCInterface != NULL) && (scDeviceName == NULL)) {
 			scDeviceName = CFStringGetCStringPtr(SCNetworkInterfaceGetBSDName(currentSCInterface),kCFStringEncodingUTF8);
 			if (scDeviceName == NULL) currentSCInterface = SCNetworkInterfaceGetInterface(currentSCInterface);
 		}
-        
+        if (scDeviceName)
 		if (!strcmp(currentNetworkInterface->deviceName, scDeviceName)) {
-            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s, Comparing device names: '%s' '%s'\n", __FUNCTION__, currentNetworkInterface->deviceName, scDeviceName);
-			if (currentNetworkInterface->SCNetworkInterface == NULL) {
+            
+			if (!currentNetworkInterface->SCNetworkInterface) {
 				currentNetworkInterface->SCNetworkInterface = currentSCInterface;
                 CFRetain(currentSCInterface);
 			} else {
 				// if multiple interfaces match
 				currentNetworkInterface->SCNetworkInterface = NULL;
-				asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: multiple scInterfaces match\n", __FUNCTION__);
+				log_err("%s Multiple scInterfaces match", currentNetworkInterface->deviceName);
 			}
 		}
+        
 	}
     
     CFRelease(scInterfaces);
 
     //
-    // Get the default information about the interface
+    // Get the default information about the interface.
     //
-    const char *interfaceType = CFStringGetCStringPtr(SCNetworkInterfaceGetInterfaceType(currentNetworkInterface->SCNetworkInterface), kCFStringEncodingUTF8);
-    if(strcmp(interfaceType, kSCNetworkInterfaceTypeBond)) currentNetworkInterface->interfaceType = NetworkInterfaceTypeBond;
-        else
-    if(strcmp(interfaceType, kSCNetworkInterfaceTypeVLAN)) currentNetworkInterface->interfaceType = NetworkInterfaceTypeVLAN;
-        else
-    if(strcmp(interfaceType, kSCNetworkInterfaceTypeEthernet)) currentNetworkInterface->interfaceType = NetworkInterfaceTypeEthernet;
-        else
-    if(strcmp(interfaceType, kSCNetworkInterfaceTypeIEEE80211)) currentNetworkInterface->interfaceType = NetworkInterfaceTypeIEEE80211;
-    else {
-        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: the SCNetworkInterfaces Type is not one of BOND, VLAN, Bridge, Ethernet or 802.11\n", __FUNCTION__);
-        return;
+
+    CFStringRef scDeviceTypeRef = SCNetworkInterfaceGetInterfaceType(currentNetworkInterface->SCNetworkInterface);
+    const char *scDeviceType = malloc(CFStringGetLength(scDeviceTypeRef)+1);
+    CFStringGetCString(scDeviceTypeRef, (char *)scDeviceType, CFStringGetLength(scDeviceTypeRef)+1, kCFStringEncodingUTF8);
+    
+    if (scDeviceType){
+        if(strcmp(scDeviceType, CFStringGetCStringPtr(kSCNetworkInterfaceTypeBond, kCFStringEncodingUTF8))) currentNetworkInterface->interfaceType = NetworkInterfaceTypeBond;
+        else if(strcmp(scDeviceType, CFStringGetCStringPtr(kSCNetworkInterfaceTypeVLAN, kCFStringEncodingUTF8))) currentNetworkInterface->interfaceType = NetworkInterfaceTypeVLAN;
+        else if(strcmp(scDeviceType, CFStringGetCStringPtr(kSCNetworkInterfaceTypeEthernet, kCFStringEncodingUTF8))) currentNetworkInterface->interfaceType = NetworkInterfaceTypeEthernet;
+        else if(strcmp(scDeviceType, CFStringGetCStringPtr(kSCNetworkInterfaceTypeIEEE80211, kCFStringEncodingUTF8))) currentNetworkInterface->interfaceType = NetworkInterfaceTypeIEEE80211;
+        else {
+            //We shouldn't get here since the interface flags are already supposed to be BROADCAST & UP
+            log_err("%s The SCNetworkInterfaces Type is not one of BOND, VLAN, Bridge, Ethernet or 802.11", currentNetworkInterface->deviceName);
+            return;
+        }
+        CFRelease(scDeviceTypeRef);
     }
+    
+    log_debug("%s Getting the interface type string", currentNetworkInterface->deviceName);
     CFTypeRef ioInterfaceType = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOInterfaceType), kCFAllocatorDefault, 0);
     if (ioInterfaceType) {
         CFNumberGetValue((CFNumberRef)ioInterfaceType, kCFNumberLongType, &currentNetworkInterface->ifType);
         CFRelease(ioInterfaceType);
     } else {
-        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not read ifType.\n", __FUNCTION__);
+        log_err("%s Could not read ifType", currentNetworkInterface->deviceName);
     }
 
+    log_debug("%s Getting the interface MTU", currentNetworkInterface->deviceName);
     CFTypeRef ioInterfaceMTU = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOMaxTransferUnit), kCFAllocatorDefault, 0);
     if (ioInterfaceMTU) {
         CFNumberGetValue((CFNumberRef)ioInterfaceMTU, kCFNumberLongType, &currentNetworkInterface->MTU);
         CFRelease(ioInterfaceMTU);
     } else {
-        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not read ifMaxTransferUnit.\n", __FUNCTION__);
+        log_err("%s Could not read ifMaxTransferUnit", currentNetworkInterface->deviceName);
     }
 
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Found interface:   %s  MAC: "ETHERNET_ADDR_FMT"  Type: %s (0x%000x)\n", __FUNCTION__, currentNetworkInterface->deviceName, ETHERNET_ADDR(currentNetworkInterface->macAddress), CFStringGetCStringPtr(SCNetworkInterfaceGetInterfaceType(currentNetworkInterface->SCNetworkInterface), kCFStringEncodingUTF8), currentNetworkInterface->ifType);
+    log_debug("%s Found interface:   MAC: "ETHERNET_ADDR_FMT" Type: %s (0x%000x)\n", currentNetworkInterface->deviceName, ETHERNET_ADDR(currentNetworkInterface->macAddress), scDeviceType, currentNetworkInterface->ifType);
     
+    free((void *)scDeviceType);
+
     //
     // Check if we're UP, BROADCAST and not LOOPBACK
     //
-    currentNetworkInterface->flags = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOInterfaceFlags), kCFAllocatorDefault, kNilOptions);
-    if (currentNetworkInterface->flags!=NULL){
-        uint32_t flags;
-        CFNumberGetValue(currentNetworkInterface->flags, kCFNumberIntType, &flags);
-        //FIXME: There are way too many things here
-        if( !(flags & (IFF_UP | IFF_BROADCAST | IFF_LOOPBACK))){
-            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s failed the flags check\n", __FUNCTION__, currentNetworkInterface->deviceName);
+    log_debug("%s Checking the flags (UP&BROADCAST) !LOOPBACK", currentNetworkInterface->deviceName);
+    CFNumberRef CFFlags = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOInterfaceFlags), kCFAllocatorDefault, kNilOptions);
+    if (CFFlags!=NULL){
+        int64_t         flags = 0;
+        CFNumberGetValue(CFFlags, kCFNumberIntType, &flags);
+        currentNetworkInterface->flags = flags;
+/*        printf("%s: %s IF Flags: ", __FUNCTION__, currentNetworkInterface->deviceName);
+        if(flags&IFF_LOOPBACK) printf("IFF_LOOPBACK ");
+        if(flags&IFF_UP) printf("IFF_UP ");
+        if(flags&IFF_BROADCAST) printf("IFF_BROADCAST ");
+        printf("\n");*/
+        if( (!(currentNetworkInterface->flags & (IFF_UP | IFF_BROADCAST))) | (currentNetworkInterface->flags & IFF_LOOPBACK)){
+            log_err("%s Failed the flags check\n", currentNetworkInterface->deviceName);
+            CFRelease(CFFlags);
             return;
-        }
+        } else CFRelease(CFFlags);
     }
+    
     
     //
     //Let's get the Medium Type
     //
+    log_debug("%s Getting the medium type", currentNetworkInterface->deviceName);
     CFDictionaryRef properties = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOMediumDictionary), kCFAllocatorDefault, kNilOptions);
     if (properties!=NULL){
         CFNumberRef activeMediumIndex = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOActiveMedium), kCFAllocatorDefault, kNilOptions);
@@ -172,19 +198,29 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         }
         CFRelease(properties);
     }
+    
     //
     // Check if we have link on the controller
     //
-    if (currentNetworkInterface->linkStatus!=NULL){
-        uint32_t linkStatus;
-        CFNumberGetValue(currentNetworkInterface->linkStatus, kCFNumberIntType, &linkStatus);
-        //FIXME: There are way too many things here
-        if(!( (linkStatus & kIONetworkLinkActive) && (linkStatus & kIONetworkLinkValid) )){
-            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s failed link status check\n", __FUNCTION__, currentNetworkInterface->deviceName);
-            return;
-        }
+    log_debug("%s Checking for link", currentNetworkInterface->deviceName);
+
+    int  LinkStatus = 0;
+    bool hasLink = FALSE;
+    CFNumberGetValue(CFLinkStatus, kCFNumberIntType, &LinkStatus);
+    currentNetworkInterface->linkStatus=LinkStatus;
+    
+    if((LinkStatus & (kIONetworkLinkValid|kIONetworkLinkActive))
+				   == (kIONetworkLinkValid|kIONetworkLinkActive)){
+        log_debug("%s Interface has a Valid and Active Link", currentNetworkInterface->deviceName);
+    } else if (LinkStatus & kIONetworkLinkActive) {
+        log_debug("%s Validation Failed: Interface doesn't have a Valid Link but has an Active one", currentNetworkInterface->deviceName);
+        return;
+    } else if (LinkStatus & kIONetworkLinkValid) {
+        log_debug("%s Validation Failed: Interface doesn't have an Active Link but has a Valid one", currentNetworkInterface->deviceName);
+        return;
     }
     
+    log_debug("%s Getting the IPvX addresses", currentNetworkInterface->deviceName);
     //Let's get the IPv4 (and IPv6?) address(es?)
     struct ifaddrs *interfaces = NULL;
     struct ifaddrs *temp_addr = NULL;
@@ -221,10 +257,11 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     // function. We are also giving it a pointer to our networkInterface
     // so that we don't keep a global array of all interfaces.
     //
+    log_debug("%s Add Service Interest Notification", currentNetworkInterface->deviceName);
     kernel_return = IOServiceAddInterestNotification(notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
     
     
-    if (kernel_return!=KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: IOServiceAddInterestNofitication Interface error: 0x%08x.\n", __FUNCTION__, kernel_return);
+    if (kernel_return!=KERN_SUCCESS) log_err("%s IOServiceAddInterestNofitication Interface error: 0x%08x.", currentNetworkInterface->deviceName, kernel_return);
     
 
     //
@@ -235,12 +272,12 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     //
     kernel_return = IORegistryEntryGetParentEntry( IONetworkInterface, kIOServicePlane, &IONetworkController);
     
-    if (kernel_return != KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not get the parent of the interface\n", __FUNCTION__);
+    if (kernel_return != KERN_SUCCESS) log_err("%s Could not get the parent of the interface", currentNetworkInterface->deviceName);
     
     if(IONetworkController) {
 
         kernel_return = IOServiceAddInterestNotification(notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
-        if (kernel_return!=KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: IOServiceAddInterestNofitication Controller error: 0x%08x.\n", __FUNCTION__, kernel_return);
+        if (kernel_return!=KERN_SUCCESS) log_err("%s IOServiceAddInterestNofitication Controller error: 0x%08x.", currentNetworkInterface->deviceName, kernel_return);
 
         
     }
@@ -253,6 +290,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     // know that it's up, broadcast capable, not a loopback and has a link
     // So we move on to adding the thread
     //
+    log_debug("%s Spawning the thread", currentNetworkInterface->deviceName);
     pthread_attr_t  threadAttributes;
     pthread_t       posixThreadID;
     int             returnVal;
@@ -260,12 +298,13 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     returnVal = pthread_attr_init(&threadAttributes);
     
     if (returnVal!=noErr){
-        asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s:, could not init pthread attributes: %d\n", __FUNCTION__, returnVal);
+        log_err("%s Could not init pthread attributes: %d", currentNetworkInterface->deviceName, returnVal);
         return;
     }
+    
     returnVal = pthread_attr_setdetachstate(&threadAttributes, PTHREAD_CREATE_DETACHED);
     if (returnVal!=noErr){
-        asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s:, could not set pthread attributes: %d\n", __FUNCTION__, returnVal);
+        log_err("%s Could not set pthread attributes: %d", currentNetworkInterface->deviceName, returnVal);
         return;
     }
     
@@ -297,27 +336,43 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
 void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType, void *messageArgument){
     
     network_interface_t *currentNetworkInterface = (network_interface_t*) refCon;
-    
+    io_name_t nameString;
+    IORegistryEntryGetName(service, nameString);
+    log_notice("Notification received: %s type: %x device: %s\n", currentNetworkInterface->deviceName, messageType, nameString);
     if (messageType == kIOMessageServiceIsTerminated) {
-        asl_log(asl, log_msg, ASL_LEVEL_NOTICE, "%s: Interface removed: %s\n", __FUNCTION__, currentNetworkInterface->deviceName);
+        log_notice("Interface removed: %s\n", currentNetworkInterface->deviceName);
         free((void *)currentNetworkInterface->deviceName);
-        free((void *)currentNetworkInterface->interfaceType);
         CFRelease(currentNetworkInterface->SCNetworkInterface);
         IOObjectRelease(currentNetworkInterface->notification);
+        pthread_cancel(currentNetworkInterface->posixThreadID);
+        if(currentNetworkInterface->recvBuffer) free(currentNetworkInterface->recvBuffer);
         free(currentNetworkInterface);
+    } else if (messageType == kIOMessageDeviceWillPowerOff) {
+        log_notice("Interface powered off: %s\n", currentNetworkInterface->deviceName);
+        CFRelease(currentNetworkInterface->SCNetworkInterface);
         pthread_kill(currentNetworkInterface->posixThreadID, 0);
     } else if (messageType == kIOMessageServicePropertyChange) {
-        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: A property has changed.\n", __FUNCTION__);
-        //Let's release the interface and validate it again.
-        free((void *)currentNetworkInterface->deviceName);
-        free((void *)currentNetworkInterface->interfaceType);
-        CFRelease(currentNetworkInterface->SCNetworkInterface);
-        IOObjectRelease(currentNetworkInterface->notification);
-        pthread_kill(currentNetworkInterface->posixThreadID, 0);
+        //We should have some cleanup over here. There are only two properties that we care about.
+        log_notice("A property has changed. Reloading thread. %s\n", currentNetworkInterface->deviceName);
+        if (currentNetworkInterface->SCNetworkInterface) CFRelease(currentNetworkInterface->SCNetworkInterface);
+        if (currentNetworkInterface->SCNetworkConnection) CFRelease(currentNetworkInterface->SCNetworkConnection);
+        if (currentNetworkInterface->seelist) CFRelease(currentNetworkInterface->seelist);
+        currentNetworkInterface->SCNetworkInterface=NULL;
+        currentNetworkInterface->SCNetworkConnection=NULL;
+        currentNetworkInterface->seelist=NULL;
+        pthread_cancel(currentNetworkInterface->posixThreadID);
+        usleep(100000);
+        if(currentNetworkInterface->recvBuffer) {
+            free(currentNetworkInterface->recvBuffer);
+            currentNetworkInterface->recvBuffer=NULL;
+        }
+        close(currentNetworkInterface->socket);
         validateInterface(currentNetworkInterface, service);
-        
-        
+    } else if (messageType == kIOMessageDeviceWillPowerOn) {
+        log_notice("Interface powered on: %s\n", currentNetworkInterface->deviceName);
+        validateInterface(currentNetworkInterface, service);
     }
+    
 }
 
 
@@ -349,13 +404,16 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
         // letting it stabilize for 50ms since SCNetwork didn't do it's thing
         // yet.
         //
-
-        currentNetworkInterface->deviceName = CFStringGetCStringPtr(IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOBSDNameKey), kCFAllocatorDefault, 0), kCFStringEncodingUTF8);
-        if (currentNetworkInterface->deviceName == NULL) {
+        CFStringRef deviceName = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOBSDNameKey), kCFAllocatorDefault, 0);
+        if (deviceName == NULL) {
             usleep(100000);
-            currentNetworkInterface->deviceName = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOBSDNameKey), kCFAllocatorDefault, 0);
+            deviceName = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOBSDNameKey), kCFAllocatorDefault, 0);
         }
         
+        currentNetworkInterface->deviceName=malloc(CFStringGetLength(deviceName)+1);
+        CFStringGetCString(deviceName, (char *)currentNetworkInterface->deviceName, CFStringGetLength(deviceName)+1, kCFStringEncodingUTF8);
+        CFRelease(deviceName);
+        log_debug("Validating the interface");
         validateInterface(currentNetworkInterface, IONetworkInterface);
         
         //
@@ -397,20 +455,22 @@ int main(int argc, const char *argv[]){
     // SigInt = Ctrl+C
     // SigTerm = Killed by launchd
     //
+    log_debug("Setting up interrupt handlers.");
     handler = signal(SIGINT, SignalHandler);
-    if (handler == SIG_ERR) asl_log(asl, log_msg, ASL_LEVEL_CRIT, "Could not establish SIGINT handler.\n");
+    if (handler == SIG_ERR) log_crit("Could not establish SIGINT handler.\n");
     handler = signal(SIGTERM, SignalHandler);
-    if (handler == SIG_ERR) asl_log(asl, log_msg, ASL_LEVEL_CRIT, "Could not establish SIGTERM handler.\n");
+    if (handler == SIG_ERR) log_crit("Could not establish SIGTERM handler.\n");
     
     
     //
     // Creates and returns a notification object for receiving
     // IOKit notifications of new devices or state changes
     //
+    log_debug("Setting up notification port.");
     masterPort = MACH_PORT_NULL;
     kernel_return = IOMasterPort(bootstrap_port, &masterPort);
     if (kernel_return != KERN_SUCCESS) {
-        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "IOMasterPort returned 0x%x\n", kernel_return);
+        log_err("IOMasterPort returned 0x%x\n", kernel_return);
         return EXIT_FAILURE;
     }
     
@@ -430,8 +490,9 @@ int main(int argc, const char *argv[]){
     // The device removed notifications are added in the Run Loop
     // from the actual "deviceAppeared" function.
     //
+    log_debug("Setting up service notification for kIONetworkInterfaceClass.");
     kernel_return = IOServiceAddMatchingNotification(notificationPort, kIOFirstMatchNotification, IOServiceMatching(kIONetworkInterfaceClass), deviceAppeared, NULL, &newDevicesIterator);
-    if (kernel_return!=KERN_SUCCESS) asl_log(asl, log_msg, ASL_LEVEL_CRIT, "IOServiceAddMatchingNotification(deviceAppeared) returned 0x%x\n", kernel_return);
+    if (kernel_return!=KERN_SUCCESS) log_crit("IOServiceAddMatchingNotification(deviceAppeared) returned 0x%x\n", kernel_return);
     
     //
     // Do an initial device scan since the Run Loop is not yet
@@ -449,13 +510,13 @@ int main(int argc, const char *argv[]){
     //
     // Start the run loop.
     //
-    asl_log(asl, log_msg, ASL_LEVEL_NOTICE, "Starting run loop.\n\n");
+    log_notice("Starting run loop.\n\n");
     CFRunLoopRun();
     
     //
     // We should never get here
     //
-    asl_log(asl, log_msg, ASL_LEVEL_CRIT, "Unexpectedly back from CFRunLoopRun()!\n");
+    log_crit("Unexpectedly back from CFRunLoopRun()!\n");
     if (masterPort != MACH_PORT_NULL) mach_port_deallocate(mach_task_self(), masterPort);
     asl_close(asl);
     return EXIT_FAILURE;

@@ -20,11 +20,9 @@ void lltdBlock (void *data){
     network_interface_t *currentNetworkInterface = data;
     
     int                       fileDescriptor;
-    int                       bytesRecv;
     struct ndrv_protocol_desc protocolDescription;
     struct ndrv_demux_desc    demuxDescription[1];
     struct sockaddr_ndrv      socketAddress;
-    void                     *buffer;
     
     //
     // Open the AF_NDRV RAW socket
@@ -33,7 +31,7 @@ void lltdBlock (void *data){
     currentNetworkInterface->socket = fileDescriptor;
 
     if (fileDescriptor < 0) {
-        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not create socket on %s.\n", __FUNCTION__, currentNetworkInterface->deviceName);
+        log_err("Could not create socket on %s.", currentNetworkInterface->deviceName);
         return -1;
     }
     
@@ -44,7 +42,7 @@ void lltdBlock (void *data){
     socketAddress.snd_len = sizeof(socketAddress);
     socketAddress.snd_family = AF_NDRV;
     if (bind(fileDescriptor, (struct sockaddr *)&socketAddress, sizeof(socketAddress)) < 0) {
-        asl_log(asl, log_msg, ASL_LEVEL_ERR, "%s: Could not bind socket on %s.\n", __FUNCTION__, currentNetworkInterface->deviceName);
+        log_err("Could not bind socket on %s.", currentNetworkInterface->deviceName);
         return -1;
     }
     
@@ -73,25 +71,24 @@ void lltdBlock (void *data){
     // Set the protocol on the socket
     //
     setsockopt(fileDescriptor, SOL_NDRVPROTO, NDRV_SETDMXSPEC, (caddr_t)&protocolDescription, sizeof(protocolDescription));
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Successfully binded to interface %s\n", __FUNCTION__, currentNetworkInterface->deviceName);
+    log_notice("Successfully binded to interface %s", currentNetworkInterface->deviceName);
 
     //
     // Start the run loop
     //
     unsigned int cyclNo = 0;
-    buffer = malloc(currentNetworkInterface->MTU);
+    currentNetworkInterface->recvBuffer = malloc(currentNetworkInterface->MTU);
 
     for(;;){
-        bytesRecv = recvfrom(fileDescriptor, buffer, currentNetworkInterface->MTU, 0, NULL, NULL);
-        
-        parseFrame(buffer, currentNetworkInterface);
-        
+        recvfrom(fileDescriptor, currentNetworkInterface->recvBuffer, currentNetworkInterface->MTU, 0, NULL, NULL);
+        parseFrame(currentNetworkInterface->recvBuffer, currentNetworkInterface);
     }
     
     //
     // Cleanup
     //
-    free(buffer);
+    free(currentNetworkInterface->recvBuffer);
+    currentNetworkInterface->recvBuffer=NULL;
     close(fileDescriptor);
     return 0;
 
@@ -110,13 +107,13 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
                   0x00, code, tos_discovery);
 
 
-    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Trying to send probe/train with seqNumber %d\n", __FUNCTION__, ntohs(probe->seqNumber));
+    log_alert("Trying to send probe/train with seqNumber %d", ntohs(probe->seqNumber));
     
     usleep(1000 * pause);
     ssize_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
     if (write < 0) {
-        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on PROBE/TRAIN: %s\n", __FUNCTION__, strerror(write));
+        log_crit("Socket write failed on PROBE/TRAIN: %s", strerror(write));
         return false;
     } else if (ack) {
         // write an ACK too with the seq number, the algorithm will not conitnue without it
@@ -127,7 +124,7 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
         write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                               sizeof(currentNetworkInterface->socketAddr));
         if (write < 0) {
-            asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on ACK: %s\n", __FUNCTION__, strerror(write));
+            log_crit("Socket write failed on ACK: %s\n", strerror(write));
         }
     }
 }
@@ -148,11 +145,11 @@ void parseQuery(void *inFrame, void *networkInterface){
     // HERE I AM
     
     int probesNo = (int) CFArrayGetCount(currentNetworkInterface->seelist);
-    asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: I've seen %d probes\n", __FUNCTION__, probesNo);
+    log_crit("I've seen %d probes", probesNo);
     
     for(long i = 0; i < probesNo; i++) {
         const probe_t *probe = CFArrayGetValueAtIndex(currentNetworkInterface->seelist , i);
-        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "\t%s: Type %d, Source: "ETHERNET_ADDR_FMT", Dest: "ETHERNET_ADDR_FMT", RealSource: "ETHERNET_ADDR_FMT" \n", __FUNCTION__,
+        log_crit("\tType %d, Source: "ETHERNET_ADDR_FMT", Dest: "ETHERNET_ADDR_FMT", RealSource: "ETHERNET_ADDR_FMT" \n",
                     probe->type, ETHERNET_ADDR(probe->sourceAddr.a), ETHERNET_ADDR(probe->destAddr.a), ETHERNET_ADDR(probe->realSourceAddr.a) );
         
     }
@@ -179,7 +176,7 @@ void parseQuery(void *inFrame, void *networkInterface){
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
-        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on QryResp: %s\n", __FUNCTION__, strerror(write));
+        log_crit("Socket write failed on QryResp: %s\n", strerror(write));
     }
     
     free(buffer);
@@ -231,7 +228,7 @@ void sendImage(void *networkInterface, uint16_t offset) {
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
                            (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
-        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed on sendImage: %s\n", __FUNCTION__, strerror(write));
+        log_crit("Socket write failed on sendImage: %s\n", strerror(write));
     }
 //    free(icon);
 }
@@ -246,7 +243,7 @@ void parseQueryLargeTlv(void *inFrame, void *networkInterface) {
     }
     qry_large_tlv_t *header = inFrame + sizeof(lltd_demultiplex_header_t);
     if (header->type == tlv_iconImage) {
-        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Image request, responding with QryLargeResp, offset=%d\n", __FUNCTION__, ntohs( header->offset ) );
+        log_crit("Image request, responding with QryLargeResp, offset=%d\n", ntohs( header->offset ) );
         sendImage(networkInterface, ntohs(header->offset));
     }
 }
@@ -272,11 +269,11 @@ void parseProbe(void *inFrame, void *networkInterface) {
         boolean_t found = false;
         
         //if (count > 1) {
-            asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Searching through already %ld seen probes\n", __FUNCTION__, count);
+            log_crit("Searching through already %ld seen probes", count);
             for(long i = 0; i < count; i++) {
                 const probe_t *searchProbe = CFArrayGetValueAtIndex(currentNetworkInterface->seelist, i);
                 // destination and type are already equal, we'll compare just the source addresses
-                asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s:\tSource1: "ETHERNET_ADDR_FMT", Source2: "ETHERNET_ADDR_FMT" ,RealSource1: "ETHERNET_ADDR_FMT", RealSource2: "ETHERNET_ADDR_FMT",\n", __FUNCTION__,
+                log_crit("\tSource1: "ETHERNET_ADDR_FMT", Source2: "ETHERNET_ADDR_FMT" ,RealSource1: "ETHERNET_ADDR_FMT", RealSource2: "ETHERNET_ADDR_FMT",\n",
                         ETHERNET_ADDR(probe->sourceAddr.a), ETHERNET_ADDR(searchProbe->sourceAddr.a), ETHERNET_ADDR(probe->realSourceAddr.a), ETHERNET_ADDR(searchProbe->realSourceAddr.a) );
                 if ( compareEthernetAddress( &(probe->sourceAddr), &(searchProbe->sourceAddr)) &&
                     compareEthernetAddress( &(probe->realSourceAddr), &(searchProbe->realSourceAddr)) ) {
@@ -287,7 +284,7 @@ void parseProbe(void *inFrame, void *networkInterface) {
         
         if (!found) {
             CFArrayAppendValue(currentNetworkInterface->seelist, probe);
-            asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Adding probe to seen list\n", __FUNCTION__ );
+            log_crit("Adding probe to seen list");
         }
     }
 }
@@ -302,7 +299,7 @@ void parseEmit(void *inFrame, void *networkInterface){
     
     int numDescs = ntohs(emitHeader->numDescs);
     uint16_t offsetEmitee = 0;
-    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Emit parsed, number of descs: %x\n", __FUNCTION__, ntohs(emitHeader->numDescs));
+    log_alert("Emit parsed, number of descs: %x\n", ntohs(emitHeader->numDescs));
     for (int i = 0; i < numDescs; i++) {
         boolean_t ack = i == numDescs -1 ? true : false;
         emitee_descs *emitee = ( (void *)emitHeader + sizeof(*emitHeader) + offsetEmitee );
@@ -313,7 +310,7 @@ void parseEmit(void *inFrame, void *networkInterface){
             // send trains
             sendProbeMsg(emitee->sourceAddr, emitee->destAddr, networkInterface, emitee->pause, emitee->type, ack);
         } else {
-          asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Unknown emitee type=%d !", __FUNCTION__, emitee->type);
+          log_alert("Unknown emitee type=%d !", emitee->type);
         }
        offsetEmitee += sizeof(emitee_descs);
     }
@@ -343,7 +340,7 @@ void answerHello(void *inFrame, void *networkInterface){
     //If it's not, silently fail.
     //
     if (!compareEthernetAddress(&lltdHeader->realSource, &lltdHeader->frameHeader.source)){
-        asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Discovery validation failed real mac is not equal to source.\n", __FUNCTION__);
+        log_debug("Discovery validation failed real mac is not equal to source.");
         return;
     }
     
@@ -376,14 +373,14 @@ void answerHello(void *inFrame, void *networkInterface){
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                             sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
-        asl_log(asl, log_msg, ASL_LEVEL_CRIT, "%s: Socket write failed: %s\n", __FUNCTION__, strerror(write));
+        log_crit("Socket write failed: %s", strerror(write));
     }
     
     setPromiscuous(networkInterface, true);
     
     free(buffer);
 
-/*    if (CFStringCompare(currentNetworkInterface->interfaceType, CFSTR("IEEE80211"), 0) == kCFCompareEqualTo) {
+/*    if (currentNetworkInterface->interfaceType = "IEEE80211") {
         setWirelessTLV();
         setBSSIDTLV();
         setSSIDTLV();
@@ -420,7 +417,7 @@ void parseFrame(void *frame, void *networkInterface){
     lltd_demultiplex_header_t *header = frame;
     network_interface_t *currentNetworkInterface = networkInterface;
     
-    asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: %s: ethertype:%4x, opcode:%4x, tos:%4x, version: %x", __FUNCTION__, currentNetworkInterface->deviceName, header->frameHeader.ethertype , header->opcode, header->tos, header->version);
+    log_debug("%s: ethertype:0x%4x, opcode:0x%x, tos:0x%x, version: 0x%x", currentNetworkInterface->deviceName, ntohs(header->frameHeader.ethertype) , header->opcode, header->tos, header->version);
     
     // FIXME: set the seqNumber each frame we get (for now)
     currentNetworkInterface->MapperSeqNumber = header->seqNumber;
@@ -432,7 +429,7 @@ void parseFrame(void *frame, void *networkInterface){
         case tos_discovery:
             switch (header->opcode) {
                 case opcode_discover:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Discover (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Discover (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     if (!helloSent) {
                         helloSent = 1;
                         usleep(150000);
@@ -440,115 +437,115 @@ void parseFrame(void *frame, void *networkInterface){
                     }
                     break;
                 case opcode_hello:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Hello (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Hello (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_emit:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Emit (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Emit (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     parseEmit(frame, currentNetworkInterface);
                     break;
                 case opcode_train:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Train (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
-                    //parseProbe(frame, currentNetworkInterface);
+                    log_debug("%s Train (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
+                    parseProbe(frame, currentNetworkInterface);
                     break;
                 case opcode_probe:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Probe (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Probe (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     parseProbe(frame, currentNetworkInterface);
                     break;
                 case opcode_ack:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s ACK (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s ACK (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_query:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Query (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Query (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     parseQuery(frame, currentNetworkInterface);
                     break;
                 case opcode_queryResp:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryResponse (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s QueryResponse (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_reset:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Reset (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     helloSent = 0;
                     CFArrayRemoveAllValues(currentNetworkInterface->seelist);
                     setPromiscuous(currentNetworkInterface, false);
                     break;
                 case opcode_charge:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Charge (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Charge (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     
                     break;
                 case opcode_flat:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Flat (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Flat (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_queryLargeTlv:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryLargeTLV (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s QueryLargeTLV (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     parseQueryLargeTlv(frame, currentNetworkInterface);
-                    //setPromiscuous(currentNetworkInterface, false);
+                    setPromiscuous(currentNetworkInterface, false);
                     break;
                 case opcode_queryLargeTlvResp:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s QueryLargeTLVResponse (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s QueryLargeTLVResponse (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 default:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Invalid opcode (%d) for TOS_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_alert("%s Invalid opcode (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
             }
             break;
         case tos_quick_discovery:
             switch (header->opcode) {
                 case opcode_discover:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Discover (%d) for TOS_Quick_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Discover (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     answerHello(frame, currentNetworkInterface);
                     break;
                 case opcode_hello:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Hello (%d) for TOS_Quick_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Hello (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_reset:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_Quick_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Reset (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 default:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Invalid opcode (%d) for TOS_Quick_Discovery", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_alert("%s Invalid opcode (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
             }
             break;
         case tos_qos_diagnostics:
             switch (header->opcode) {
                 case opcode_qosInitializeSink:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Initialize Sink (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Initialize Sink (%d) for TOS_QOS", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosReady:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Ready (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Ready (%d) for TOS_QOS", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosProbe:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Probe (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Probe (%d) for TOS_QOS", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosQuery:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Query (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Query (%d) for TOS_QOS", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosQueryResp:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Query Response (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Query Response (%d) for TOS_QOS", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosReset:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Reset (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Reset (%d) for TOS_QOS", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosError:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Error (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Error (%d) for TOS_QOS", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosAck:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Ack (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Ack (%d) for TOS_QOS", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosCounterSnapshot:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Counter Snapshot (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Counter Snapshot (%d) for TOS_QOS", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosCounterResult:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Counter Result (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Counter Result (%d) for TOS_QOS", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_qosCounterLease:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Counter Lease (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Counter Lease (%d) for TOS_QOS", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 default:
-                    asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: %s Invalid opcode (%d) for TOS_QOS", __FUNCTION__, currentNetworkInterface->deviceName, header->opcode);
+                    log_alert("%s Invalid opcode (%d) for TOS_QOS", currentNetworkInterface->deviceName, header->opcode);
                     break;
             }
             break;
         default:
-            asl_log(asl, log_msg, ASL_LEVEL_ALERT, "%s: Invalid Type of Service Code: %x", __FUNCTION__, header->tos);
+            log_alert("Invalid Type of Service Code: %x", header->tos);
     }
     
 }

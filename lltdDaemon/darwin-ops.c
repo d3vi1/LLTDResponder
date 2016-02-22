@@ -21,8 +21,8 @@
 //
 //==============================================================================
 void getUpnpUuid(void **pointer){
-    io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault,
-                                                              IOServiceMatching("IOPlatformExpertDevice"));
+    io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
+    
     if (platformExpert) {
         CFStringRef uuidStr = IORegistryEntryCreateCFProperty(platformExpert,
                                                               CFSTR(kIOPlatformUUIDKey),
@@ -53,8 +53,8 @@ void getUpnpUuid(void **pointer){
 //
 //==============================================================================
 void getIconImage(void **icon, size_t *iconsize){
-    io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault,
-                                                              IOServiceMatching("IOPlatformExpertDevice"));
+    io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
+
     if (platformExpert) {
         CFDataRef modelCodeData = IORegistryEntryCreateCFProperty(platformExpert,
                                                                   CFSTR("model"),
@@ -85,9 +85,10 @@ void getIconImage(void **icon, size_t *iconsize){
         }
         
         CFRelease(modelCodeData);
-        
-        CFDictionaryRef utiDeclaration = UTTypeCopyDeclaration(UniformTypeIdentifier);
 
+        CFDictionaryRef utiDeclaration = UTTypeCopyDeclaration(UniformTypeIdentifier);
+        
+        CFRelease(UniformTypeIdentifier);
 
         if (utiDeclaration){
             
@@ -107,11 +108,9 @@ void getIconImage(void **icon, size_t *iconsize){
             CFBundleRef CTBundle = CFBundleCreate(kCFAllocatorDefault, CTBundleUrlRef);
 
             CFURLRef iconURL = CFBundleCopyResourceURL(CTBundle, iconFileNameRef, NULL, NULL);
-
             CFRelease(CTBundleUrlRef);
             CFRelease(CTBundle);
             CFRelease(utiDeclaration);
-            CFRelease(UniformTypeIdentifier);
 
             // Load the icns file
             CGImageSourceRef myIcon = CGImageSourceCreateWithURL(iconURL, NULL);
@@ -159,7 +158,7 @@ void getIconImage(void **icon, size_t *iconsize){
                                 haveIconSelected = TRUE;
                             }
 
-                            asl_log(asl, log_msg, ASL_LEVEL_DEBUG, "%s: Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI) %dx%d (%d)\n", __FUNCTION__, index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
+                            log_debug("Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI) %dx%d (%d)\n", index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
                             
                             CFRelease(imageProperties);
                         }
@@ -232,6 +231,7 @@ void getIconImage(void **icon, size_t *iconsize){
 
         } else {
             CFRelease(UniformTypeIdentifier);
+            IOObjectRelease(platformExpert);
         }
     }
 }
@@ -394,15 +394,15 @@ void setPromiscuous(void *networkInterface, boolean_t set){
     
     uint8_t        ifNameLength = min(strlen(currentNetworkInterface->deviceName), 16);
     char          *interfaceName = malloc (ifNameLength);
-    
-    strcpy(*interfaceName, currentNetworkInterface->deviceName);
+
+    strncpy(interfaceName, currentNetworkInterface->deviceName, 16);
     
     if (! CFNumberGetValue(currentNetworkInterface->flags, kCFNumberLongType, &flags)) {
-        asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface %s: %s\n", __FUNCTION__, interfaceName, strerror(errno) );
+        log_err("Could not get flags for interface %s: %s\n", interfaceName, strerror(errno) );
         goto cleanup;
     }
     
-    asl_log(asl,log_msg, ASL_LEVEL_DEBUG, "%s: Trying to set PROMISCUOUS=%d on IF=%s\n", __FUNCTION__, set, interfaceName);
+    log_debug("Trying to set PROMISCUOUS=%d on IF=%s\n", set, interfaceName);
     if ( ( flags & IFF_UP ) && ( flags & IFF_RUNNING ) ){
         struct ifreq IfRequest;
         bzero(&IfRequest, sizeof(IfRequest));
@@ -415,7 +415,7 @@ void setPromiscuous(void *networkInterface, boolean_t set){
         
         int ioctlError  = ioctl(currentNetworkInterface->socket, SIOCGIFFLAGS, (caddr_t)&IfRequest);
         if (ioctlError) {
-            asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not get flags for interface: %s\n", __FUNCTION__, strerror(ioctlError));
+            log_err("Could not get flags for interface: %s\n", strerror(ioctlError));
         }
         
         if (set) {
@@ -425,10 +425,9 @@ void setPromiscuous(void *networkInterface, boolean_t set){
         }
         
         if (ioctl(currentNetworkInterface->socket, SIOCSIFFLAGS, (caddr_t)&IfRequest) == -1) {
-            asl_log(asl,log_msg, ASL_LEVEL_ERR, "%s: could not set flags for interface \"%s\": %s\n", __FUNCTION__, IfRequest.ifr_name, strerror(errno));
+            log_notice("Could not set flags for interface \"%s\": %s\n", IfRequest.ifr_name, strerror(errno));
             goto cleanup;
         }
-        printf("at set\n");
     }
     cleanup:
     free(interfaceName);

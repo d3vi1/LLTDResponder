@@ -28,7 +28,6 @@ extern const CFStringRef kSCNetworkInterfaceTypeWWAN
 typedef struct {
     io_object_t            notification;
     const char            *deviceName;
-    uint8_t                macAddress [ kIOEthernetAddressSize ];
     uint32_t               ifType;              // The generic kernel interface type
                                                 // (csma/cd applies to ethernet/firware
                                                 // and wireless, although they are
@@ -37,8 +36,8 @@ typedef struct {
     
     SCNetworkInterfaceRef  SCNetworkInterface;
     SCNetworkConnectionRef SCNetworkConnection;
-    CFNumberRef            flags;               // kIOInterfaceFlags from the Interface
-    CFNumberRef            linkStatus;          // kIOLinkStatus from the Controller
+    int64_t                flags;               // kIOInterfaceFlags from the Interface
+    uint64_t               linkStatus;          // kIOLinkStatus from the Controller
     uint32_t               MTU;                 // We'll set the buffer size to the MTU size
     uint64_t               MediumType;          // Get the current medium Type
     uint64_t               LinkSpeed;           // The current link speed, automatically updated when the property changes
@@ -47,11 +46,13 @@ typedef struct {
     struct sockaddr_ndrv   socketAddr;
     struct in6_addr        IPv6Addr;
     pthread_t              posixThreadID;
-    void *                 icon;
+    void                  *icon;
     size_t                 iconSize;
     CFMutableArrayRef      seelist;
     uint16_t               MapperSeqNumber;
+    uint8_t                macAddress [ kIOEthernetAddressSize ];
     uint8_t                MapperHwAddress[ kIOEthernetAddressSize ];
+    void                  *recvBuffer;          //We need to clear the receive Buffer when we kill the thread.
 
 } network_interface_t;
 
