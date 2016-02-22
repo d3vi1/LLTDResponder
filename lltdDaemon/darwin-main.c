@@ -116,16 +116,23 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     //
 
     CFStringRef scDeviceTypeRef = SCNetworkInterfaceGetInterfaceType(currentNetworkInterface->SCNetworkInterface);
-    const char *scDeviceType = malloc(CFStringGetLength(scDeviceTypeRef)+1);
+    const char *scDeviceType    = malloc(CFStringGetMaximumSizeForEncoding(CFStringGetLength(scDeviceTypeRef), kCFStringEncodingUTF8));
     CFStringGetCString(scDeviceTypeRef, (char *)scDeviceType, CFStringGetLength(scDeviceTypeRef)+1, kCFStringEncodingUTF8);
     
     if (scDeviceType){
-        if(strcmp(scDeviceType, CFStringGetCStringPtr(kSCNetworkInterfaceTypeBond, kCFStringEncodingUTF8))) currentNetworkInterface->interfaceType = NetworkInterfaceTypeBond;
-        else if(strcmp(scDeviceType, CFStringGetCStringPtr(kSCNetworkInterfaceTypeVLAN, kCFStringEncodingUTF8))) currentNetworkInterface->interfaceType = NetworkInterfaceTypeVLAN;
-        else if(strcmp(scDeviceType, CFStringGetCStringPtr(kSCNetworkInterfaceTypeEthernet, kCFStringEncodingUTF8))) currentNetworkInterface->interfaceType = NetworkInterfaceTypeEthernet;
-        else if(strcmp(scDeviceType, CFStringGetCStringPtr(kSCNetworkInterfaceTypeIEEE80211, kCFStringEncodingUTF8))) currentNetworkInterface->interfaceType = NetworkInterfaceTypeIEEE80211;
-        else {
-            //We shouldn't get here since the interface flags are already supposed to be BROADCAST & UP
+        if(!strcmp(scDeviceType, CFStringGetCStringPtr(kSCNetworkInterfaceTypeBond, kCFStringEncodingUTF8))) {
+            currentNetworkInterface->interfaceType = NetworkInterfaceTypeBond;
+            log_debug("%s The SCNetworkInterfaces Type is SCNetworkInterfaceTypeBond", currentNetworkInterface->deviceName);
+        } else if(!strcmp(scDeviceType, CFStringGetCStringPtr(kSCNetworkInterfaceTypeVLAN, kCFStringEncodingUTF8))) {
+            currentNetworkInterface->interfaceType = NetworkInterfaceTypeVLAN;
+            log_debug("%s The SCNetworkInterfaces Type is SCNetworkInterfaceTypeVLAN", currentNetworkInterface->deviceName);
+        } else if(!strcmp(scDeviceType, CFStringGetCStringPtr(kSCNetworkInterfaceTypeEthernet, kCFStringEncodingUTF8))) {
+            currentNetworkInterface->interfaceType = NetworkInterfaceTypeEthernet;
+            log_debug("%s The SCNetworkInterfaces Type is SCNetworkInterfaceTypeEthernet", currentNetworkInterface->deviceName);
+        } else if(!strcmp(scDeviceType, CFStringGetCStringPtr(kSCNetworkInterfaceTypeIEEE80211, kCFStringEncodingUTF8))){
+            currentNetworkInterface->interfaceType = NetworkInterfaceTypeIEEE80211;
+            log_debug("%s The SCNetworkInterfaces Type is SCNetworkInterfaceTypeIEEE80211", currentNetworkInterface->deviceName);
+        } else {
             log_err("%s The SCNetworkInterfaces Type is not one of BOND, VLAN, Bridge, Ethernet or 802.11", currentNetworkInterface->deviceName);
             return;
         }
@@ -150,8 +157,6 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         log_err("%s Could not read ifMaxTransferUnit", currentNetworkInterface->deviceName);
     }
 
-    log_debug("%s Found interface:   MAC: "ETHERNET_ADDR_FMT" Type: %s (0x%000x)\n", currentNetworkInterface->deviceName, ETHERNET_ADDR(currentNetworkInterface->macAddress), scDeviceType, currentNetworkInterface->ifType);
-    
     free((void *)scDeviceType);
 
     //
@@ -163,13 +168,9 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         int64_t         flags = 0;
         CFNumberGetValue(CFFlags, kCFNumberIntType, &flags);
         currentNetworkInterface->flags = flags;
-/*        printf("%s: %s IF Flags: ", __FUNCTION__, currentNetworkInterface->deviceName);
-        if(flags&IFF_LOOPBACK) printf("IFF_LOOPBACK ");
-        if(flags&IFF_UP) printf("IFF_UP ");
-        if(flags&IFF_BROADCAST) printf("IFF_BROADCAST ");
-        printf("\n");*/
+
         if( (!(currentNetworkInterface->flags & (IFF_UP | IFF_BROADCAST))) | (currentNetworkInterface->flags & IFF_LOOPBACK)){
-            log_err("%s Failed the flags check\n", currentNetworkInterface->deviceName);
+            log_err("%s Failed the flags check", currentNetworkInterface->deviceName);
             CFRelease(CFFlags);
             return;
         } else CFRelease(CFFlags);
@@ -284,6 +285,8 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     
     IOObjectRelease(IONetworkController);
 
+    log_info("%s Found interface:   MAC: "ETHERNET_ADDR_FMT" Type: %s (0x%000x)", currentNetworkInterface->deviceName, ETHERNET_ADDR(currentNetworkInterface->macAddress), scDeviceType, currentNetworkInterface->ifType);
+    
     
     //
     // After documenting the interface inside our currentNetworkInterface we
@@ -338,9 +341,9 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
     network_interface_t *currentNetworkInterface = (network_interface_t*) refCon;
     io_name_t nameString;
     IORegistryEntryGetName(service, nameString);
-    log_notice("Notification received: %s type: %x device: %s\n", currentNetworkInterface->deviceName, messageType, nameString);
+    log_notice("Notification received: %s type: %x device: %s", currentNetworkInterface->deviceName, messageType, nameString);
     if (messageType == kIOMessageServiceIsTerminated) {
-        log_notice("Interface removed: %s\n", currentNetworkInterface->deviceName);
+        log_notice("Interface removed: %s", currentNetworkInterface->deviceName);
         free((void *)currentNetworkInterface->deviceName);
         CFRelease(currentNetworkInterface->SCNetworkInterface);
         IOObjectRelease(currentNetworkInterface->notification);
@@ -348,12 +351,12 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
         if(currentNetworkInterface->recvBuffer) free(currentNetworkInterface->recvBuffer);
         free(currentNetworkInterface);
     } else if (messageType == kIOMessageDeviceWillPowerOff) {
-        log_notice("Interface powered off: %s\n", currentNetworkInterface->deviceName);
+        log_notice("Interface powered off: %s", currentNetworkInterface->deviceName);
         CFRelease(currentNetworkInterface->SCNetworkInterface);
         pthread_kill(currentNetworkInterface->posixThreadID, 0);
     } else if (messageType == kIOMessageServicePropertyChange) {
         //We should have some cleanup over here. There are only two properties that we care about.
-        log_notice("A property has changed. Reloading thread. %s\n", currentNetworkInterface->deviceName);
+        log_notice("A property has changed. Reloading thread. %s", currentNetworkInterface->deviceName);
         if (currentNetworkInterface->SCNetworkInterface) CFRelease(currentNetworkInterface->SCNetworkInterface);
         if (currentNetworkInterface->SCNetworkConnection) CFRelease(currentNetworkInterface->SCNetworkConnection);
         if (currentNetworkInterface->seelist) CFRelease(currentNetworkInterface->seelist);
@@ -369,7 +372,7 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
         close(currentNetworkInterface->socket);
         validateInterface(currentNetworkInterface, service);
     } else if (messageType == kIOMessageDeviceWillPowerOn) {
-        log_notice("Interface powered on: %s\n", currentNetworkInterface->deviceName);
+        log_notice("Interface powered on: %s", currentNetworkInterface->deviceName);
         validateInterface(currentNetworkInterface, service);
     }
     
@@ -457,9 +460,9 @@ int main(int argc, const char *argv[]){
     //
     log_debug("Setting up interrupt handlers.");
     handler = signal(SIGINT, SignalHandler);
-    if (handler == SIG_ERR) log_crit("Could not establish SIGINT handler.\n");
+    if (handler == SIG_ERR) log_crit("Could not establish SIGINT handler.");
     handler = signal(SIGTERM, SignalHandler);
-    if (handler == SIG_ERR) log_crit("Could not establish SIGTERM handler.\n");
+    if (handler == SIG_ERR) log_crit("Could not establish SIGTERM handler.");
     
     
     //
@@ -470,7 +473,7 @@ int main(int argc, const char *argv[]){
     masterPort = MACH_PORT_NULL;
     kernel_return = IOMasterPort(bootstrap_port, &masterPort);
     if (kernel_return != KERN_SUCCESS) {
-        log_err("IOMasterPort returned 0x%x\n", kernel_return);
+        log_err("IOMasterPort returned 0x%x", kernel_return);
         return EXIT_FAILURE;
     }
     
@@ -492,7 +495,7 @@ int main(int argc, const char *argv[]){
     //
     log_debug("Setting up service notification for kIONetworkInterfaceClass.");
     kernel_return = IOServiceAddMatchingNotification(notificationPort, kIOFirstMatchNotification, IOServiceMatching(kIONetworkInterfaceClass), deviceAppeared, NULL, &newDevicesIterator);
-    if (kernel_return!=KERN_SUCCESS) log_crit("IOServiceAddMatchingNotification(deviceAppeared) returned 0x%x\n", kernel_return);
+    if (kernel_return!=KERN_SUCCESS) log_crit("IOServiceAddMatchingNotification(deviceAppeared) returned 0x%x", kernel_return);
     
     //
     // Do an initial device scan since the Run Loop is not yet
@@ -510,13 +513,13 @@ int main(int argc, const char *argv[]){
     //
     // Start the run loop.
     //
-    log_notice("Starting run loop.\n\n");
+    log_notice("Starting run loop.\n");
     CFRunLoopRun();
     
     //
     // We should never get here
     //
-    log_crit("Unexpectedly back from CFRunLoopRun()!\n");
+    log_crit("Unexpectedly back from CFRunLoopRun()!");
     if (masterPort != MACH_PORT_NULL) mach_port_deallocate(mach_task_self(), masterPort);
     asl_close(asl);
     return EXIT_FAILURE;

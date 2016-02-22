@@ -124,7 +124,7 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
         write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                               sizeof(currentNetworkInterface->socketAddr));
         if (write < 0) {
-            log_crit("Socket write failed on ACK: %s\n", strerror(write));
+            log_crit("Socket write failed on ACK: %s", strerror(write));
         }
     }
 }
@@ -149,7 +149,7 @@ void parseQuery(void *inFrame, void *networkInterface){
     
     for(long i = 0; i < probesNo; i++) {
         const probe_t *probe = CFArrayGetValueAtIndex(currentNetworkInterface->seelist , i);
-        log_crit("\tType %d, Source: "ETHERNET_ADDR_FMT", Dest: "ETHERNET_ADDR_FMT", RealSource: "ETHERNET_ADDR_FMT" \n",
+        log_crit("\tType %d, Source: "ETHERNET_ADDR_FMT", Dest: "ETHERNET_ADDR_FMT", RealSource: "ETHERNET_ADDR_FMT,
                     probe->type, ETHERNET_ADDR(probe->sourceAddr.a), ETHERNET_ADDR(probe->destAddr.a), ETHERNET_ADDR(probe->realSourceAddr.a) );
         
     }
@@ -176,7 +176,7 @@ void parseQuery(void *inFrame, void *networkInterface){
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
-        log_crit("Socket write failed on QryResp: %s\n", strerror(write));
+        log_crit("Socket write failed on QryResp: %s", strerror(write));
     }
     
     free(buffer);
@@ -228,7 +228,7 @@ void sendImage(void *networkInterface, uint16_t offset) {
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
                            (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
-        log_crit("Socket write failed on sendImage: %s\n", strerror(write));
+        log_crit("Socket write failed on sendImage: %s", strerror(write));
     }
 //    free(icon);
 }
@@ -243,7 +243,7 @@ void parseQueryLargeTlv(void *inFrame, void *networkInterface) {
     }
     qry_large_tlv_t *header = inFrame + sizeof(lltd_demultiplex_header_t);
     if (header->type == tlv_iconImage) {
-        log_crit("Image request, responding with QryLargeResp, offset=%d\n", ntohs( header->offset ) );
+        log_crit("Image request, responding with QryLargeResp, offset=%d", ntohs( header->offset ) );
         sendImage(networkInterface, ntohs(header->offset));
     }
 }
@@ -273,7 +273,7 @@ void parseProbe(void *inFrame, void *networkInterface) {
             for(long i = 0; i < count; i++) {
                 const probe_t *searchProbe = CFArrayGetValueAtIndex(currentNetworkInterface->seelist, i);
                 // destination and type are already equal, we'll compare just the source addresses
-                log_crit("\tSource1: "ETHERNET_ADDR_FMT", Source2: "ETHERNET_ADDR_FMT" ,RealSource1: "ETHERNET_ADDR_FMT", RealSource2: "ETHERNET_ADDR_FMT",\n",
+                log_crit("\tSource1: "ETHERNET_ADDR_FMT", Source2: "ETHERNET_ADDR_FMT" ,RealSource1: "ETHERNET_ADDR_FMT", RealSource2: "ETHERNET_ADDR_FMT,
                         ETHERNET_ADDR(probe->sourceAddr.a), ETHERNET_ADDR(searchProbe->sourceAddr.a), ETHERNET_ADDR(probe->realSourceAddr.a), ETHERNET_ADDR(searchProbe->realSourceAddr.a) );
                 if ( compareEthernetAddress( &(probe->sourceAddr), &(searchProbe->sourceAddr)) &&
                     compareEthernetAddress( &(probe->realSourceAddr), &(searchProbe->realSourceAddr)) ) {
@@ -299,7 +299,7 @@ void parseEmit(void *inFrame, void *networkInterface){
     
     int numDescs = ntohs(emitHeader->numDescs);
     uint16_t offsetEmitee = 0;
-    log_alert("Emit parsed, number of descs: %x\n", ntohs(emitHeader->numDescs));
+    log_alert("Emit parsed, number of descs: %x", ntohs(emitHeader->numDescs));
     for (int i = 0; i < numDescs; i++) {
         boolean_t ack = i == numDescs -1 ? true : false;
         emitee_descs *emitee = ( (void *)emitHeader + sizeof(*emitHeader) + offsetEmitee );
@@ -326,13 +326,13 @@ void parseEmit(void *inFrame, void *networkInterface){
 void answerHello(void *inFrame, void *networkInterface){
 
     network_interface_t *currentNetworkInterface = networkInterface;
-    void *buffer = malloc(currentNetworkInterface->MTU);
+    void                *buffer = malloc(currentNetworkInterface->MTU);
+    uint64_t             offset = 0;
+
     memset(buffer, 0, currentNetworkInterface->MTU);
-    uint64_t offset = 0;
     
-    lltd_demultiplex_header_t *inFrameHeader = inFrame;
-    lltd_demultiplex_header_t *lltdHeader = buffer;
-    
+    lltd_demultiplex_header_t    *inFrameHeader  = inFrame;
+    lltd_demultiplex_header_t    *lltdHeader     = buffer;
     lltd_discover_upper_header_t *discoverHeader = (void *)inFrameHeader + sizeof(lltdHeader);
     
     //
@@ -365,10 +365,26 @@ void answerHello(void *inFrame, void *networkInterface){
     offset += setPerfCounterTLV(buffer, offset);
     offset += setLinkSpeedTLV(buffer, offset, currentNetworkInterface);
     offset += setHostnameTLV(buffer, offset);
-    // FIXME: we really need to write them properly
-    offset += setQosCharacteristicsTLV(buffer, offset);
-    offset += setIconImageTLV(buffer, offset);
-    offset += setEndOfPropertyTLV(buffer, offset);
+    if (currentNetworkInterface->interfaceType == NetworkInterfaceTypeIEEE80211) {
+        offset += setWirelessTLV(buffer, offset);
+        offset += setBSSIDTLV(buffer, offset);
+        offset += setSSIDTLV(buffer, offset);
+        offset += setWifiMaxRateTLV(buffer, offset);
+        offset += setWifiRssiTLV(buffer, offset);
+        offset += set80211MediumTLV(buffer, offset);
+        offset += setAPAssociationTableTLV(buffer, offset);
+        offset += setRepeaterAPLineageTLV(buffer, offset);
+        offset += setRepeaterAPTableTLV(buffer, offset);
+    }
+    
+    offset += setQosCharacteristicsTLV (buffer, offset);
+    offset += setIconImageTLV          (buffer, offset);
+    offset += setFriendlyNameTLV       (buffer, offset);
+    offset += setUuidTLV               (buffer, offset);
+    offset += setHardwareIdTLV         (buffer, offset);
+    offset += setDetailedIconTLV       (buffer, offset);
+    offset += setComponentTableTLV     (buffer, offset);
+    offset += setEndOfPropertyTLV      (buffer, offset);
 
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                             sizeof(currentNetworkInterface->socketAddr));
@@ -380,28 +396,6 @@ void answerHello(void *inFrame, void *networkInterface){
     
     free(buffer);
 
-/*    if (currentNetworkInterface->interfaceType = "IEEE80211") {
-        setWirelessTLV();
-        setBSSIDTLV();
-        setSSIDTLV();
-        setWifiMaxRateTLV();
-        setWifiRssiTLV();
-        set80211MediumTLV();
-        setAPAssociationTableTLV();
-        setRepeaterAPLineageTLV();
-        setRepeaterAPTableTLV();
-    }
-    setIconImageTLV();
-    setMachineNameTLV(); //TODO: asta e de fapt setHostnameTLV!!
-    setSupportInfoTLV();
-    setFriendlyNameTLV();
-    setUuidTLV();
-    setHardwareIdTLV();
-
-    setDetailedIconTLV();
-    //setSeeslistWorkingSetTLV();
-    setComponentTableTLV();
-  */
 }
 
 int helloSent = 0;
@@ -436,9 +430,6 @@ void parseFrame(void *frame, void *networkInterface){
                         answerHello(frame, currentNetworkInterface);
                     }
                     break;
-                case opcode_hello:
-                    log_debug("%s Hello (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
-                    break;
                 case opcode_emit:
                     log_debug("%s Emit (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     parseEmit(frame, currentNetworkInterface);
@@ -451,15 +442,9 @@ void parseFrame(void *frame, void *networkInterface){
                     log_debug("%s Probe (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     parseProbe(frame, currentNetworkInterface);
                     break;
-                case opcode_ack:
-                    log_debug("%s ACK (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
-                    break;
                 case opcode_query:
                     log_debug("%s Query (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     parseQuery(frame, currentNetworkInterface);
-                    break;
-                case opcode_queryResp:
-                    log_debug("%s QueryResponse (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 case opcode_reset:
                     log_debug("%s Reset (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
@@ -467,20 +452,18 @@ void parseFrame(void *frame, void *networkInterface){
                     CFArrayRemoveAllValues(currentNetworkInterface->seelist);
                     setPromiscuous(currentNetworkInterface, false);
                     break;
-                case opcode_charge:
-                    log_debug("%s Charge (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
-                    
-                    break;
-                case opcode_flat:
-                    log_debug("%s Flat (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
-                    break;
                 case opcode_queryLargeTlv:
                     log_debug("%s QueryLargeTLV (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     parseQueryLargeTlv(frame, currentNetworkInterface);
                     setPromiscuous(currentNetworkInterface, false);
                     break;
+                case opcode_ack:
+                case opcode_hello:
+                case opcode_queryResp:
+                case opcode_charge:
+                case opcode_flat:
                 case opcode_queryLargeTlvResp:
-                    log_debug("%s QueryLargeTLVResponse (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Ignorable Hello|ACK|QueryResponse|Charge|Flat|QLTLVResp (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 default:
                     log_alert("%s Invalid opcode (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
@@ -494,10 +477,8 @@ void parseFrame(void *frame, void *networkInterface){
                     answerHello(frame, currentNetworkInterface);
                     break;
                 case opcode_hello:
-                    log_debug("%s Hello (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
-                    break;
                 case opcode_reset:
-                    log_debug("%s Reset (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
+                    log_debug("%s Ignorable Hello|Reset (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
                 default:
                     log_alert("%s Invalid opcode (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);

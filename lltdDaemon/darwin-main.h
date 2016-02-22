@@ -33,7 +33,6 @@ typedef struct {
                                                 // and wireless, although they are
                                                 // different and wireless is CSMA/CA
     enum { NetworkInterfaceTypeBond, NetworkInterfaceTypeEthernet, NetworkInterfaceTypeIEEE80211, NetworkInterfaceTypeVLAN} interfaceType;
-    
     SCNetworkInterfaceRef  SCNetworkInterface;
     SCNetworkConnectionRef SCNetworkConnection;
     int64_t                flags;               // kIOInterfaceFlags from the Interface

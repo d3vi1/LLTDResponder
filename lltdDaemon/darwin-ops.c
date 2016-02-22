@@ -158,7 +158,7 @@ void getIconImage(void **icon, size_t *iconsize){
                                 haveIconSelected = TRUE;
                             }
 
-                            log_debug("Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI) %dx%d (%d)\n", index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
+                            log_debug("Icon index(%d): %4dx%4d %dbpp (%03dx%03d DPI) %dx%d (%d)", index, (int)iconWidth, (int)iconHeight, (int)iconBpp, (int)iconDpiWidth, (int)iconDpiHeight, (int)iconSelectedHeight, (int)iconSelectedWidth, (int)iconSelected);
                             
                             CFRelease(imageProperties);
                         }
@@ -398,11 +398,11 @@ void setPromiscuous(void *networkInterface, boolean_t set){
     strncpy(interfaceName, currentNetworkInterface->deviceName, 16);
     
     if (! CFNumberGetValue(currentNetworkInterface->flags, kCFNumberLongType, &flags)) {
-        log_err("Could not get flags for interface %s: %s\n", interfaceName, strerror(errno) );
+        log_err("Could not get flags for interface %s: %s", interfaceName, strerror(errno) );
         goto cleanup;
     }
     
-    log_debug("Trying to set PROMISCUOUS=%d on IF=%s\n", set, interfaceName);
+    log_debug("Trying to set PROMISCUOUS=%d on IF=%s", set, interfaceName);
     if ( ( flags & IFF_UP ) && ( flags & IFF_RUNNING ) ){
         struct ifreq IfRequest;
         bzero(&IfRequest, sizeof(IfRequest));
@@ -415,7 +415,7 @@ void setPromiscuous(void *networkInterface, boolean_t set){
         
         int ioctlError  = ioctl(currentNetworkInterface->socket, SIOCGIFFLAGS, (caddr_t)&IfRequest);
         if (ioctlError) {
-            log_err("Could not get flags for interface: %s\n", strerror(ioctlError));
+            log_err("Could not get flags for interface: %s", strerror(ioctlError));
         }
         
         if (set) {
@@ -425,7 +425,7 @@ void setPromiscuous(void *networkInterface, boolean_t set){
         }
         
         if (ioctl(currentNetworkInterface->socket, SIOCSIFFLAGS, (caddr_t)&IfRequest) == -1) {
-            log_notice("Could not set flags for interface \"%s\": %s\n", IfRequest.ifr_name, strerror(errno));
+            log_notice("Could not set flags for interface \"%s\": %s", IfRequest.ifr_name, strerror(errno));
             goto cleanup;
         }
     }
