@@ -28,7 +28,6 @@ size_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_address
     lltdHeader->version = 1;
     
     return sizeof(lltd_demultiplex_header_t);
-
 }
 
 bool compareEthernetAddress(const ethernet_address_t *A, const ethernet_address_t *B) {
@@ -200,8 +199,30 @@ size_t setIPv4TLV(void *buffer, uint64_t offset, void *networkInterface){
     hdr->TLVLength = sizeof(uint32_t);
     
     uint32_t *ipv4 = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
-    *ipv4 = currentNetworkInterface->IPv4Addr;
+
+    struct ifaddrs *interfaces = NULL;
+    struct ifaddrs *temp_addr = NULL;
+    int retVal = 0;
+    retVal = getifaddrs(&interfaces);
     
+    boolean_t foundIPv4 = false;
+    
+    if (retVal == KERN_SUCCESS) {
+        temp_addr = interfaces;
+        while(temp_addr != NULL) {
+            if (! strcmp(currentNetworkInterface->deviceName, temp_addr->ifa_name)) {
+                
+                if(temp_addr->ifa_addr->sa_family == AF_INET && !foundIPv4) {
+                    *ipv4 = ((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr.s_addr;
+                    foundIPv4 = true;
+                }
+            }
+            temp_addr = temp_addr->ifa_next;
+        }
+    }
+    // Free memory
+    freeifaddrs(interfaces);
+
     return sizeof (*hdr) + sizeof(uint32_t);
 }
 
@@ -209,12 +230,32 @@ size_t setIPv6TLV(void *buffer, uint64_t offset, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
     generic_tlv_t *hdr = (generic_tlv_t *) (buffer + offset);
     
-    struct in6_addr *bla = (buffer + offset + sizeof(*hdr));
-    *bla = currentNetworkInterface->IPv6Addr;
+    struct in6_addr *ipv6 = (buffer + offset + sizeof(*hdr));
+    struct ifaddrs *interfaces = NULL;
+    struct ifaddrs *temp_addr = NULL;
+    int retVal = 0;
+    retVal = getifaddrs(&interfaces);
+    boolean_t foundIPv6 = false;
     
+    if (retVal == KERN_SUCCESS) {
+        temp_addr = interfaces;
+        while(temp_addr != NULL) {
+            if (! strcmp(currentNetworkInterface->deviceName, temp_addr->ifa_name)) {
+                
+                if(temp_addr->ifa_addr->sa_family == AF_INET6 && !foundIPv6) {
+                    *ipv6 = ((struct sockaddr_in6 *)temp_addr->ifa_addr)->sin6_addr;
+                    foundIPv6 = true;
+                }
+            }
+            
+            temp_addr = temp_addr->ifa_next;
+        }
+    }
+    // Free memory
+    freeifaddrs(interfaces);
+
     hdr->TLVType = tlv_ipv6;
-    hdr->TLVLength = sizeof(currentNetworkInterface->IPv6Addr);
-    
+    hdr->TLVLength = sizeof(ipv6);
     return sizeof (*hdr) + hdr->TLVLength;
 }
 
@@ -230,39 +271,46 @@ size_t setLinkSpeedTLV(void *buffer, uint64_t offset, void *networkInterface){
     return (sizeof(*linkSpeedTL) + sizeof(*linkSpeedValue));
 }
 
-
 size_t setSeeslistWorkingSetTLV(void *buffer, uint64_t offset){
     
 }
 
 #pragma mark -
 #pragma mark 802.11 Interface Specific TLVs
-size_t setWirelessTLV(void *buffer, uint64_t offset){
-    return 0;
+size_t setWirelessTLV(void *buffer, uint64_t offset, void *networkInterface){
+    wireless_tlv_t *wifiTlv = (wireless_tlv_t *) (buffer + offset);
+    wifiTlv->TLVType        = tlv_wifimode;
+    wifiTlv->TLVLength      = 1;
+    wifiTlv->WIFIMode       = 0x0;
+    wifiTlv->WIFIMode       = getWifiMode(networkInterface);
+    return sizeof(wireless_tlv_t);
 }
 
 size_t setComponentTable(void *buffer, uint64_t offset){
-    
     return 0;
 }
 
-size_t setBSSIDTLV(void *buffer, uint64_t offset){
+size_t setBSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
+    bssid_tlv_t *wifiTlv = (bssid_tlv_t *) (buffer + offset);
+    wifiTlv->TLVType        = tlv_wifimode;
+    wifiTlv->TLVLength      = 1;
+    wifiTlv->macAddress[0]  = getBSSID(networkInterface);
+    return sizeof(bssid_tlv_t);
+}
+
+size_t setSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
     return 0;
 }
 
-size_t setSSIDTLV(void *buffer, uint64_t offset){
+size_t setWifiMaxRateTLV(void *buffer, uint64_t offset, void *networkInterface){
     return 0;
 }
 
-size_t setWifiMaxRateTLV(void *buffer, uint64_t offset){
+size_t setWifiRssiTLV(void *buffer, uint64_t offset, void *networkInterface){
     return 0;
 }
 
-size_t setWifiRssiTLV(void *buffer, uint64_t offset){
-    return 0;
-}
-
-size_t set80211MediumTLV(void *buffer, uint64_t offset){
+size_t set80211MediumTLV(void *buffer, uint64_t offset, void *networkInterface){
     return 0;
 }
 

@@ -50,7 +50,7 @@ void lltdBlock (void *data){
     // Create the reference to the array that will store the probes viewed on the network
     //
     
-    currentNetworkInterface->seelist = CFArrayCreateMutable(NULL, 0, NULL);;
+    currentNetworkInterface->seeList = NULL;
 
     //
     // Define protocol
@@ -144,32 +144,26 @@ void parseQuery(void *inFrame, void *networkInterface){
     qry_resp_upper_header_t *respH  = buffer + sizeof(lltd_demultiplex_header_t);
     // HERE I AM
     
-    int probesNo = (int) CFArrayGetCount(currentNetworkInterface->seelist);
-    log_crit("I've seen %d probes", probesNo);
+    log_crit("I've seen %d probes", currentNetworkInterface->seeListCount);
+    probe_t currentProbe;
     
-    for(long i = 0; i < probesNo; i++) {
-        const probe_t *probe = CFArrayGetValueAtIndex(currentNetworkInterface->seelist , i);
+    for(long i = 0; i < currentNetworkInterface->seeListCount; i++) {
+        memcpy(&currentProbe, currentNetworkInterface->seeList + (i * sizeof(probe_t)), sizeof(probe_t));
         log_crit("\tType %d, Source: "ETHERNET_ADDR_FMT", Dest: "ETHERNET_ADDR_FMT", RealSource: "ETHERNET_ADDR_FMT,
-                    probe->type, ETHERNET_ADDR(probe->sourceAddr.a), ETHERNET_ADDR(probe->destAddr.a), ETHERNET_ADDR(probe->realSourceAddr.a) );
-        
+                    currentProbe.type, ETHERNET_ADDR(currentProbe.sourceAddr.a), ETHERNET_ADDR(currentProbe.destAddr.a), ETHERNET_ADDR(currentProbe.realSourceAddr.a) );
     }
     // TODO: split this into multiple messages if it's the case
-    respH->numDescs                 = htons(probesNo);
+    respH->numDescs                 = htons(currentNetworkInterface->seeListCount);
     offset += sizeof(qry_resp_upper_header_t);
     
-    if (probesNo) {
+    if (currentNetworkInterface->seeListCount) {
         
-        void * viewList = malloc(sizeof(probe_t) * probesNo);
-        for (int i = 0; i< probesNo; i++) {
-            memcpy(viewList + (i * sizeof(probe_t)),CFArrayGetValueAtIndex(currentNetworkInterface->seelist, i) ,sizeof(probe_t));
-        }
+        memcpy( buffer + offset, currentNetworkInterface->seeList, sizeof(probe_t) * currentNetworkInterface->seeListCount );
         
-        memcpy( buffer + offset, viewList, sizeof(probe_t) * probesNo );
-        free(viewList);
+        offset += sizeof(probe_t) * currentNetworkInterface->seeListCount;
         
-        offset += sizeof(probe_t) * probesNo;
-        
-        CFArrayRemoveAllValues(currentNetworkInterface->seelist);
+        free(currentNetworkInterface->seeList);
+        currentNetworkInterface->seeList=NULL;
     }
     
     
@@ -264,14 +258,15 @@ void parseProbe(void *inFrame, void *networkInterface) {
         probe->destAddr         = header->frameHeader.destination;
         probe->realSourceAddr   = header->realSource;
         
-        long count = CFArrayGetCount(currentNetworkInterface->seelist);
-        
+        probe_t  *currentProbe[currentNetworkInterface->seeListCount];
+        malloc(currentProbe);
+        memcpy(currentProbe, currentNetworkInterface->seeList, currentNetworkInterface->seeListCount * sizeof(probe_t));
         boolean_t found = false;
         
         //if (count > 1) {
-            log_crit("Searching through already %ld seen probes", count);
-            for(long i = 0; i < count; i++) {
-                const probe_t *searchProbe = CFArrayGetValueAtIndex(currentNetworkInterface->seelist, i);
+        log_crit("Searching through already %d seen probes", currentNetworkInterface->seeListCount);
+        for(long i = 0; i < currentNetworkInterface->seeListCount; i++) {
+            const probe_t *searchProbe = currentProbe[i];
                 // destination and type are already equal, we'll compare just the source addresses
                 log_crit("\tSource1: "ETHERNET_ADDR_FMT", Source2: "ETHERNET_ADDR_FMT" ,RealSource1: "ETHERNET_ADDR_FMT", RealSource2: "ETHERNET_ADDR_FMT,
                         ETHERNET_ADDR(probe->sourceAddr.a), ETHERNET_ADDR(searchProbe->sourceAddr.a), ETHERNET_ADDR(probe->realSourceAddr.a), ETHERNET_ADDR(searchProbe->realSourceAddr.a) );
@@ -283,8 +278,13 @@ void parseProbe(void *inFrame, void *networkInterface) {
         //}
         
         if (!found) {
-            CFArrayAppendValue(currentNetworkInterface->seelist, probe);
-            log_crit("Adding probe to seen list");
+            probe_t TempProbe[currentNetworkInterface->seeListCount+1];
+            memcpy(TempProbe, currentNetworkInterface->seeList, sizeof(probe_t)*currentNetworkInterface->seeListCount);
+            memcpy(&TempProbe[currentNetworkInterface->seeListCount+1], probe, sizeof(probe_t));
+            free(currentNetworkInterface->seeList);
+            currentNetworkInterface->seeList = TempProbe;
+            currentNetworkInterface->seeListCount++;
+            log_crit("Added probe to seen list");
         }
     }
 }
@@ -366,12 +366,12 @@ void answerHello(void *inFrame, void *networkInterface){
     offset += setLinkSpeedTLV(buffer, offset, currentNetworkInterface);
     offset += setHostnameTLV(buffer, offset);
     if (currentNetworkInterface->interfaceType == NetworkInterfaceTypeIEEE80211) {
-        offset += setWirelessTLV(buffer, offset);
-        offset += setBSSIDTLV(buffer, offset);
-        offset += setSSIDTLV(buffer, offset);
-        offset += setWifiMaxRateTLV(buffer, offset);
-        offset += setWifiRssiTLV(buffer, offset);
-        offset += set80211MediumTLV(buffer, offset);
+        offset += setWirelessTLV(buffer, offset, currentNetworkInterface);
+        offset += setBSSIDTLV(buffer, offset, currentNetworkInterface);
+        offset += setSSIDTLV(buffer, offset, currentNetworkInterface);
+        offset += setWifiMaxRateTLV(buffer, offset, currentNetworkInterface);
+        offset += setWifiRssiTLV(buffer, offset, currentNetworkInterface);
+        offset += set80211MediumTLV(buffer, offset, currentNetworkInterface);
         offset += setAPAssociationTableTLV(buffer, offset);
         offset += setRepeaterAPLineageTLV(buffer, offset);
         offset += setRepeaterAPTableTLV(buffer, offset);
@@ -449,7 +449,8 @@ void parseFrame(void *frame, void *networkInterface){
                 case opcode_reset:
                     log_debug("%s Reset (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     helloSent = 0;
-                    CFArrayRemoveAllValues(currentNetworkInterface->seelist);
+                    free(currentNetworkInterface->seeList);
+                    currentNetworkInterface->seeList=NULL;
                     setPromiscuous(currentNetworkInterface, false);
                     break;
                 case opcode_queryLargeTlv:

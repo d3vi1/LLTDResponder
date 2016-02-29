@@ -24,7 +24,7 @@ void getHostCharacteristics        (void *data);
 void getComponentTable             (void *data);// Only with QueryLargeTLV
 void getPerformanceCounterFrequency(void *data);
 void setPromiscuous                (void *currentNetworkInterface, boolean_t set);
-
+boolean_t getWifiMode              (void *currentNetworkInterface);
 #pragma mark Functions that are interface specific
 #pragma mark -
 

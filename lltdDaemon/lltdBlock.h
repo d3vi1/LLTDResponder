@@ -92,6 +92,18 @@ typedef struct {
     uint8_t     TLVLength;
 }  generic_tlv_t;
 
+typedef struct {
+    uint8_t     TLVType;
+    uint8_t     TLVLength;
+    uint8_t     WIFIMode;
+}  wireless_tlv_t;
+
+typedef struct {
+    uint8_t     TLVType;
+    uint8_t     TLVLength;
+    uint8_t     macAddress[6];
+}  bssid_tlv_t;
+
 #pragma pack ( pop )
 
 #define tos_discovery             0x00

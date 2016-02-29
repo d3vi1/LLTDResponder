@@ -336,6 +336,59 @@ void getSupportInfo(void **data, size_t *stringSize){
 
 
 
+//==============================================================================
+//
+// Returns
+// TRUE  = Ad-Hoc or disconnected
+// FALSE = Infrastructure mode
+//
+//==============================================================================
+boolean_t getWifiMode(void *networkInterface){
+    network_interface_t *currentNetworkInterface = (network_interface_t*)networkInterface;
+    
+    struct ifmediareq IFMediaRequest;
+    int   *MediaList, i;
+    
+    (void) memset(&IFMediaRequest, 0, sizeof(IFMediaRequest));
+    (void) strncpy(IFMediaRequest.ifm_name, currentNetworkInterface->deviceName, sizeof(IFMediaRequest.ifm_name));
+    
+    if (ioctl(currentNetworkInterface->socket, SIOCGIFMEDIA, (caddr_t)&IFMediaRequest) < 0) {
+        /*
+         * Interface doesn't support SIOC{G,S}IFMEDIA.
+         */
+        return;
+    }
+    MediaList = (int *)malloc(IFMediaRequest.ifm_count * sizeof(int));
+    if (MediaList == NULL) log_err("%s malloc error", currentNetworkInterface->deviceName);
+    
+    IFMediaRequest.ifm_ulist = MediaList;
+    
+    if (ioctl(currentNetworkInterface->socket, SIOCGIFMEDIA, (caddr_t)&IFMediaRequest) < 0)
+        log_err("%s SIOCGIFMEDIA error", currentNetworkInterface->deviceName);
+    
+    if (IFMediaRequest.ifm_status & IFM_AVALID) {
+        if(IFM_TYPE(IFMediaRequest.ifm_active)== IFM_IEEE80211){
+            if(IFM_OPTIONS(IFMediaRequest.ifm_active)==IFM_IEEE80211_ADHOC){
+                free(MediaList);
+                return 0;
+            } else {
+                free(MediaList);
+                return 1;
+            }
+        }
+    }
+    free(MediaList);
+}
+
+
+
+void getBSSID(void *networkInterface){
+    network_interface_t *currentNetworkInterface = (network_interface_t*)networkInterface;
+    
+}
+
+
+
 #pragma mark -
 #pragma mark Almost complete/with minor bugs
 
@@ -381,7 +434,6 @@ void getHostCharacteristics (void *data);
 void getComponentTable(void *data);
 
 
-#define min(a, b) (((a) < (b)) ? (a) : (b))
 //==============================================================================
 //
 // FIXME:Switches the interface in the argument to promscuous mode | DOESN'T WORK

@@ -17,14 +17,7 @@
 #pragma pack( 2 )
 
 #pragma pack( pop )
-/*
-extern const CFStringRef kSCNetworkInterfaceTypeBond
-extern const CFStringRef kSCNetworkInterfaceTypeEthernet
-extern const CFStringRef kSCNetworkInterfaceTypeFireWire
-extern const CFStringRef kSCNetworkInterfaceTypeIEEE80211
-extern const CFStringRef kSCNetworkInterfaceTypeVLAN
-extern const CFStringRef kSCNetworkInterfaceTypeWWAN
- */
+
 typedef struct {
     io_object_t            notification;
     const char            *deviceName;
@@ -32,25 +25,26 @@ typedef struct {
                                                 // (csma/cd applies to ethernet/firware
                                                 // and wireless, although they are
                                                 // different and wireless is CSMA/CA
-    enum { NetworkInterfaceTypeBond, NetworkInterfaceTypeEthernet, NetworkInterfaceTypeIEEE80211, NetworkInterfaceTypeVLAN} interfaceType;
-    SCNetworkInterfaceRef  SCNetworkInterface;
-    SCNetworkConnectionRef SCNetworkConnection;
+    enum { NetworkInterfaceTypeBond, NetworkInterfaceTypeBridge, NetworkInterfaceTypeEthernet, NetworkInterfaceTypeIEEE80211, NetworkInterfaceTypeVLAN} interfaceType;
+
+    //We can get these by ioctls:
+    //IFRTYPE_FAMILY_ETHERNET(IFRTYPE_SUBFAMILY_ANY,IFRTYPE_SUBFAMILY_USB,IFRTYPE_SUBFAMILY_BLUETOOTH,IFRTYPE_SUBFAMILY_WIFI,IFRTYPE_SUBFAMILY_THUNDERBOLT), IFRTYPE_FAMILY_VLAN, IFRTYPE_FAMILY_BOND, IFRTYPE_FAMILY_BRIDGE
+    
     int64_t                flags;               // kIOInterfaceFlags from the Interface
     uint64_t               linkStatus;          // kIOLinkStatus from the Controller
     uint32_t               MTU;                 // We'll set the buffer size to the MTU size
     uint64_t               MediumType;          // Get the current medium Type
     uint64_t               LinkSpeed;           // The current link speed, automatically updated when the property changes
-    uint32_t               IPv4Addr;
     int                    socket;
     struct sockaddr_ndrv   socketAddr;
-    struct in6_addr        IPv6Addr;
     pthread_t              posixThreadID;
     void                  *icon;
     size_t                 iconSize;
-    CFMutableArrayRef      seelist;
+    void                  *seeList;
+    uint32_t               seeListCount;
     uint16_t               MapperSeqNumber;
-    uint8_t                macAddress [ kIOEthernetAddressSize ];
-    uint8_t                MapperHwAddress[ kIOEthernetAddressSize ];
+    uint8_t                macAddress      [ kIOEthernetAddressSize ];
+    uint8_t                MapperHwAddress [ kIOEthernetAddressSize ];
     void                  *recvBuffer;          //We need to clear the receive Buffer when we kill the thread.
 
 } network_interface_t;
@@ -64,6 +58,7 @@ void deviceAppeared   (void *refCon, io_iterator_t iterator);
 void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType, void *messageArgument);
 void validateInterface(void *refCon, io_service_t IONetworkInterface);
 
+#define min(a, b) (((a) < (b)) ? (a) : (b))
 #define PRINT_IP_FMT      "%i.%i.%i.%i"
 #define PRINT_IP(x)       (x >> 24) & 0xFF, (x >> 16) & 0xFF, (x >> 8) & 0xFF, x & 0xFF
 #define ETHERNET_ADDR_FMT "%02x:%02x:%02x:%02x:%02x:%02x"
