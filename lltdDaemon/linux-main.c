@@ -11,33 +11,43 @@
 #include "lltdDaemon.h"
 
 
-int MessageHandler(struct sockaddr_nl NetLinkAddr, struct nlmsghdr *Message){
+void SignalHandler(int Signal) {
+    log_debug("Interrupted by signal #%d", Signal);
+    printf("\nInterrupted by signal #%d\n", Signal);
+    exit(0);
+}
+
+void lltdLoop (void *data);
+
+void validateInterface(void *refCon, io_service_t IONetworkInterface);
+
+int deviceDisappeared(struct sockaddr_nl NetLinkAddr, struct nlmsghdr *Message){
     switch (Message->nlmsg_type) {
         case RTM_NEWADDR:
-            printf("MessageHandler: RTM_NEWADDR\n");
+            log_debug("MessageHandler: RTM_NEWADDR\n");
             break;
         case RTM_DELADDR:
-            printf("MessageHandler: RTM_DELADDR\n");
+            log_debug("MessageHandler: RTM_DELADDR\n");
             break;
         case RTM_NEWROUTE:
-            printf("MessageHandler: RTM_NEWROUTE\n");
+            log_debug("MessageHandler: RTM_NEWROUTE\n");
             break;
         case RTM_DELROUTE:
-            printf("MessageHandler: RTM_DELROUTE\n");
+            log_debug("MessageHandler: RTM_DELROUTE\n");
             break;
         case RTM_NEWLINK:
-            printf("MessageHandler: RTM_NEWLINK\n");
+            log_debug("MessageHandler: RTM_NEWLINK\n");
             break;
         case RTM_DELLINK:
-            printf("MessageHandler: RTM_DELLINK\n");
+            log_debug("MessageHandler: RTM_DELLINK\n");
             break;
         default:
-            printf("MessageHandler: Unknown Netlink Message Type %d\n", Message->nlmsg_type);
+            log_err("MessageHandler: Unknown Netlink Message Type %d\n", Message->nlmsg_type);
             break;
     }
 }
 
-int ReadEvent(int NetLinkSock, int (*msg_handler)(struct sockaddr_nl *, struct nlmsghdr *)){
+int deviceAppeared(int NetLinkSock, int (*msg_handler)(struct sockaddr_nl *, struct nlmsghdr *)){
     int status;
     int ret = 0;
     char buf[4096];
@@ -55,8 +65,7 @@ int ReadEvent(int NetLinkSock, int (*msg_handler)(struct sockaddr_nl *, struct n
             return ret;
         
         /* Anything else is an error */
-        printf("read_netlink: Error recvmsg: %d\n", status);
-        perror("read_netlink: Error: ");
+        log_err("read_netlink: Error recvmsg: %d\n", status);
         return status;
     }
     
@@ -76,7 +85,7 @@ int ReadEvent(int NetLinkSock, int (*msg_handler)(struct sockaddr_nl *, struct n
         /* Message is some kind of error */
         if (h->nlmsg_type == NLMSG_ERROR)
         {
-            printf("read_netlink: Message is an error - decode TBD\n");
+            log_err("read_netlink: Message is an error - decode TBD");
             return -1; // Error
         }
         
@@ -86,13 +95,13 @@ int ReadEvent(int NetLinkSock, int (*msg_handler)(struct sockaddr_nl *, struct n
             ret = (*msg_handler)(&snl, h);
             if(ret < 0)
             {
-                printf("read_netlink: Message hander error %d\n", ret);
+                log_err("read_netlink: Message hander error %d", ret);
                 return ret;
             }
         }
         else
         {
-            printf("read_netlink: Error NULL message handler\n");
+            log_err("read_netlink: Error NULL message handler");
             return -1;
         }
     }
@@ -107,17 +116,12 @@ int main (int argc, const char *argv[]){
     // Setup the signal handlers
     //
     handler = signal(SIGINT, SignalHandler);
-    if (handler == SIG_ERR) printf(stderr,"ERROR: Could not establish SIGINT handler.\n");
+    if (handler == SIG_ERR) log_err("ERROR: Could not establish SIGINT handler.");
     handler = signal(SIGTERM, SignalHandler);
-    if (handler == SIG_ERR) printf(stderr,"ERROR: Could not establish SIGTERM handler.\n");
+    if (handler == SIG_ERR) log_err("ERROR: Could not establish SIGTERM handler.");
     
     //
     //TODO: Add systemd notification
-    //
-    
-    
-    //
-    //TODO: Use syslog() instead of printf
     //
     
     
@@ -129,7 +133,7 @@ int main (int argc, const char *argv[]){
     memset((void*)&NetLinkAddr, 0, sizeof(NetLinkAddr));
     
     if (NetLinkSock < 0){
-        printf(stderr,"Open Error!\n");
+        log_err("Open Error!");
         return -1;
     }
     
@@ -138,7 +142,7 @@ int main (int argc, const char *argv[]){
     NetLinkAddr.nl_groups = RTMGRP_LINK|RTMGRP_IPV4_IFADDR|RTMGRP_IPV6_IFADDR;
     
     if (bind(NetLinkSock,(struct sockaddr *)&NetLinkAddr, sizeof(NetLinkAddr)) < 0)){
-        printf(stderr,"Open Error!\n");
+        log_err("Open Error!");
         return -1;
     }
     
@@ -146,7 +150,7 @@ int main (int argc, const char *argv[]){
     //
     // Start the runloop
     //
-    while (true) read_event (NetLinkSock, MessageHandler);
+    while (true) deviceAppeared(NetLinkSock, MessageHandler);
     
     return 0;
 }

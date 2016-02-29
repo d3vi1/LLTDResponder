@@ -291,10 +291,12 @@ size_t setComponentTable(void *buffer, uint64_t offset){
 }
 
 size_t setBSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
-    bssid_tlv_t *wifiTlv = (bssid_tlv_t *) (buffer + offset);
-    wifiTlv->TLVType        = tlv_wifimode;
-    wifiTlv->TLVLength      = 1;
-    wifiTlv->macAddress[0]  = getBSSID(networkInterface);
+    bssid_tlv_t *bssidTlv = (bssid_tlv_t *) (buffer + offset);
+    bssidTlv->TLVType        = tlv_bssid;
+    bssidTlv->TLVLength      = 6;
+    bssidTlv->macAddress[0]  = 0;
+    //TODO: Fixme to return an actual BSSID
+    //getBSSID(networkInterface);
     return sizeof(bssid_tlv_t);
 }
 

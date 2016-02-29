@@ -70,6 +70,7 @@ typedef struct {
     ethernet_address_t realSourceAddr;
     ethernet_address_t sourceAddr;
     ethernet_address_t destAddr;
+    void              *nextProbe;
 } probe_t;
 
 typedef struct {

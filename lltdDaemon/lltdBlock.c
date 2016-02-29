@@ -10,90 +10,6 @@
 
 #include "lltdDaemon.h"
 
-//==============================================================================
-//
-// This is the thread that is opened for each valid interface
-//
-//==============================================================================
-void lltdBlock (void *data){
-
-    network_interface_t *currentNetworkInterface = data;
-    
-    int                       fileDescriptor;
-    struct ndrv_protocol_desc protocolDescription;
-    struct ndrv_demux_desc    demuxDescription[1];
-    struct sockaddr_ndrv      socketAddress;
-    
-    //
-    // Open the AF_NDRV RAW socket
-    //
-    fileDescriptor = socket(AF_NDRV, SOCK_RAW, htons(0x88D9));
-    currentNetworkInterface->socket = fileDescriptor;
-
-    if (fileDescriptor < 0) {
-        log_err("Could not create socket on %s.", currentNetworkInterface->deviceName);
-        return -1;
-    }
-    
-    //
-    // Bind to the socket
-    //
-    strcpy((char *)&(socketAddress.snd_name), currentNetworkInterface->deviceName);
-    socketAddress.snd_len = sizeof(socketAddress);
-    socketAddress.snd_family = AF_NDRV;
-    if (bind(fileDescriptor, (struct sockaddr *)&socketAddress, sizeof(socketAddress)) < 0) {
-        log_err("Could not bind socket on %s.", currentNetworkInterface->deviceName);
-        return -1;
-    }
-    
-    //
-    // Create the reference to the array that will store the probes viewed on the network
-    //
-    
-    currentNetworkInterface->seeList = NULL;
-
-    //
-    // Define protocol
-    //
-    protocolDescription.version = (u_int32_t)1;
-    protocolDescription.protocol_family = lltdEtherType;
-    protocolDescription.demux_count = (u_int32_t)1;
-    protocolDescription.demux_list = (struct ndrv_demux_desc*)&demuxDescription;
-    
-    //
-    // Define protocol DEMUX
-    //
-    demuxDescription[0].type = NDRV_DEMUXTYPE_ETHERTYPE;
-    demuxDescription[0].length = 2;
-    demuxDescription[0].data.ether_type = htons(lltdEtherType);
-
-    //
-    // Set the protocol on the socket
-    //
-    setsockopt(fileDescriptor, SOL_NDRVPROTO, NDRV_SETDMXSPEC, (caddr_t)&protocolDescription, sizeof(protocolDescription));
-    log_notice("Successfully binded to interface %s", currentNetworkInterface->deviceName);
-
-    //
-    // Start the run loop
-    //
-    unsigned int cyclNo = 0;
-    currentNetworkInterface->recvBuffer = malloc(currentNetworkInterface->MTU);
-
-    for(;;){
-        recvfrom(fileDescriptor, currentNetworkInterface->recvBuffer, currentNetworkInterface->MTU, 0, NULL, NULL);
-        parseFrame(currentNetworkInterface->recvBuffer, currentNetworkInterface);
-    }
-    
-    //
-    // Cleanup
-    //
-    free(currentNetworkInterface->recvBuffer);
-    currentNetworkInterface->recvBuffer=NULL;
-    close(fileDescriptor);
-    return 0;
-
-}
-
 boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkInterface, int pause, uint8_t type, boolean_t ack) {
     network_interface_t *currentNetworkInterface = networkInterface;
     // TODO: why, we'll see..
@@ -224,7 +140,7 @@ void sendImage(void *networkInterface, uint16_t offset) {
     if (write < 1) {
         log_crit("Socket write failed on sendImage: %s", strerror(write));
     }
-//    free(icon);
+    //free(icon);
 }
 
 
@@ -249,42 +165,46 @@ void parseProbe(void *inFrame, void *networkInterface) {
     
     // see if it's intended for us
     if ( compareEthernetAddress(&(header->frameHeader.destination), (ethernet_address_t *) &currentNetworkInterface->macAddress) || true	 )  {
+
         // store it then, unless we have it already??
-        probe_t * probe = malloc( sizeof(probe_t) );
+        probe_t *probe          = malloc( sizeof(probe_t) );
         
         // initialize the probe, then search for it in our array
         probe->type             = 0x00;
         probe->sourceAddr       = header->frameHeader.source;
         probe->destAddr         = header->frameHeader.destination;
         probe->realSourceAddr   = header->realSource;
+        probe->nextProbe        = NULL;
+
+        boolean_t found    = false;
+        probe_t *nextProbe = currentNetworkInterface->seeList;
         
-        probe_t  *currentProbe[currentNetworkInterface->seeListCount];
-        malloc(currentProbe);
-        memcpy(currentProbe, currentNetworkInterface->seeList, currentNetworkInterface->seeListCount * sizeof(probe_t));
-        boolean_t found = false;
-        
-        //if (count > 1) {
-        log_crit("Searching through already %d seen probes", currentNetworkInterface->seeListCount);
+        log_crit("Searching through already %d seen probes in the seenLinkedList", currentNetworkInterface->seeListCount);
         for(long i = 0; i < currentNetworkInterface->seeListCount; i++) {
-            const probe_t *searchProbe = currentProbe[i];
+            
+                const probe_t *searchProbe = nextProbe;
                 // destination and type are already equal, we'll compare just the source addresses
                 log_crit("\tSource1: "ETHERNET_ADDR_FMT", Source2: "ETHERNET_ADDR_FMT" ,RealSource1: "ETHERNET_ADDR_FMT", RealSource2: "ETHERNET_ADDR_FMT,
                         ETHERNET_ADDR(probe->sourceAddr.a), ETHERNET_ADDR(searchProbe->sourceAddr.a), ETHERNET_ADDR(probe->realSourceAddr.a), ETHERNET_ADDR(searchProbe->realSourceAddr.a) );
-                if ( compareEthernetAddress( &(probe->sourceAddr), &(searchProbe->sourceAddr)) &&
-                    compareEthernetAddress( &(probe->realSourceAddr), &(searchProbe->realSourceAddr)) ) {
+                if ( compareEthernetAddress( &(probe->sourceAddr),     &(searchProbe->sourceAddr    )) &&
+                     compareEthernetAddress( &(probe->realSourceAddr), &(searchProbe->realSourceAddr)) ) {
                     found = true;
                 }
-            }
-        //}
+                nextProbe=nextProbe->nextProbe;
+        }
         
+        //If we've discovered a new probe from a new computer, we add it to the seelist
         if (!found) {
-            probe_t TempProbe[currentNetworkInterface->seeListCount+1];
-            memcpy(TempProbe, currentNetworkInterface->seeList, sizeof(probe_t)*currentNetworkInterface->seeListCount);
-            memcpy(&TempProbe[currentNetworkInterface->seeListCount+1], probe, sizeof(probe_t));
-            free(currentNetworkInterface->seeList);
-            currentNetworkInterface->seeList = TempProbe;
+            nextProbe = currentNetworkInterface->seeList;
+            for (uint32_t i = 0; i < currentNetworkInterface->seeListCount; i++){
+                log_debug("seenLinkedList, at element %d of %d", i, currentNetworkInterface->seeListCount);
+                nextProbe = nextProbe->nextProbe;
+            }
+            nextProbe->nextProbe=probe;
             currentNetworkInterface->seeListCount++;
-            log_crit("Added probe to seen list");
+            log_crit("Added probe to seen list. Now have %d probes.", currentNetworkInterface->seeListCount);
+        } else {
+            free(probe);
         }
     }
 }
@@ -449,8 +369,20 @@ void parseFrame(void *frame, void *networkInterface){
                 case opcode_reset:
                     log_debug("%s Reset (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     helloSent = 0;
-                    free(currentNetworkInterface->seeList);
-                    currentNetworkInterface->seeList=NULL;
+                    
+                    //Clean the linked list
+                    if(currentNetworkInterface->seeList){
+                        probe_t *currentProbe = currentNetworkInterface->seeList;
+                        void    *nextProbe;
+                        for(uint32_t i = 0; i<currentNetworkInterface->seeListCount; i++){
+                                nextProbe    = currentProbe->nextProbe;
+                                free(currentProbe);
+                                currentProbe = nextProbe;
+                        }
+                        currentNetworkInterface->seeList=NULL;
+                    }
+                    currentNetworkInterface->seeListCount = 0;
+                    //Return to non-promisc mode.
                     setPromiscuous(currentNetworkInterface, false);
                     break;
                 case opcode_queryLargeTlv:

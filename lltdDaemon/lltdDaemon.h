@@ -85,14 +85,14 @@
     #ifdef USE_SYSTEMD
 
     #else
-        #define log_debug(x, s)   syslog(LOG_DEBUG, ""x"", __FUNCTION__, s)
-        #define log_info(x, s)    syslog(LOG_INFO, ""x"", __FUNCTION__, s)
-        #define log_notice(x, s)  syslog(LOG_NOTICE, ""x"", __FUNCTION__, s)
-        #define log_warning(x, s) syslog(LOG_WARNING, ""x"", __FUNCTION__, s)
-        #define log_err(x, s)     syslog(LOG_ERR, ""x"", __FUNCTION__, s)
-        #define log_crit(x, s)    syslog(LOG_CRIT, ""x"", __FUNCTION__, s)
-        #define log_alert(x, s)   syslog(LOG_ALERT, ""x"", __FUNCTION__, s)
-        #define log_emerg(x, s)   syslog(LOG_EMERG, ""x"", __FUNCTION__, s)
+        #define log_debug(x, ...)   syslog(LOG_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define log_info(x, ...)    syslog(LOG_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define log_notice(x, ...)  syslog(LOG_NOTICE,  "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define log_warning(x, ...) syslog(LOG_WARNING, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define log_err(x, ...)     syslog(LOG_ERR,     "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define log_crit(x, ...)    syslog(LOG_CRIT,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define log_alert(x, ...)   syslog(LOG_ALERT,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define log_emerg(x, ...)   syslog(LOG_EMERG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
     #endif /* USE_SYSTEMD */
 #endif /*__linux__*/
 
