@@ -382,7 +382,12 @@ boolean_t getWifiMode(void *networkInterface){
 
 
 
-void getBSSID (void **data, void *networkInterface){
+//==============================================================================
+//
+// Returns a copy of the 6 bytes comprising the BSSID.
+//
+//==============================================================================
+boolean_t getBSSID (void **data, void *networkInterface){
     network_interface_t *currentNetworkInterface = (network_interface_t*)networkInterface;
 
     io_service_t  IONetworkInterface;
@@ -402,8 +407,11 @@ void getBSSID (void **data, void *networkInterface){
         memcpy(*data,CFDataGetBytePtr(cfDATA),kIOEthernetAddressSize);
         CFRelease(cfDATA);
         IOObjectRelease(IONetworkInterface);
-        return;
-    } else data = NULL;
+        return true;
+    } else {
+        data = NULL;
+        return false;
+    }
     
 }
 
