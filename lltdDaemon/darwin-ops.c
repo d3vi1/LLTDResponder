@@ -464,7 +464,10 @@ void getComponentTable (void **data, size_t *dataSize);
 
 //==============================================================================
 //
-// FIXME:Switches the interface in the argument to promscuous mode | DOESN'T WORK
+// FIXME: Switches the interface in the argument to promscuous mode
+// FIXME: The flags need to be read from the interface not from the cache.
+//        Other applications might change the flags although we should get
+//        IOKit notifications about it.
 //
 //==============================================================================
 void setPromiscuous(void *networkInterface, boolean_t set){
@@ -477,20 +480,18 @@ void setPromiscuous(void *networkInterface, boolean_t set){
 
     strncpy(interfaceName, currentNetworkInterface->deviceName, 16);
     
-    if (! CFNumberGetValue(currentNetworkInterface->flags, kCFNumberLongType, &flags)) {
-        log_err("Could not get flags for interface %s: %s", interfaceName, strerror(errno) );
-        goto cleanup;
-    }
-    
     log_debug("Trying to set PROMISCUOUS=%d on IF=%s", set, interfaceName);
-    if ( ( flags & IFF_UP ) && ( flags & IFF_RUNNING ) ){
+    if ( ( currentNetworkInterface->flags & IFF_UP ) && ( currentNetworkInterface->flags & IFF_RUNNING ) ){
         struct ifreq IfRequest;
         bzero(&IfRequest, sizeof(IfRequest));
 
         memcpy(&(IfRequest.ifr_name), interfaceName, ifNameLength);
 
-        if ((flags & IFF_PROMISC) && set) {
+        if ((currentNetworkInterface->flags & IFF_PROMISC) && set) {
+            currentNetworkInterface->flags = currentNetworkInterface->flags | IFF_PROMISC;
             goto cleanup;
+        } else {
+            currentNetworkInterface->flags = currentNetworkInterface->flags & (!IFF_PROMISC);
         }
         
         int ioctlError  = ioctl(currentNetworkInterface->socket, SIOCGIFFLAGS, (caddr_t)&IfRequest);

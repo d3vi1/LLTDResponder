@@ -151,7 +151,7 @@ size_t setUuidTLV(void *buffer, uint64_t offset){
 
 //TODO: Maybe... Need to look this up
 size_t setHardwareIdTLV(void *buffer, uint64_t offset){
-    
+    return 0;
 }
 
 //TODO: see if there really is support for Level2 Forwarding.. ? or just leave it hardcoded
@@ -165,11 +165,11 @@ size_t setQosCharacteristicsTLV(void *buffer, uint64_t offset){
 }
 
 size_t setDetailedIconTLV(void *buffer, uint64_t offset){
-    
+    return 0;
 }
 
 size_t setComponentTableTLV(void *buffer, uint64_t offset){
-    
+    return 0;
 }
 
 size_t setEndOfPropertyTLV(void *buffer, uint64_t offset){
@@ -318,14 +318,14 @@ size_t set80211MediumTLV(void *buffer, uint64_t offset, void *networkInterface){
     return 0;
 }
 
-size_t setAPAssociationTableTLV(void *buffer, uint64_t offset){
+size_t setAPAssociationTableTLV(void *buffer, uint64_t offset, void *networkInterface){
     return 0;
 }
 
-size_t setRepeaterAPLineageTLV(void *buffer, uint64_t offset){
+size_t setRepeaterAPLineageTLV(void *buffer, uint64_t offset, void *networkInterface){
     return 0;
 }
 
-size_t setRepeaterAPTableTLV(void *buffer, uint64_t offset){
+size_t setRepeaterAPTableTLV(void *buffer, uint64_t offset, void *networkInterface){
     return 0;
 }

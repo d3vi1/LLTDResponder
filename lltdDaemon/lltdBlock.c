@@ -18,16 +18,13 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
    
     // This one should be correct
     uint8_t code = type == 0x01 ? opcode_probe : opcode_train;
-    setLltdHeader(probe, (ethernet_address_t *) &src,
-                  (ethernet_address_t *) &dst,
-                  0x00, code, tos_discovery);
+    setLltdHeader(probe, (ethernet_address_t *) &src, (ethernet_address_t *) &dst, 0x00, code, tos_discovery);
 
 
     log_alert("Trying to send probe/train with seqNumber %d", ntohs(probe->seqNumber));
     
     usleep(1000 * pause);
-    ssize_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
-                          sizeof(currentNetworkInterface->socketAddr));
+    ssize_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
     if (write < 0) {
         log_crit("Socket write failed on PROBE/TRAIN: %s", strerror(write));
         return false;
@@ -177,15 +174,14 @@ void parseProbe(void *inFrame, void *networkInterface) {
         probe->nextProbe        = NULL;
 
         boolean_t found    = false;
-        probe_t *nextProbe = currentNetworkInterface->seeList;
+        probe_t  *nextProbe = currentNetworkInterface->seeList;
         
         log_crit("Searching through already %d seen probes in the seenLinkedList", currentNetworkInterface->seeListCount);
         for(long i = 0; i < currentNetworkInterface->seeListCount; i++) {
             
                 const probe_t *searchProbe = nextProbe;
                 // destination and type are already equal, we'll compare just the source addresses
-                log_crit("\tSource1: "ETHERNET_ADDR_FMT", Source2: "ETHERNET_ADDR_FMT" ,RealSource1: "ETHERNET_ADDR_FMT", RealSource2: "ETHERNET_ADDR_FMT,
-                        ETHERNET_ADDR(probe->sourceAddr.a), ETHERNET_ADDR(searchProbe->sourceAddr.a), ETHERNET_ADDR(probe->realSourceAddr.a), ETHERNET_ADDR(searchProbe->realSourceAddr.a) );
+                log_crit("\tSource1: "ETHERNET_ADDR_FMT", Source2: "ETHERNET_ADDR_FMT" ,RealSource1: "ETHERNET_ADDR_FMT", RealSource2: "ETHERNET_ADDR_FMT, ETHERNET_ADDR(probe->sourceAddr.a), ETHERNET_ADDR(searchProbe->sourceAddr.a), ETHERNET_ADDR(probe->realSourceAddr.a), ETHERNET_ADDR(searchProbe->realSourceAddr.a) );
                 if ( compareEthernetAddress( &(probe->sourceAddr),     &(searchProbe->sourceAddr    )) &&
                      compareEthernetAddress( &(probe->realSourceAddr), &(searchProbe->realSourceAddr)) ) {
                     found = true;
@@ -195,14 +191,21 @@ void parseProbe(void *inFrame, void *networkInterface) {
         
         //If we've discovered a new probe from a new computer, we add it to the seelist
         if (!found) {
-            nextProbe = currentNetworkInterface->seeList;
-            for (uint32_t i = 0; i < currentNetworkInterface->seeListCount; i++){
-                log_debug("seenLinkedList, at element %d of %d", i, currentNetworkInterface->seeListCount);
-                nextProbe = nextProbe->nextProbe;
+            //If the list is not initialized, we now initialize it
+            if (currentNetworkInterface->seeListCount == 0){
+                currentNetworkInterface->seeList      = probe;
+                currentNetworkInterface->seeListCount = 1;
+            //Otherwise, we just add to it
+            } else {
+                nextProbe = currentNetworkInterface->seeList;
+                for (uint32_t i = 0; i < currentNetworkInterface->seeListCount; i++){
+                    log_debug("seenLinkedList, at element %d of %d", i, currentNetworkInterface->seeListCount);
+                    nextProbe = nextProbe->nextProbe;
+                }
+                nextProbe->nextProbe=probe;
+                currentNetworkInterface->seeListCount++;
+                log_crit("Added probe to seen list. Now have %d probes.", currentNetworkInterface->seeListCount);
             }
-            nextProbe->nextProbe=probe;
-            currentNetworkInterface->seeListCount++;
-            log_crit("Added probe to seen list. Now have %d probes.", currentNetworkInterface->seeListCount);
         } else {
             free(probe);
         }
@@ -292,11 +295,10 @@ void answerHello(void *inFrame, void *networkInterface){
         offset += setWifiMaxRateTLV(buffer, offset, currentNetworkInterface);
         offset += setWifiRssiTLV(buffer, offset, currentNetworkInterface);
         offset += set80211MediumTLV(buffer, offset, currentNetworkInterface);
-        offset += setAPAssociationTableTLV(buffer, offset);
-        offset += setRepeaterAPLineageTLV(buffer, offset);
-        offset += setRepeaterAPTableTLV(buffer, offset);
+        offset += setAPAssociationTableTLV(buffer, offset, currentNetworkInterface);
+        offset += setRepeaterAPLineageTLV(buffer, offset, currentNetworkInterface);
+        offset += setRepeaterAPTableTLV(buffer, offset, currentNetworkInterface);
     }
-    
     offset += setQosCharacteristicsTLV (buffer, offset);
     offset += setIconImageTLV          (buffer, offset);
     offset += setFriendlyNameTLV       (buffer, offset);

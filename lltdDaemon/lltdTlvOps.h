@@ -35,9 +35,9 @@ size_t setSSIDTLV                (void *buffer, uint64_t offset, void *networkIn
 size_t setWifiMaxRateTLV         (void *buffer, uint64_t offset, void *networkInterface);
 size_t setWifiRssiTLV            (void *buffer, uint64_t offset, void *networkInterface);
 size_t set80211MediumTLV         (void *buffer, uint64_t offset, void *networkInterface);
-size_t setAPAssociationTableTLV  (void *buffer, uint64_t offset);
-size_t setRepeaterAPLineageTLV   (void *buffer, uint64_t offset);
-size_t setRepeaterAPTableTLV     (void *buffer, uint64_t offset);
+size_t setAPAssociationTableTLV  (void *buffer, uint64_t offset, void *networkInterface);
+size_t setRepeaterAPLineageTLV   (void *buffer, uint64_t offset, void *networkInterface);
+size_t setRepeaterAPTableTLV     (void *buffer, uint64_t offset, void *networkInterface);
 size_t setHostIdTLV              (void *buffer, uint64_t offset, void *networkInterface);
 size_t setCharacteristicsTLV     (void *buffer, uint64_t offset, void *networkInterface);
 size_t setPhysicalMediumTLV      (void *buffer, uint64_t offset, void *networkInterface);
