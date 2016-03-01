@@ -382,8 +382,28 @@ boolean_t getWifiMode(void *networkInterface){
 
 
 
-void getBSSID(void *networkInterface){
+void getBSSID (void **data, void *networkInterface){
     network_interface_t *currentNetworkInterface = (network_interface_t*)networkInterface;
+
+    io_service_t  IONetworkInterface;
+    kern_return_t kernel_return;
+    mach_port_t   masterPort = MACH_PORT_NULL;
+    kernel_return = IOMasterPort(bootstrap_port, &masterPort);
+    if (kernel_return != KERN_SUCCESS) {
+        log_err("IOMasterPort returned 0x%x", kernel_return);
+        return EXIT_FAILURE;
+    }
+    
+    IONetworkInterface = IOServiceGetMatchingService(masterPort, IOBSDNameMatching(masterPort, NULL, currentNetworkInterface->deviceName));
+    
+    if(IONetworkInterface){
+        CFDataRef cfDATA = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR("BSSID"), kCFAllocatorDefault, 0);
+        *data = malloc(kIOEthernetAddressSize);
+        memcpy(*data,CFDataGetBytePtr(cfDATA),kIOEthernetAddressSize);
+        CFRelease(cfDATA);
+        IOObjectRelease(IONetworkInterface);
+        return;
+    } else data = NULL;
     
 }
 
@@ -413,7 +433,7 @@ void getHwId(void *data);
 // and if available, 24x24 and 48x48
 //
 //==============================================================================
-void getDetailedIconImage(void *data);
+void getDetailedIconImage (void **data, size_t *iconsize);;
 
 
 //==============================================================================
@@ -431,7 +451,7 @@ void getHostCharacteristics (void *data);
 // Only with QueryLargeTLV
 //
 //==============================================================================
-void getComponentTable(void *data);
+void getComponentTable (void **data, size_t *dataSize);
 
 
 //==============================================================================

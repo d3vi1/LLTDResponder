@@ -19,13 +19,13 @@ void getSupportInfo                (void **data, size_t *stringSize);
 void getIconImage                  (void **icon, size_t *iconsize);
 void getUpnpUuid                   (void **data);
 void getHwId                       (void *data);
-void getDetailedIconImage          (void *data);// Only with QueryLargeTLV
+void getDetailedIconImage          (void **data, size_t *iconsize);// Only with QueryLargeTLV
 void getHostCharacteristics        (void *data);
-void getComponentTable             (void *data);// Only with QueryLargeTLV
+void getComponentTable             (void **data, size_t *dataSize);// Only with QueryLargeTLV
 void getPerformanceCounterFrequency(void *data);
 void setPromiscuous                (void *currentNetworkInterface, boolean_t set);
 boolean_t getWifiMode              (void *currentNetworkInterface);
-void getBSSID                      (void *currentNetworkInterface);
+void getBSSID                      (void **data, void *currentNetworkInterface);
 #pragma mark Functions that are interface specific
 #pragma mark -
 

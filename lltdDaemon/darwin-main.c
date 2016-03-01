@@ -78,6 +78,7 @@ void lltdLoop (void *data){
     // Set the protocol on the socket
     //
     setsockopt(fileDescriptor, SOL_NDRVPROTO, NDRV_SETDMXSPEC, (caddr_t)&protocolDescription, sizeof(protocolDescription));
+    log_notice("Successfully binded to %s", currentNetworkInterface->deviceName);
     
     //
     // Start the run loop
@@ -409,6 +410,7 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
     network_interface_t *currentNetworkInterface = (network_interface_t*) refCon;
     io_name_t nameString;
     IORegistryEntryGetName(service, nameString);
+#ifdef DEBUG
     if (IOObjectConformsTo(service, kIONetworkInterfaceClass)){
         log_debug("Notification received: %s type: %x networkInterfaceClass: %s", currentNetworkInterface->deviceName, messageType, nameString);
     } else if (IOObjectConformsTo(service, kIONetworkControllerClass)){
@@ -416,7 +418,7 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
     } else {
         log_debug("Notification received: %s type: %x networkSomethingClass: %s", currentNetworkInterface->deviceName, messageType, nameString);
     }
-    
+#endif
     /*
      * Clean everything (thread, data, etc.)
      */
