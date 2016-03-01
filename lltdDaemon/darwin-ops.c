@@ -397,7 +397,7 @@ void getBSSID (void **data, void *networkInterface){
     IONetworkInterface = IOServiceGetMatchingService(masterPort, IOBSDNameMatching(masterPort, NULL, currentNetworkInterface->deviceName));
     
     if(IONetworkInterface){
-        CFDataRef cfDATA = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR("BSSID"), kCFAllocatorDefault, 0);
+        CFDataRef cfDATA = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR("IO80211BSSID"), kCFAllocatorDefault, 0);
         *data = malloc(kIOEthernetAddressSize);
         memcpy(*data,CFDataGetBytePtr(cfDATA),kIOEthernetAddressSize);
         CFRelease(cfDATA);
