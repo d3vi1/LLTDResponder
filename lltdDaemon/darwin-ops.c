@@ -483,8 +483,8 @@ void setPromiscuous(void *networkInterface, boolean_t set){
     log_debug("Trying to set PROMISCUOUS=%d on IF=%s", set, interfaceName);
     if ( ( currentNetworkInterface->flags & IFF_UP ) && ( currentNetworkInterface->flags & IFF_RUNNING ) ){
         struct ifreq IfRequest;
-        bzero(&IfRequest, sizeof(IfRequest));
-
+        memset(&IfRequest, 0, sizeof(IfRequest));
+        
         memcpy(&(IfRequest.ifr_name), interfaceName, ifNameLength);
 
         if ((currentNetworkInterface->flags & IFF_PROMISC) && set) {

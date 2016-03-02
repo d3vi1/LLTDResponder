@@ -533,7 +533,7 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
         //
         network_interface_t *currentNetworkInterface = NULL;
         currentNetworkInterface = malloc(sizeof(network_interface_t));
-        bzero(currentNetworkInterface,sizeof(network_interface_t));
+        memset(currentNetworkInterface, 0, sizeof(network_interface_t));
         
         //
         // Let's get the device name. If we don't have a BSD name, we are

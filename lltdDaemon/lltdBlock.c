@@ -48,7 +48,7 @@ void parseQuery(void *inFrame, void *networkInterface){
     int packageSize = currentNetworkInterface->MTU + sizeof(ethernet_header_t),
         offset = 0;
     void *buffer = malloc( packageSize );
-    bzero(buffer, packageSize);
+    memset(buffer, 0, packageSize);
     
     offset = setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->macAddress),
                                    (ethernet_address_t *) &(currentNetworkInterface->MapperHwAddress),
@@ -108,7 +108,7 @@ void sendImage(void *networkInterface, uint16_t offset) {
     
     
     void *buffer = malloc( maxSize );
-    bzero(buffer, maxSize);
+    memset(buffer, 0, maxSize);
     
     setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->macAddress),
                            (ethernet_address_t *) &(currentNetworkInterface->MapperHwAddress),
