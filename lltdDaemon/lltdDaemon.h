@@ -68,32 +68,26 @@
  Optionally get the interfaces from NetworkManager via D-Bus (kernel agnostic).
  */
 #ifdef __linux__
-    #include <linux/netlink.h>
-    #include <linux/rtnetlink.h>
-    #include <net/if.h>
-    #include <netinet/in.h>
     #include <asm/types.h>
     #include <sys/socket.h>
+    #include <linux/netlink.h>
+    #include <linux/rtnetlink.h>
+    #include <memory.h>
     #include <errno.h>
-    #include <stdio.h>
-    #include <string.h>
-    #include <unistd.h>
+    #include <signal.h>
+    #include <syslog.h>
     #include "linux-main.h"
     #include "linux-ops.h"
     #define  MYPROTO NETLINK_ROUTE
     #define  MYMGRP RTMGRP_IPV4_ROUTE
-    #ifdef USE_SYSTEMD
-
-    #else
-        #define log_debug(x, ...)   syslog(LOG_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-        #define log_info(x, ...)    syslog(LOG_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-        #define log_notice(x, ...)  syslog(LOG_NOTICE,  "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-        #define log_warning(x, ...) syslog(LOG_WARNING, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-        #define log_err(x, ...)     syslog(LOG_ERR,     "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-        #define log_crit(x, ...)    syslog(LOG_CRIT,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-        #define log_alert(x, ...)   syslog(LOG_ALERT,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-        #define log_emerg(x, ...)   syslog(LOG_EMERG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #endif /* USE_SYSTEMD */
+    #define  log_debug(x, ...)   syslog(LOG_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define  log_info(x, ...)    syslog(LOG_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define  log_notice(x, ...)  syslog(LOG_NOTICE,  "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define  log_warning(x, ...) syslog(LOG_WARNING, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define  log_err(x, ...)     syslog(LOG_ERR,     "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define  log_crit(x, ...)    syslog(LOG_CRIT,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define  log_alert(x, ...)   syslog(LOG_ALERT,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define  log_emerg(x, ...)   syslog(LOG_EMERG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
 #endif /*__linux__*/
 
 /*

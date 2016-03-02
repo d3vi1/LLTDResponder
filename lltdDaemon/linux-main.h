@@ -11,7 +11,4 @@
 #ifndef linux_main_h
 #define linux_main_h
 
-int MessageHandler(struct sockaddr_nl NetLinkAddr, struct nlmsghdr *Message)
-int ReadEvent     (int NetLinkSock, int (*msg_handler)(struct sockaddr_nl *, struct nlmsghdr *))
-
 #endif /* linux_main_h */
