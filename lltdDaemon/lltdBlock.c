@@ -186,7 +186,12 @@ void parseProbe(void *inFrame, void *networkInterface) {
                      compareEthernetAddress( &(probe->realSourceAddr), &(searchProbe->realSourceAddr)) ) {
                     found = true;
                 }
-                nextProbe=nextProbe->nextProbe;
+            
+                // don't go past the last probe
+                if (nextProbe->nextProbe != NULL) {
+                    nextProbe=nextProbe->nextProbe;
+                }
+
         }
         
         //If we've discovered a new probe from a new computer, we add it to the seelist
@@ -197,11 +202,7 @@ void parseProbe(void *inFrame, void *networkInterface) {
                 currentNetworkInterface->seeListCount = 1;
             //Otherwise, we just add to it
             } else {
-                nextProbe = currentNetworkInterface->seeList;
-                for (uint32_t i = 0; i < currentNetworkInterface->seeListCount; i++){
-                    log_debug("seenLinkedList, at element %d of %d", i, currentNetworkInterface->seeListCount);
-                    nextProbe = nextProbe->nextProbe;
-                }
+                // we're already pointing to the last probe in `nextProbe` 
                 nextProbe->nextProbe=probe;
                 currentNetworkInterface->seeListCount++;
                 log_crit("Added probe to seen list. Now have %d probes.", currentNetworkInterface->seeListCount);
