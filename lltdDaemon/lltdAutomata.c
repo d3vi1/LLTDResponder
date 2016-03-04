@@ -77,9 +77,9 @@ automata* switch_state_mapping(automata* autom, int input, char* debug) {
     }
     
     if (autom->current_state != new_state || find >= 0 || timeout) {
-        printf("Switching from %s with %d ", current_state->name, input);
-        if (timeout) printf("(timeout) ");
-        printf("to %s\n", autom->states_table[new_state].name);
+        log_debug("Switching from %s with %d ", current_state->name, input);
+        if (timeout) log_debug("(timeout) ");
+        log_debug("to %s\n", autom->states_table[new_state].name);
         
         autom->current_state = new_state;
     }

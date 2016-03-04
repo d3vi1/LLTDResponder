@@ -29,7 +29,7 @@ int main(int argc, const char * argv[]) {
     /*
     for (int i = 0; i < en->transitions_no; i++) {
         transition tr = en->transitions_table[i];
-        printf("%d -> %d with %d\n", tr.from, tr.to, tr.with);
+        log_debug("%d -> %d with %d\n", tr.from, tr.to, tr.with);
     }
     */
     
