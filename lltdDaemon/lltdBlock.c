@@ -77,6 +77,8 @@ void parseQuery(void *inFrame, void *networkInterface){
         
         free(currentNetworkInterface->seeList);
         currentNetworkInterface->seeList=NULL;
+        currentNetworkInterface->seeListCount = 0;
+        
     }
     
     
@@ -202,9 +204,9 @@ void parseProbe(void *inFrame, void *networkInterface) {
                 currentNetworkInterface->seeListCount = 1;
             //Otherwise, we just add to it
             } else {
-                // we're already pointing to the last probe in `nextProbe` 
+                // we're already pointing to the last probe in `nextProbe`
                 nextProbe->nextProbe=probe;
-                currentNetworkInterface->seeListCount++;
+                currentNetworkInterface->seeListCount += 1;
                 log_crit("Added probe to seen list. Now have %d probes.", currentNetworkInterface->seeListCount);
             }
         } else {
