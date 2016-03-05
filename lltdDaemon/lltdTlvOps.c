@@ -255,7 +255,7 @@ size_t setIPv6TLV(void *buffer, uint64_t offset, void *networkInterface){
     freeifaddrs(interfaces);
 
     hdr->TLVType = tlv_ipv6;
-    hdr->TLVLength = sizeof(ipv6);
+    hdr->TLVLength = sizeof(*ipv6);
     return sizeof (*hdr) + hdr->TLVLength;
 }
 
