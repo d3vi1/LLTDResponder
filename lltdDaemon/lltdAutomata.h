@@ -1,12 +1,10 @@
-/******************************************************************************
- *                                                                            *
- *   lltdAutomata.c                                                           *
- *   lltdDaemon                                                               *
- *                                                                            *
- *   Created by Răzvan Corneliu C.R. VILT on 06.10.2014.                      *
- *   Copyright © 2014 Răzvan Corneliu C.R. VILT. All rights reserved.         *
- *                                                                            *
- ******************************************************************************/
+//
+//  lltdAutomata.h
+//  Automata
+//
+//  Created by Alex Georoceanu on 06/10/14.
+//  Copyright (c) 2014 Alex Georoceanu. All rights reserved.
+//
 
 #ifndef __LLTDd__automata__
 #define __LLTDd__automata__
@@ -14,8 +12,16 @@
 #define MAX_STATES 5 // LLTD protocol only needs 4 maximum
 #define MAX_TRANSITIONS 128
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+
 #ifndef __opcode_constants__
 
+#define __opcode_constants__      0x01
 #define opcode_discover           0x00
 #define opcode_hello              0x01
 #define opcode_emit               0x02
@@ -43,6 +49,15 @@
 
 #endif
 
+#define sess_discover_conflicting       0x00
+#define sess_reset                      0x01
+#define sess_discover_noack             0x02
+#define sess_discover_acking            0x03
+#define sess_discover_noack_chgd_xid    0x04
+#define sess_discover_acking_chgd_xid   0x05
+#define sess_topo_reset                 0x06
+#define sess_hello                      0x07
+
 
 typedef struct state {
     short       timeout; //timeout in seconds
@@ -62,12 +77,16 @@ typedef struct automata {
     uint8_t     transitions_no;
     state       states_table[MAX_STATES];
     uint8_t     states_no;
+    char*       name;
 } automata;
 
 automata* init_automata_mapping(void);
 automata* switch_state_mapping(automata*, int, char*);
 
 automata* init_automata_enumeration(void);
-automata* switch_state_enumeration(automata*, int);
+automata* switch_state_enumeration(automata*, int, char*);
+
+automata* init_automata_session(void);
+automata* switch_state_session(automata*, int, char*);
 
 #endif /* defined(__LLTDd__automata__) */
