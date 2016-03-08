@@ -439,7 +439,10 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
             }
         }
         currentNetworkInterface->seeList = NULL;
-        if (currentNetworkInterface->icon) free(currentNetworkInterface->icon);
+        if (currentNetworkInterface->icon) {
+            free(currentNetworkInterface->icon);
+            currentNetworkInterface->icon=NULL;
+        }
         free(currentNetworkInterface);
     /*
      * Keep the struct, the notification and the deviceName.
@@ -464,7 +467,10 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
             }
         }
         currentNetworkInterface->seeList = NULL;
-        if (currentNetworkInterface->icon) free(currentNetworkInterface->icon);
+        if (currentNetworkInterface->icon) {
+            free(currentNetworkInterface->icon);
+            currentNetworkInterface->icon=NULL;
+        }
         pthread_cancel(currentNetworkInterface->posixThreadID);
     /*
      * Restart like new.
@@ -494,7 +500,10 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
             }
         }
         currentNetworkInterface->seeList = NULL;
-        if (currentNetworkInterface->icon) free(currentNetworkInterface->icon);
+        if (currentNetworkInterface->icon) {
+            free(currentNetworkInterface->icon);
+            currentNetworkInterface->icon=NULL;
+        }
         close(currentNetworkInterface->socket);
         validateInterface(currentNetworkInterface, service);
     /*

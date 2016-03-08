@@ -100,6 +100,10 @@ void sendImage(void *networkInterface, uint16_t offset) {
     void *icon = NULL;
     size_t size = 0;
     if (currentNetworkInterface->icon == NULL || currentNetworkInterface->iconSize == 0) {
+        if (currentNetworkInterface->icon) {
+            free(currentNetworkInterface->icon);
+            currentNetworkInterface->icon=NULL;
+        }
         getIconImage(&icon, &size);
         currentNetworkInterface->icon = icon;
         currentNetworkInterface->iconSize = size;
