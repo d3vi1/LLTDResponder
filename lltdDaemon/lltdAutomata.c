@@ -16,6 +16,8 @@
 #define enum_new_session                0x03
 #endif
 
+#pragma mark -
+#pragma mark Mapping
 automata* init_automata_mapping() {
     automata *autom = malloc( sizeof(automata) );
     autom->states_no = 3;
@@ -83,9 +85,9 @@ automata* switch_state_mapping(automata* autom, int input, char* debug) {
     }
     
     if (autom->current_state != new_state || find >= 0 || timeout) {
-        printf("%s: Switching from %s with %d ", autom->name, current_state->name, input);
-        if (timeout) printf("(timeout) ");
-        printf("to %s\n", autom->states_table[new_state].name);
+        log_debug("%s: Switching from %s with %d ", autom->name, current_state->name, input);
+        if (timeout) log_debug("(timeout) ");
+        log_debug("to %s\n", autom->states_table[new_state].name);
         
         autom->current_state = new_state;
     }
@@ -99,7 +101,8 @@ automata* switch_state_mapping(automata* autom, int input, char* debug) {
     return autom;
 }
 
-//NOTE: this is actually RepeatBand Algorithm!
+#pragma mark -
+#pragma mark RepeatBand Algorithm
 automata* init_automata_enumeration() {
     automata *autom = malloc( sizeof(automata) );
     autom->states_no = 3;
@@ -114,6 +117,12 @@ automata* init_automata_enumeration() {
     pausing.timeout = 60;
     wait.name = "Wait";
     wait.timeout = 30;
+    
+    autom->extra  = malloc(sizeof(band_state));
+    band_state* band = (band_state*) autom->extra;
+    band->begun = FALSE;
+    band->Ni    = BAND_NMAX;
+    band->r     = BAND_BLOCK_TIME;
     
     autom->current_state = 0;
     
@@ -152,8 +161,8 @@ automata* switch_state_enumeration(automata* autom, int input, char* debug) {
     }
     
     if (new_state != autom->current_state || find >= 0) {
-        printf("%s: Switching from %s with %d (%s) ", autom->name, current_state->name, input, debug);
-        printf("to %s\n", autom->states_table[new_state].name);
+        log_debug("%s: Switching from %s with %d (%s) ", autom->name, current_state->name, input, debug);
+        log_debug("to %s\n", autom->states_table[new_state].name);
         
         autom->current_state = new_state;
     }
@@ -162,6 +171,8 @@ automata* switch_state_enumeration(automata* autom, int input, char* debug) {
     return autom;
 }
 
+#pragma mark -
+#pragma mark Session
 automata* init_automata_session() {
     automata *autom = malloc( sizeof(automata) );
     autom->states_no = 4;
@@ -231,9 +242,9 @@ automata* switch_state_session(automata* autom, int input, char* debug) {
     }
     
     if (autom->current_state != new_state || find >= 0 || timeout) {
-        printf("%s: Switching from %s with %d (%s) ", autom->name, current_state->name, input, debug);
-        if (timeout) printf("(timeout) ");
-        printf("to %s\n", autom->states_table[new_state].name);
+        log_debug("%s: Switching from %s with %d (%s) ", autom->name, current_state->name, input, debug);
+        if (timeout) log_debug("(timeout) ");
+        log_debug("to %s\n", autom->states_table[new_state].name);
         
         autom->current_state = new_state;
     }
