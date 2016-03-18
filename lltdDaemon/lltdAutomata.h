@@ -58,6 +58,17 @@
 #define sess_topo_reset                 0x06
 #define sess_hello                      0x07
 
+// RepeatBand Constants (milliseconds)
+#define BAND_NMAX 10000
+#define BAND_ALPHA 45
+#define BAND_BETA 2
+#define BAND_GAMMA 10
+#define BAND_TXC 4
+#define BAND_FRAME_TIME 6.667
+#define BAND_BLOCK_TIME 300
+// Want 6.67 ms per frame. Equals 20/3.
+#define BAND_MUL_FRAME(_x) (((_x) * 20) / 3)
+
 
 typedef struct state {
     short       timeout; //timeout in seconds
@@ -78,7 +89,15 @@ typedef struct automata {
     state       states_table[MAX_STATES];
     uint8_t     states_no;
     char*       name;
+    void*       extra;
 } automata;
+
+typedef struct band_state {
+    uint32_t    Ni;
+    uint32_t    r;
+    bool        begun;
+} band_state;
+
 
 automata* init_automata_mapping(void);
 automata* switch_state_mapping(automata*, int, char*);

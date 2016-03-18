@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include "lltdAutomata.c"
 
 
@@ -21,8 +22,6 @@ int main(int argc, const char * argv[]) {
      sleep(5);
      switch_state_sample(automat, 2);
      */
-    
-    
     
     automata *en = init_automata_mapping();
     
@@ -62,10 +61,14 @@ int main(int argc, const char * argv[]) {
     switch_state_session(st, sess_discover_noack, "sess_discover_noack");
     switch_state_session(st, sess_discover_acking, "sess_discover_acking");
     switch_state_session(st, sess_discover_acking_chgd_xid, "sess_discover_acking_chgd_xid");
+    printf("Preparing to sleep 2s\n");
     sleep(2);
+    printf("Slept 2s\n");
     switch_state_session(st, opcode_reset, "opcode_reset");
     switch_state_session(st, sess_discover_conflicting, "sess_discover_conflicting");
+    printf("Preparing to sleep another 2s\n");
     sleep(2);
+    printf("Slept another 2s\n");
     switch_state_session(st, sess_discover_acking_chgd_xid, "sess_discover_acking_chgd_xid");
     
     
