@@ -79,6 +79,17 @@ void lltdLoop (void *data){
     //
     setsockopt(fileDescriptor, SOL_NDRVPROTO, NDRV_SETDMXSPEC, (caddr_t)&protocolDescription, sizeof(protocolDescription));
     log_notice("Successfully binded to %s", currentNetworkInterface->deviceName);
+
+    //
+    //Rename the thread to listener: $ifName
+    //
+    char *threadName = malloc(strlen(currentNetworkInterface->deviceName)+strlen("listener: ")+1);
+    if (threadName) {
+        strcpy(threadName, "listener: ");
+        strcat(threadName, currentNetworkInterface->deviceName);
+        pthread_setname_np(threadName);
+        free(threadName);
+    }
     
     //
     // Start the run loop
@@ -86,8 +97,13 @@ void lltdLoop (void *data){
     unsigned int cyclNo = 0;
     currentNetworkInterface->recvBuffer = malloc(currentNetworkInterface->MTU);
     
-    for(;;){
+    if(currentNetworkInterface->recvBuffer == NULL) {
+        log_err("The receive buffer couldn't be allocated. We've failed misserably on interface %s", currentNetworkInterface->deviceName);
+    } else for(;;){
         recvfrom(fileDescriptor, currentNetworkInterface->recvBuffer, currentNetworkInterface->MTU, 0, NULL, NULL);
+        if(currentNetworkInterface->recvBuffer == NULL) {
+            log_err("For some reason the receive buffer has been free-ed by someone. HEEELP");
+        }
         parseFrame(currentNetworkInterface->recvBuffer, currentNetworkInterface);
     }
     
@@ -118,7 +134,6 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     kern_return_t         kernel_return;
     io_service_t          IONetworkController;
     network_interface_t  *currentNetworkInterface = (network_interface_t*) refCon;
-    CFNumberRef           CFLinkStatus;
     
     
     //
@@ -152,18 +167,17 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         //
         // Get/Check the LinkStatus
         //
-        CFLinkStatus = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOLinkStatus), kCFAllocatorDefault, 0);
+        CFNumberRef CFLinkStatus = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOLinkStatus), kCFAllocatorDefault, 0);
         if (CFLinkStatus){
-            /*
-             * Check if we have link on the controller
-             */
+
+             // Check if we have link on the controller
             int  LinkStatus = 0;
             CFNumberGetValue(CFLinkStatus, kCFNumberIntType, &LinkStatus);
             currentNetworkInterface->linkStatus=LinkStatus;
         
+            // First check for error scenarios
             if((LinkStatus & (kIONetworkLinkValid|kIONetworkLinkActive)) == (kIONetworkLinkValid|kIONetworkLinkActive)){
-                //This is the best scenario.
-                CFRelease(CFLinkStatus);
+                //This is the best scenario. I've put it here to simplify the expressions below.
             } else if (LinkStatus & kIONetworkLinkActive) {
                 //Having an invalid LinkStatus is not fatal. We just put an
                 //interest notification and we get called to validate again if
@@ -183,6 +197,9 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
                 CFRelease(CFLinkStatus);
                 return;
             }
+            //This is the best scenario (kIONetworkLinkValid | kIONetworkLinkActive).
+            CFRelease(CFLinkStatus);
+            
         } else {
             //Not being able to read the LinkStatus (even if it's invalid) is fatal
             //and we ignore the interface from here on.
@@ -379,8 +396,8 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         return;
     }
     
+
     int threadError = pthread_create(&posixThreadID, &threadAttributes, (void *)&lltdLoop, currentNetworkInterface);
-    
     currentNetworkInterface->posixThreadID = posixThreadID;
     returnVal = pthread_attr_destroy(&threadAttributes);
     
@@ -427,7 +444,10 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
         pthread_cancel(currentNetworkInterface->posixThreadID);
         free((void *)currentNetworkInterface->deviceName);
         IOObjectRelease(currentNetworkInterface->notification);
-        if(currentNetworkInterface->recvBuffer) free(currentNetworkInterface->recvBuffer);
+        if(currentNetworkInterface->recvBuffer) {
+            free(currentNetworkInterface->recvBuffer);
+            currentNetworkInterface->recvBuffer = NULL;
+        }
         //Clean the linked list
         probe_t *currentProbe = currentNetworkInterface->seeList;
         void    *nextProbe;
