@@ -183,8 +183,8 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
                 //interest notification and we get called to validate again if
                 //something changes.
                 log_debug("%s Validation Failed: Interface doesn't have a Valid Link but has an Active one", currentNetworkInterface->deviceName);
-                IOServiceAddInterestNotification(notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
-                IOServiceAddInterestNotification(notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+                IOServiceAddInterestNotification(globalInfo.notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+                IOServiceAddInterestNotification(globalInfo.notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
                 CFRelease(CFLinkStatus);
                 return;
             } else if (LinkStatus & kIONetworkLinkValid) {
@@ -192,8 +192,8 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
                 //interest notification and we get called to validate again if
                 //something changes.
                 log_debug("%s Validation Failed: Interface doesn't have an Active Link but has a Valid one", currentNetworkInterface->deviceName);
-                IOServiceAddInterestNotification(notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
-                IOServiceAddInterestNotification(notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+                IOServiceAddInterestNotification(globalInfo.notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+                IOServiceAddInterestNotification(globalInfo.notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
                 CFRelease(CFLinkStatus);
                 return;
             }
@@ -293,8 +293,8 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
 
         if( (!(currentNetworkInterface->flags & (IFF_UP | IFF_BROADCAST))) | (currentNetworkInterface->flags & IFF_LOOPBACK)){
             log_err("%s Failed the flags check", currentNetworkInterface->deviceName);
-            IOServiceAddInterestNotification(notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
-            IOServiceAddInterestNotification(notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+            IOServiceAddInterestNotification(globalInfo.notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+            IOServiceAddInterestNotification(globalInfo.notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
             IOObjectRelease(IONetworkInterface);
             CFRelease(CFFlags);
             return;
@@ -326,7 +326,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     // function. We are also giving it a pointer to our networkInterface
     // so that we don't keep a global array of all interfaces.
     //
-    kernel_return = IOServiceAddInterestNotification(notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+    kernel_return = IOServiceAddInterestNotification(globalInfo.notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
     if (kernel_return!=KERN_SUCCESS) {
         log_err("%s IOServiceAddInterestNofitication Interface error: 0x%08x.", currentNetworkInterface->deviceName, kernel_return);
         IOObjectRelease(IONetworkInterface);
@@ -348,7 +348,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     
     if(IONetworkController) {
 
-        kernel_return = IOServiceAddInterestNotification(notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+        kernel_return = IOServiceAddInterestNotification(globalInfo.notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
         if (kernel_return!=KERN_SUCCESS){
             log_err("%s IOServiceAddInterestNofitication Controller error: 0x%08x.", currentNetworkInterface->deviceName, kernel_return);
             IOObjectRelease(IONetworkInterface);
@@ -429,11 +429,11 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
     IORegistryEntryGetName(service, nameString);
 #ifdef DEBUG
     if (IOObjectConformsTo(service, kIONetworkInterfaceClass)){
-        log_debug("Notification received: %s type: %x networkInterfaceClass: %s", currentNetworkInterface->deviceName, messageType, nameString);
+        log_debug("Notification received: %s type: %x networkInterfaceClass: %s" , currentNetworkInterface->deviceName, messageType, nameString);
     } else if (IOObjectConformsTo(service, kIONetworkControllerClass)){
         log_debug("Notification received: %s type: %x networkControllerClass: %s", currentNetworkInterface->deviceName, messageType, nameString);
     } else {
-        log_debug("Notification received: %s type: %x networkSomethingClass: %s", currentNetworkInterface->deviceName, messageType, nameString);
+        log_debug("Notification received: %s type: %x networkSomethingClass: %s" , currentNetworkInterface->deviceName, messageType, nameString);
     }
 #endif
     /*
@@ -459,10 +459,6 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
             }
         }
         currentNetworkInterface->seeList = NULL;
-        if (currentNetworkInterface->icon) {
-            free(currentNetworkInterface->icon);
-            currentNetworkInterface->icon=NULL;
-        }
         free(currentNetworkInterface);
     /*
      * Keep the struct, the notification and the deviceName.
@@ -487,10 +483,6 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
             }
         }
         currentNetworkInterface->seeList = NULL;
-        if (currentNetworkInterface->icon) {
-            free(currentNetworkInterface->icon);
-            currentNetworkInterface->icon=NULL;
-        }
         pthread_cancel(currentNetworkInterface->posixThreadID);
     /*
      * Restart like new.
@@ -520,10 +512,6 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
             }
         }
         currentNetworkInterface->seeList = NULL;
-        if (currentNetworkInterface->icon) {
-            free(currentNetworkInterface->icon);
-            currentNetworkInterface->icon=NULL;
-        }
         close(currentNetworkInterface->socket);
         validateInterface(currentNetworkInterface, service);
     /*
@@ -608,11 +596,11 @@ int main(int argc, const char *argv[]){
     // Create a new Apple System Log facility entry
     // of Daemon type with the LLMNR name
     //
-    asl = NULL;
-    log_msg = NULL;
-    asl = asl_open("LLTD", "Daemon", ASL_OPT_STDERR);
-    log_msg = asl_new(ASL_TYPE_MSG);
-    asl_set(log_msg, ASL_KEY_SENDER, "LLTD");
+    globalInfo.asl     = NULL;
+    globalInfo.log_msg = NULL;
+    globalInfo.asl     = asl_open("LLTD", "Daemon", ASL_OPT_STDERR);
+    globalInfo.log_msg = asl_new(ASL_TYPE_MSG);
+    asl_set(globalInfo.log_msg, ASL_KEY_SENDER, "LLTD");
 
     
     //
@@ -631,9 +619,9 @@ int main(int argc, const char *argv[]){
     // Creates and returns a notification object for receiving
     // IOKit notifications of new devices or state changes
     //
-    masterPort = MACH_PORT_NULL;
-    kernel_return = IOMasterPort(bootstrap_port, &masterPort);
-    if (kernel_return != KERN_SUCCESS) {
+    masterPort        = MACH_PORT_NULL;
+    kernel_return     = IOMasterPort(bootstrap_port, &masterPort);
+    if (kernel_return!=KERN_SUCCESS) {
         log_err("IOMasterPort returned 0x%x", kernel_return);
         return EXIT_FAILURE;
     }
@@ -643,10 +631,10 @@ int main(int argc, const char *argv[]){
     // port and a clean iterator.
     //
     newDevicesIterator = 0;
-    notificationPort = IONotificationPortCreate(masterPort);
-    runLoopSource = IONotificationPortGetRunLoopSource(notificationPort);
-    runLoop = CFRunLoopGetCurrent();
-    CFRunLoopAddSource(runLoop, runLoopSource, kCFRunLoopDefaultMode);
+    globalInfo.notificationPort   = IONotificationPortCreate(masterPort);
+    runLoopSource                 = IONotificationPortGetRunLoopSource(globalInfo.notificationPort);
+    globalInfo.runLoop            = CFRunLoopGetCurrent();
+    CFRunLoopAddSource(globalInfo.runLoop, runLoopSource, kCFRunLoopDefaultMode);
 
     //
     // Add the Service Notification to the Run Loop. It will
@@ -654,16 +642,16 @@ int main(int argc, const char *argv[]){
     // The device removed notifications are added in the Run Loop
     // from the actual "deviceAppeared" function.
     //
-    kernel_return = IOServiceAddMatchingNotification(notificationPort, kIOFirstMatchNotification, IOServiceMatching(kIONetworkInterfaceClass), deviceAppeared, NULL, &newDevicesIterator);
+    kernel_return = IOServiceAddMatchingNotification(globalInfo.notificationPort, kIOFirstMatchNotification, IOServiceMatching(kIONetworkInterfaceClass), deviceAppeared, NULL, &newDevicesIterator);
     if (kernel_return!=KERN_SUCCESS) log_crit("IOServiceAddMatchingNotification(deviceAppeared) returned 0x%x", kernel_return);
     
     //
     // Do an initial device scan since the Run Loop is not yet
     // started. This will also add the notifications:
-    // * Device disappeared
-    // * IOKit Property changed
+    // * Device disappeared;
+    // * IOKit Property changed;
     // * From IOKit PowerManagement we get the sleep/hibernate
-    //   shutdown and wake notifications (NOTYET);
+    //   shutdown and wake notifications;
     // * From SystemConfiguration we get the IPv4/IPv6 add,
     //   change, removed notifications (NOTYET);
     //
@@ -680,7 +668,7 @@ int main(int argc, const char *argv[]){
     //
     log_crit("Unexpectedly back from CFRunLoopRun()!");
     if (masterPort != MACH_PORT_NULL) mach_port_deallocate(mach_task_self(), masterPort);
-    asl_close(asl);
+    asl_close(globalInfo.asl);
     return EXIT_FAILURE;
     
 }

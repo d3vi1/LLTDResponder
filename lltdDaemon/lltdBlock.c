@@ -99,17 +99,17 @@ void sendImage(void *networkInterface, uint16_t offset) {
     // TODO: Figure out a way to store the icon on all threads, calculate the first time it's req and keep bytes in RAM
     void *icon = NULL;
     size_t size = 0;
-    if (currentNetworkInterface->icon == NULL || currentNetworkInterface->iconSize == 0) {
-        if (currentNetworkInterface->icon) {
-            free(currentNetworkInterface->icon);
-            currentNetworkInterface->icon=NULL;
+    if (globalInfo.smallIcon == NULL || globalInfo.smallIconSize == 0) {
+        if (globalInfo.smallIcon) {
+            free(globalInfo.smallIcon);
+            globalInfo.smallIcon=NULL;
         }
         getIconImage(&icon, &size);
-        currentNetworkInterface->icon = icon;
-        currentNetworkInterface->iconSize = size;
+        globalInfo.smallIcon = icon;
+        globalInfo.smallIconSize = size;
     } else {
-        icon = currentNetworkInterface->icon;
-        size = currentNetworkInterface->iconSize;
+        icon = globalInfo.smallIcon;
+        size = globalInfo.smallIconSize;
     }
     
     

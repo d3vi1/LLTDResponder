@@ -18,6 +18,17 @@
 
 #pragma pack( pop )
 
+struct {
+    void                  *smallIcon;
+    size_t                 smallIconSize;
+    void                  *largeIcon;
+    size_t                 largeIconSize;
+    IONotificationPortRef  notificationPort;
+    CFRunLoopRef           runLoop;
+    aslclient              asl;
+    aslmsg                 log_msg;
+} globalInfo;
+
 typedef struct {
     io_object_t            notification;
     const char            *deviceName;
@@ -38,21 +49,13 @@ typedef struct {
     int                    socket;
     struct sockaddr_ndrv   socketAddr;
     pthread_t              posixThreadID;
-    void                  *icon;
-    size_t                 iconSize;
     void                  *seeList;
     uint32_t               seeListCount;
     uint16_t               MapperSeqNumber;
     uint8_t                macAddress      [ kIOEthernetAddressSize ];
     uint8_t                MapperHwAddress [ kIOEthernetAddressSize ];
     void                  *recvBuffer;          //We need to clear the receive Buffer when we kill the thread.
-
 } network_interface_t;
-
-IONotificationPortRef       notificationPort;
-CFRunLoopRef                runLoop;
-aslclient                   asl;
-aslmsg                      log_msg;
 
 void deviceAppeared   (void *refCon, io_iterator_t iterator);
 void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType, void *messageArgument);

@@ -51,14 +51,14 @@
     #include "lltdBlock.h"
     #include "lltdTlvOps.h"
     #include "lltdAutomata.h"
-    #define log_debug(x, ...)   asl_log(asl, log_msg, ASL_LEVEL_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define log_info(x, ...)    asl_log(asl, log_msg, ASL_LEVEL_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define log_notice(x, ...)  asl_log(asl, log_msg, ASL_LEVEL_NOTICE,  "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define log_warning(x, ...) asl_log(asl, log_msg, ASL_LEVEL_WARNING, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define log_err(x, ...)     asl_log(asl, log_msg, ASL_LEVEL_ERR,     "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define log_crit(x, ...)    asl_log(asl, log_msg, ASL_LEVEL_CRIT,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define log_alert(x, ...)   asl_log(asl, log_msg, ASL_LEVEL_ALERT,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define log_emerg(x, ...)   asl_log(asl, log_msg, ASL_LEVEL_EMERG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_debug(x, ...)   asl_log(globalInfo.asl, globalInfo.log_msg, ASL_LEVEL_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_info(x, ...)    asl_log(globalInfo.asl, globalInfo.log_msg, ASL_LEVEL_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_notice(x, ...)  asl_log(globalInfo.asl, globalInfo.log_msg, ASL_LEVEL_NOTICE,  "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_warning(x, ...) asl_log(globalInfo.asl, globalInfo.log_msg, ASL_LEVEL_WARNING, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_err(x, ...)     asl_log(globalInfo.asl, globalInfo.log_msg, ASL_LEVEL_ERR,     "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_crit(x, ...)    asl_log(globalInfo.asl, globalInfo.log_msg, ASL_LEVEL_CRIT,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_alert(x, ...)   asl_log(globalInfo.asl, globalInfo.log_msg, ASL_LEVEL_ALERT,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_emerg(x, ...)   asl_log(globalInfo.asl, globalInfo.log_msg, ASL_LEVEL_EMERG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
 #endif /*__darwin__ */
 
 /*
