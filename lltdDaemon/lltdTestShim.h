@@ -26,7 +26,6 @@ typedef bool boolean_t;
 typedef struct {
     const char *deviceName;
     uint32_t    ifType;
-    enum { NetworkInterfaceTypeBond, NetworkInterfaceTypeBridge, NetworkInterfaceTypeEthernet, NetworkInterfaceTypeIEEE80211, NetworkInterfaceTypeVLAN} interfaceType;
     uint32_t    MediumType;
     uint32_t    flags;
     uint32_t    LinkSpeed;

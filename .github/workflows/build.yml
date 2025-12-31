@@ -5,16 +5,124 @@ on:
     branches: [main, master]
     tags: ['v*']
   pull_request:
-    branches: [main, master]
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      run_privileged:
+        description: "Run privileged tests (requires CAP_NET_RAW on Linux)"
+        type: boolean
+        default: false
+      run_coverage:
+        description: "Run coverage build (gcov) on Linux"
+        type: boolean
+        default: false
 
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  unit-tests:
-    name: unit-tests-${{ matrix.os }}
+  test:
+    name: test-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux test dependencies
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libcmocka-dev pkg-config
+
+      - name: Install macOS test dependencies
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          brew update
+          brew install cmocka pkg-config
+
+      - name: Run unit + integration tests
+        run: |
+          set -euo pipefail
+          make test
+
+  sanitizer:
+    name: sanitizer-linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux test dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libcmocka-dev pkg-config
+
+      - name: Run tests with ASan/UBSan
+        run: |
+          set -euo pipefail
+          make test SANITIZE=1
+
+  privileged:
+    name: privileged-tests-linux
+    if: github.event_name == 'workflow_dispatch' && inputs.run_privileged == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux test dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libcmocka-dev pkg-config
+
+      - name: Run privileged tests
+        run: |
+          set -euo pipefail
+          make test-privileged
+
+  coverage:
+    name: coverage-linux
+    if: github.event_name == 'workflow_dispatch' && inputs.run_coverage == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux test dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libcmocka-dev pkg-config
+
+      - name: Run coverage build
+        run: |
+          set -euo pipefail
+          make coverage
+          gcov -o . lltdDaemon/lltdTlvOps.c
+
+      - name: Collect coverage artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p coverage-artifacts
+          find . -name '*.gcov' -o -name '*.gcda' -o -name '*.gcno' | xargs -I{} cp --parents {} coverage-artifacts
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lltd-coverage
+          path: coverage-artifacts
+
+  build:
+    name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
