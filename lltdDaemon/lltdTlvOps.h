@@ -11,7 +11,7 @@
 #ifndef LLTDd_tlv_ops_h
 #define LLTDd_tlv_ops_h
 
-static const ethernet_address_t EthernetBroadcast = (ethernet_address_t) {{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
+static const ethernet_address_t EthernetBroadcast = {{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
 
 bool compareEthernetAddress      (const ethernet_address_t *A, const ethernet_address_t *B);
 size_t setLltdHeader             (void *buffer, ethernet_address_t *source, ethernet_address_t *destination, uint16_t seqNumber, uint8_t opcode, uint8_t tos);
