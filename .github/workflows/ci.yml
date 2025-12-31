@@ -18,6 +18,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y curl python3
           urls=(
+            "https://github.com/open-watcom/open-watcom-v2/releases/download/2025-12-01-Build/open-watcom-2_0-c-linux-x64"
             "https://downloads.sourceforge.net/project/openwatcom/open-watcom-2.0/open-watcom-2_0-linux-x64.tar.bz2"
             "https://downloads.sourceforge.net/project/openwatcom/open-watcom-2.0/open-watcom-2_0-linux-x64.tar.bz2?download=1"
             "https://sourceforge.net/projects/openwatcom/files/open-watcom-2.0/open-watcom-2_0-linux-x64.tar.bz2/download"

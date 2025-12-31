@@ -193,19 +193,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-			isa = PBXNativeTarget;
-			buildPhases = (
-				E59C3D6518E9B38C006836B0 /* Sources */,
-				E59C3D6618E9B38C006836B0 /* Frameworks */,
-				E59C3D6718E9B38C006836B0 /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			productName = lltddaemon;
-			productType = "com.apple.product-type.tool";
-		};
 		E59E8BF218CF4D250054B295 /* lltdDaemon */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E59E8BFD18CF4D250054B295 /* Build configuration list for PBXNativeTarget "lltdDaemon" */;
