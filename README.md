@@ -2,10 +2,7 @@
 
 ## Details
 
-This product wants to implement the following Protocols Responders
-* Microsoft Link Layer Topology Discovery (OS X, Linux, ESXi, Solaris, FreeBSD)
-* Microsoft Link-Local Multicast Name Resolution (OS X, Linux, Solaris, FreeBSD)
-* Link Layer Discovery Protocol (OS X, Linux, ESXi, Solaris, FreeBSD)
+This product wants to implement the Microsoft Link Layer Topology Discovery Protocol (OS X, Linux, ESXi, Solaris, FreeBSD, Windows, BeOS/Haiku as native services/daemons and ESP32 as a library)
 
 ## LLTD
 
@@ -24,8 +21,3 @@ The LLTD codebase is now organized by platform under `lltdDaemon/`:
 * `esp32/` – reusable ESP32 library with build-time icon data
 * `esxi/` – ESXi userworld draft based on Linux flow
 * `windows/` – Windows draft shared across Win16/Win9x/WinNT/2000
-
-## LLDP
-
-The implementation should be adapted from the lldpd project clean integration for the target OSs. It automatically discovers device topologies (bridge and others and correctly informs the neighbors about it).
-Licensing is TBD.
