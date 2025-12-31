@@ -1,0 +1,52 @@
+#!/usr/bin/env sh
+### BEGIN INIT INFO
+# Provides:          lltd
+# Required-Start:    $network
+# Required-Stop:     $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: LLTD responder daemon
+### END INIT INFO
+
+DAEMON=/usr/sbin/lltdDaemon
+PIDFILE=/var/run/lltd.pid
+INTERFACES=${INTERFACES:-""}
+
+start() {
+    if [ ! -x "$DAEMON" ]; then
+        echo "LLTD daemon not found: $DAEMON" >&2
+        return 1
+    fi
+    if [ -n "$INTERFACES" ]; then
+        export LLTD_INTERFACE="$INTERFACES"
+    fi
+    echo "Starting LLTD responder"
+    "$DAEMON" &
+    echo $! > "$PIDFILE"
+}
+
+stop() {
+    if [ -f "$PIDFILE" ]; then
+        PID=$(cat "$PIDFILE")
+        echo "Stopping LLTD responder"
+        kill "$PID" 2>/dev/null || true
+        rm -f "$PIDFILE"
+    fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}" >&2
+        exit 1
+        ;;
+esac

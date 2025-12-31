@@ -26,10 +26,14 @@ struct {
 typedef struct {
     const char   *deviceName;
     uint32_t      ifType;
+    enum { NetworkInterfaceTypeBond, NetworkInterfaceTypeBridge, NetworkInterfaceTypeEthernet, NetworkInterfaceTypeIEEE80211, NetworkInterfaceTypeVLAN} interfaceType;
     int           ifIndex;
     int           socket;
     struct sockaddr_ll socketAddr;
+    uint32_t      MediumType;
     uint32_t      MTU;
+    uint32_t      LinkSpeed;
+    uint32_t      flags;
     uint8_t       macAddress[6];
     uint8_t       MapperHwAddress[6];
     void         *seeList;

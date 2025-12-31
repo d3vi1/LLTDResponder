@@ -56,6 +56,10 @@ static bool fillInterfaceDetails(network_interface_t *iface, const char *ifname)
     if (!iface->deviceName || iface->ifIndex == 0) {
         return false;
     }
+    iface->interfaceType = NetworkInterfaceTypeEthernet;
+    iface->MediumType = 0;
+    iface->LinkSpeed = 0;
+    iface->flags = 0;
 
     iface->socket = socket(AF_PACKET, SOCK_RAW, htons(lltdEtherType));
     if (iface->socket < 0) {
@@ -85,6 +89,10 @@ static bool fillInterfaceDetails(network_interface_t *iface, const char *ifname)
 
     if (ioctl(iface->socket, SIOCGIFHWADDR, &ifr) == 0) {
         memcpy(iface->macAddress, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+    }
+
+    if (ioctl(iface->socket, SIOCGIFFLAGS, &ifr) == 0) {
+        iface->flags = ifr.ifr_flags;
     }
 
     iface->recvBuffer = malloc(iface->MTU);
@@ -121,7 +129,7 @@ static void *lltdLoop(void *data) {
     return NULL;
 }
 
-static char **listInterfaces(size_t *count) {
+static char **listInterfaces(size_t *count, const char *only_name) {
     struct ifaddrs *ifaddr = NULL;
     if (getifaddrs(&ifaddr) != 0) {
         return NULL;
@@ -132,6 +140,9 @@ static char **listInterfaces(size_t *count) {
 
     for (struct ifaddrs *ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
         if (!ifa->ifa_name || !(ifa->ifa_flags & IFF_UP) || (ifa->ifa_flags & IFF_LOOPBACK)) {
+            continue;
+        }
+        if (only_name && strcmp(only_name, ifa->ifa_name) != 0) {
             continue;
         }
 
@@ -163,8 +174,13 @@ static char **listInterfaces(size_t *count) {
 }
 
 int main(int argc, const char *argv[]) {
-    (void)argc;
-    (void)argv;
+    const char *only_interface = getenv("LLTD_INTERFACE");
+    for (int i = 1; i < argc; i++) {
+        if ((strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--interface") == 0) && i + 1 < argc) {
+            only_interface = argv[i + 1];
+            i++;
+        }
+    }
 
     if (signal(SIGINT, SignalHandler) == SIG_ERR) {
         log_err("ERROR: Could not establish SIGINT handler.");
@@ -174,7 +190,7 @@ int main(int argc, const char *argv[]) {
     }
 
     size_t interfaceCount = 0;
-    char **names = listInterfaces(&interfaceCount);
+    char **names = listInterfaces(&interfaceCount, only_interface);
     if (!names || interfaceCount == 0) {
         log_err("No active interfaces found.");
         return 1;
