@@ -8,7 +8,11 @@
  *                                                                            *
  ******************************************************************************/
 
-#include    "lltdDaemon.h"
+#ifdef LLTD_TESTING
+#include "lltdTestShim.h"
+#else
+#include "lltdDaemon.h"
+#endif
 
 #pragma mark -
 #pragma mark Header generation
