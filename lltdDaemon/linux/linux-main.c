@@ -8,7 +8,9 @@
  *                                                                            *
  ******************************************************************************/
 
+#ifndef LLTD_USE_SYSTEMD
 #define LLTD_USE_SYSTEMD 1
+#endif
 
 #include "../lltdDaemon.h"
 #include "../lltdAutomata.h"
@@ -146,6 +148,10 @@ static bool fillInterfaceDetails(network_interface_t *iface, const char *ifname)
     if (!iface->deviceName || iface->ifIndex == 0) {
         return false;
     }
+    iface->interfaceType = NetworkInterfaceTypeEthernet;
+    iface->MediumType = 0;
+    iface->LinkSpeed = 0;
+    iface->flags = 0;
 
     iface->socket = socket(AF_PACKET, SOCK_RAW, htons(lltdEtherType));
     if (iface->socket < 0) {
@@ -176,6 +182,10 @@ static bool fillInterfaceDetails(network_interface_t *iface, const char *ifname)
 
     if (ioctl(iface->socket, SIOCGIFHWADDR, &ifr) == 0) {
         memcpy(iface->macAddress, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+    }
+
+    if (ioctl(iface->socket, SIOCGIFFLAGS, &ifr) == 0) {
+        iface->flags = ifr.ifr_flags;
     }
 
     iface->recvBuffer = malloc(iface->MTU);

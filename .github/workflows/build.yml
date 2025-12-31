@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     tags: ['v*']
   pull_request:
     branches: [main]
@@ -128,21 +128,103 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, macos-latest]
-        compiler: [gcc, clang]
-        build_type: [Debug, Release]
-        exclude:
-          - os: macos-latest
-            compiler: gcc
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux'
+      - name: Run unit tests
+        run: |
+          set -euo pipefail
+          make test
+
+  integration-tests:
+    name: integration-tests-linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install integration dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y iproute2 libcap2-bin
+
+      - name: Build embedded daemon
+        run: |
+          set -euo pipefail
+          make clean
+          make PLATFORM=linux-embedded
+
+      - name: Run integration smoke test
+        run: |
+          set -euo pipefail
+          make integration-test PLATFORM=linux-embedded
+
+  build:
+    name: build-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ matrix.backend }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: gcc
+            build_type: Debug
+            backend: linux-systemd
+          - os: ubuntu-latest
+            compiler: gcc
+            build_type: Debug
+            backend: linux-embedded
+          - os: ubuntu-latest
+            compiler: gcc
+            build_type: Release
+            backend: linux-systemd
+          - os: ubuntu-latest
+            compiler: gcc
+            build_type: Release
+            backend: linux-embedded
+          - os: ubuntu-latest
+            compiler: clang
+            build_type: Debug
+            backend: linux-systemd
+          - os: ubuntu-latest
+            compiler: clang
+            build_type: Debug
+            backend: linux-embedded
+          - os: ubuntu-latest
+            compiler: clang
+            build_type: Release
+            backend: linux-systemd
+          - os: ubuntu-latest
+            compiler: clang
+            build_type: Release
+            backend: linux-embedded
+          - os: macos-latest
+            compiler: clang
+            build_type: Debug
+            backend: darwin
+          - os: macos-latest
+            compiler: clang
+            build_type: Release
+            backend: darwin
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies (systemd)
+        if: runner.os == 'Linux' && matrix.backend == 'linux-systemd'
         run: |
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y ccache libsystemd-dev
+
+      - name: Install Linux dependencies (embedded)
+        if: runner.os == 'Linux' && matrix.backend == 'linux-embedded'
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ccache
 
       - name: Install macOS dependencies
         if: runner.os == 'macOS'
@@ -161,9 +243,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: ${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-ccache-${{ github.sha }}
+          key: ${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ matrix.backend }}-ccache-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-ccache-
+            ${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ matrix.backend }}-ccache-
+            ${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.backend }}-ccache-
             ${{ runner.os }}-${{ matrix.compiler }}-ccache-
 
       - name: Build (Linux)
@@ -178,7 +261,7 @@ jobs:
             export CFLAGS="-O2"
           fi
           make clean
-          make
+          make PLATFORM=${{ matrix.backend }}
 
       - name: Build (macOS)
         if: runner.os == 'macOS'
@@ -201,32 +284,41 @@ jobs:
             aarch64|arm64) ARCH=arm64 ;;
             *) ARCH=$ARCH_RAW ;;
           esac
-          case "${{ runner.os }}" in
-            Linux) OS_NAME=linux ;;
-            macOS) OS_NAME=darwin ;;
-            *) OS_NAME=$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]') ;;
+          case "${{ matrix.backend }}" in
+            linux-systemd) OS_NAME=linux-systemd ;;
+            linux-embedded) OS_NAME=linux-embedded ;;
+            darwin) OS_NAME=darwin ;;
+            *) OS_NAME=$(echo "${{ matrix.backend }}" | tr '[:upper:]' '[:lower:]') ;;
           esac
-          ARTIFACT_NAME="lltdDaemon-${OS_NAME}-${ARCH}"
+          DEBUG_SUFFIX=""
+          if [ "${{ matrix.build_type }}" = "Debug" ]; then
+            DEBUG_SUFFIX="-debug"
+          fi
+          ARTIFACT_NAME="lltdDaemon-${OS_NAME}-${ARCH}${DEBUG_SUFFIX}"
+          BIN_NAME="${ARTIFACT_NAME}.raw"
           mkdir -p dist
           if [ "${{ runner.os }}" = "Linux" ]; then
-            if [ -f lltdReponder ]; then
-              cp lltdReponder "dist/${ARTIFACT_NAME}"
-            elif [ -f lltdResponder ]; then
-              cp lltdResponder "dist/${ARTIFACT_NAME}"
-            else
+            if [ ! -f lltdDaemon ]; then
               echo "Binary not found" >&2
               exit 1
             fi
+            cp lltdDaemon "dist/${BIN_NAME}"
           else
-            cp "build/Build/Products/${{ matrix.build_type }}/lltdDaemon" "dist/${ARTIFACT_NAME}"
+            BIN_PATH="build/Build/Products/${{ matrix.build_type }}/lltdDaemon"
+            if [ ! -f "$BIN_PATH" ]; then
+              echo "Binary not found at $BIN_PATH" >&2
+              exit 1
+            fi
+            cp "$BIN_PATH" "dist/${BIN_NAME}"
           fi
+          tar -czf "dist/${ARTIFACT_NAME}.tar.gz" -C dist "${BIN_NAME}"
           echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> "$GITHUB_ENV"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ARTIFACT_NAME }}-${{ matrix.build_type }}
-          path: dist/${{ env.ARTIFACT_NAME }}
+          name: ${{ env.ARTIFACT_NAME }}
+          path: dist/${{ env.ARTIFACT_NAME }}.tar.gz
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')

@@ -19,56 +19,95 @@ endif
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
-	CCFLAGS += -D LINUX
-#	LLTD_SRC_FILES = lltdDaemon/linux/linux-main.c lltdDaemon/linux/linux-ops.c lltdDaemon/lltdBlock.c lltdDaemon/lltdTlvOps.c
-	LLTD_SRC_FILES = lltdDaemon/linux/linux-main.c
+	CFLAGS += -D LINUX
+	PLATFORM ?= linux-systemd
+	ifeq ($(PLATFORM),linux-systemd)
+		LLTD_SRC_FILES = lltdDaemon/linux/linux-main.c \
+			lltdDaemon/linux/linux-ops.c \
+			lltdDaemon/lltdBlock.c \
+			lltdDaemon/lltdTlvOps.c \
+			lltdDaemon/lltdAutomata.c
+		LLTD_CFLAGS += -DLLTD_BACKEND_SYSTEMD -DLLTD_USE_SYSTEMD
+		LLTD_LDFLAGS += -lsystemd
+	else ifeq ($(PLATFORM),linux-embedded)
+		LLTD_SRC_FILES = lltdDaemon/linux/linux-embedded-main.c \
+			lltdDaemon/lltdBlock.c \
+			lltdDaemon/lltdTlvOps.c \
+			lltdDaemon/lltdAutomata.c
+		LLTD_CFLAGS += -DLLTD_BACKEND_EMBEDDED -DLLTD_USE_CONSOLE
+	else
+		$(error Unsupported PLATFORM '$(PLATFORM)'; use linux-systemd or linux-embedded)
+	endif
 endif
 ifeq ($(UNAME_S),Darwin)
-	CCFLAGS += -D OSX
+	CFLAGS += -D OSX
 endif
 ifeq ($(UNAME_S),SunOS)
-	CCFLAGS += -D SunOS
+	CFLAGS += -D SunOS
 endif
 ifeq ($(UNAME_S),FreeBSD)
-	CCFLAGS += -D FreeBSD
+	CFLAGS += -D FreeBSD
 endif
 
 UNAME_P := $(shell uname -p)
 ifeq ($(UNAME_P),x86_64)
-	CCFLAGS += -D AMD64
+	CFLAGS += -D AMD64
 endif
 ifeq ($(UNAME_P),amd64)
-	CCFLAGS += -D AMD64
+	CFLAGS += -D AMD64
 endif
 ifeq ($(UNAME_P),sparc)
-	CCFLAGS += -D SPARC
+	CFLAGS += -D SPARC
 endif
 ifeq ($(UNAME_P),sparc64)
-	CCFLAGS += -D AMD64
+	CFLAGS += -D AMD64
 endif
 ifeq ($(UNAME_P),mips)
-	CCFLAGS += -D MIPS
+	CFLAGS += -D MIPS
 endif
 ifeq ($(UNAME_P),ppc)
-	CCFLAGS += -D PPC
+	CFLAGS += -D PPC
 endif
 ifeq ($(UNAME_P),powerpc)
-	CCFLAGS += -D PPC
+	CFLAGS += -D PPC
 endif
 ifeq ($(UNAME_P),ppc64)
-	CCFLAGS += -D PPC
+	CFLAGS += -D PPC
 endif
 ifneq ($(filter %86,$(UNAME_P)),)
-	CCFLAGS += -D IA32
+	CFLAGS += -D IA32
 endif
 ifneq ($(filter arm%,$(UNAME_P)),)
-	CCFLAGS += -D ARM
+	CFLAGS += -D ARM
 endif
 
-all: lltdResponder
+all: $(BIN_NAME)
 
-lltdResponder: $(LLTD_SRC_FILES)
-	gcc -o lltdReponder $(LLTD_SRC_FILES)
+$(BIN_NAME): $(LLTD_SRC_FILES)
+	$(CC) $(CFLAGS) $(LLTD_CFLAGS) -o $@ $(LLTD_SRC_FILES) $(LLTD_LDFLAGS)
+
+$(TEST_DIR):
+	mkdir -p $(TEST_DIR)
+
+TEST_SOURCES = lltdDaemon/lltdTlvOps.c tests/test_shims.c tests/test_lltd_tlv_ops.c
+
+test-unit: $(TEST_DIR)
+	$(CC) $(TEST_CFLAGS) $(TEST_SOURCES) \
+		$(TEST_LDFLAGS) -o $(TEST_DIR)/unit_tests
+	$(TEST_DIR)/unit_tests
+
+test: test-unit
+
+integration-helper: $(TEST_DIR)
+	$(CC) $(TEST_CFLAGS) lltdDaemon/lltdTlvOps.c tests/test_shims.c \
+		tests/integration/lltd_integration_smoke.c \
+		$(TEST_LDFLAGS) -o $(TEST_DIR)/lltd_integration_smoke
+
+integration-test: integration-helper
+	./tests/integration/linux_veth.sh $(TEST_DIR)/lltd_integration_smoke ./$(BIN_NAME)
+
+coverage: COVERAGE=1
+coverage: test
 
 test-check:
 	@pkg-config --exists cmocka || (echo "cmocka not found (pkg-config cmocka). Install cmocka to run tests." >&2; exit 1)
