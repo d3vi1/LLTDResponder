@@ -3,25 +3,28 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT="$ROOT_DIR/lltdDaemon.xcodeproj"
-SCHEME="${LLTD_SCHEME:-lltdDaemon}"
+SCHEME="${LLTD_SCHEME:-}"
+TARGET="${LLTD_TARGET:-lltdDaemon}"
 CONFIGURATION="${LLTD_CONFIGURATION:-Release}"
+
+function build_flags() {
+  local arch="$1"
+  if [[ -n "$SCHEME" ]]; then
+    echo "-project" "$PROJECT" "-scheme" "$SCHEME" "-configuration" "$CONFIGURATION" "-arch" "$arch" "-sdk" "macosx"
+  else
+    echo "-project" "$PROJECT" "-target" "$TARGET" "-configuration" "$CONFIGURATION" "-arch" "$arch" "-sdk" "macosx"
+  fi
+}
 
 function build_arch() {
   local arch="$1"
   local derived="$ROOT_DIR/build/macos/$arch"
-  xcodebuild -project "$PROJECT" \
-    -scheme "$SCHEME" \
-    -configuration "$CONFIGURATION" \
-    -destination 'generic/platform=macOS' \
-    -arch "$arch" \
+  xcodebuild $(build_flags "$arch") \
     -derivedDataPath "$derived" \
     build
 
   local settings
-  settings=$(xcodebuild -project "$PROJECT" \
-    -scheme "$SCHEME" \
-    -configuration "$CONFIGURATION" \
-    -arch "$arch" \
+  settings=$(xcodebuild $(build_flags "$arch") \
     -derivedDataPath "$derived" \
     -showBuildSettings)
 

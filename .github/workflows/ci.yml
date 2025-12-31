@@ -16,7 +16,10 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y open-watcom python3
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository universe
+          sudo apt-get update
+          sudo apt-get install -y openwatcom python3
 
       - name: Build Win16 + Win9x + INF templates
         run: |
