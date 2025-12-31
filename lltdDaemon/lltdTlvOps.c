@@ -303,19 +303,75 @@ size_t setBSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
 }
 
 size_t setSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
-    return 0;
+    generic_tlv_t *ssidTlv = (generic_tlv_t *) (buffer + offset);
+    ssidTlv->TLVType = tlv_ssid;
+    ssidTlv->TLVLength = 0;
+
+#ifdef __APPLE__
+    char *ssid = NULL;
+    size_t ssidSize = 0;
+    if (getSSID(&ssid, &ssidSize, networkInterface) && ssid && ssidSize > 0) {
+        if (ssidSize > 32) {
+            ssidSize = 32;
+        }
+        ssidTlv->TLVLength = (uint8_t)ssidSize;
+        memcpy((void *)(buffer + offset + sizeof(generic_tlv_t)), ssid, ssidSize);
+        free(ssid);
+        return sizeof(generic_tlv_t) + ssidSize;
+    }
+    if (ssid) {
+        free(ssid);
+    }
+#endif
+    return sizeof(generic_tlv_t);
 }
 
 size_t setWifiMaxRateTLV(void *buffer, uint64_t offset, void *networkInterface){
-    return 0;
+    generic_tlv_t *rateTlv = (generic_tlv_t *) (buffer + offset);
+    rateTlv->TLVType = tlv_wifiMaxRate;
+    rateTlv->TLVLength = sizeof(uint32_t);
+
+    uint32_t *rate = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
+    *rate = 0;
+#ifdef __APPLE__
+    uint32_t rateMbps = 0;
+    if (getWifiMaxRate(&rateMbps, networkInterface)) {
+        *rate = htonl(rateMbps);
+    }
+#endif
+    return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 
 size_t setWifiRssiTLV(void *buffer, uint64_t offset, void *networkInterface){
-    return 0;
+    generic_tlv_t *rssiTlv = (generic_tlv_t *) (buffer + offset);
+    rssiTlv->TLVType = tlv_wifiRssi;
+    rssiTlv->TLVLength = sizeof(int8_t);
+
+    int8_t *rssi = (int8_t *)(buffer + offset + sizeof(generic_tlv_t));
+    *rssi = 0;
+#ifdef __APPLE__
+    int8_t rssiValue = 0;
+    if (getWifiRssi(&rssiValue, networkInterface)) {
+        *rssi = rssiValue;
+    }
+#endif
+    return sizeof(generic_tlv_t) + sizeof(int8_t);
 }
 
 size_t set80211MediumTLV(void *buffer, uint64_t offset, void *networkInterface){
-    return 0;
+    generic_tlv_t *mediumTlv = (generic_tlv_t *) (buffer + offset);
+    mediumTlv->TLVType = tlv_ifType;
+    mediumTlv->TLVLength = sizeof(uint32_t);
+
+    uint32_t *medium = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
+    *medium = 0;
+#ifdef __APPLE__
+    uint32_t phyMedium = 0;
+    if (getWifiPhyMedium(&phyMedium, networkInterface)) {
+        *medium = htonl(phyMedium);
+    }
+#endif
+    return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 
 size_t setAPAssociationTableTLV(void *buffer, uint64_t offset, void *networkInterface){

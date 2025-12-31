@@ -11,19 +11,19 @@ This product wants to implement the following Protocols Responders
 
 The implementation is done from scratch based on the Microsoft provided documentation. No elements of the LLTD Porting kit from Microsoft were used in producing this code.
 
-The end-license will be GNU GPLv3 for the with commercial products available for ESXi, Solaris, OS X and OEM Linux.
-
 It does not yet implement the WiFi elements since linking to CoreWLAN is a bit more complex than apparent at first sight. Some of the information is not available directly in IOKit. It links strictly to CoreFoundation, LaunchD and ASL. One thread per CSMA/C[A|D] interface and the threads get created/killed as soon as an interface arrives or dissapears using I/OKit notifications.
 
-On Linux it's supposed to be a daemon that gets the information directly from the Linux kernel, bypassing any NetworkManager style solutions that might be present since they are not standard in any way. The Linux port should work seamlessly on ESXi since the Kernel ABI is identical WRT to network interfaces.
+On Linux there are two paths: a systemd/NetworkManager-backed daemon (journald logging, NetworkManager interface discovery), and a minimal embedded UAPI path that uses classic sockets and /dev/console logging.
 
-## LLMNR
-
-The implementation will be done from scratch based on the Microsoft provided documentation. Fundamentally it's almost identical to mDNS except that it can only resolve "IN A(AAA)" queries and no SRV. So it's only a host discovery and no service discovery protocol. I wonder why Microsoft simply didn't implement mDNS. It uses DNS Service Discovery for AD, why not for local services? Because it clashes with it's choice for UPnP.
-
-The end-license will be GNU GPLv3 for the with commercial products available for Solaris, OS X and OEM Linux.
-
-ESXi is specifically excluded as it cannot have a file-serving role.
+The LLTD codebase is now organized by platform under `lltdDaemon/`:
+* `darwin/` – macOS implementation and LaunchD plist
+* `linux/` – systemd/NetworkManager daemon and embedded Linux main
+* `freebsd/` – BPF-based draft implementation
+* `sunos/` – draft implementation (backend TODO)
+* `beos/` – draft implementation (backend TODO)
+* `esp32/` – reusable ESP32 library with build-time icon data
+* `esxi/` – ESXi userworld draft based on Linux flow
+* `windows/` – Windows draft shared across Win16/Win9x/WinNT/2000
 
 ## LLDP
 

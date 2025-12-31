@@ -12,14 +12,10 @@
     <pkg-ref id="net.shmessenger.lltdDaemon"
         version="0"
         auth="root">output.pkg</pkg-ref>
-    <pkg-ref id="net.shmessenger.llmnrDaemon"
-        version="0"
-        auth="root">output.pkg</pkg-ref>
     <!-- List them again here. They can now be organized
      as a hierarchy if you want. -->
     <choices-outline>
         <line choice="net.shmessenger.lltdDaemon"/>
-        <line choice="net.shmessenger.llmnrDaemon"/>
     </choices-outline>
     <!-- Define each choice above -->
     <choice
@@ -29,13 +25,5 @@
         description="Link Layer Topology Discovery Daemon"
         start_selected="true">
         <pkg-ref id="net.shmessenger.lltdDaemon"/>
-    </choice>
-    <choice
-        id="net.shmessenger.llmnrDaemon"
-        visible="false"
-        title="Link-local Multicast Name Resolution"
-        description="Link-local Multicast Name Resolution (RFC4795) Daemon"
-        start_selected="true">
-        <pkg-ref id="net.shmessenger.llmnrDaemon"/>
     </choice>
 </installer-gui-script>

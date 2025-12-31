@@ -16,8 +16,10 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#ifdef __APPLE__
 #include <mach/mach.h>
 #include <mach/mach_time.h>
+#endif
 
 #ifndef __opcode_constants__
 
@@ -57,6 +59,14 @@
 #define sess_discover_acking_chgd_xid   0x05
 #define sess_topo_reset                 0x06
 #define sess_hello                      0x07
+
+#ifndef __enumeration_constants__
+#define __enumeration_constants__       0x00
+#define enum_sess_complete              0x00
+#define enum_sess_not_complete          0x01
+#define enum_hello                      0x02
+#define enum_new_session                0x03
+#endif
 
 // RepeatBand Constants (milliseconds)
 #define BAND_NMAX 10000

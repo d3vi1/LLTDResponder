@@ -1,0 +1,137 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        compiler: [gcc, clang]
+        build_type: [Debug, Release]
+        exclude:
+          - os: macos-latest
+            compiler: gcc
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ccache libsystemd-dev
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          brew update
+          brew install ccache
+
+      - name: Configure ccache
+        run: |
+          set -euo pipefail
+          ccache --set-config=max_size=200M
+          ccache --show-config
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-ccache-
+            ${{ runner.os }}-${{ matrix.compiler }}-ccache-
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        env:
+          CC: ccache ${{ matrix.compiler }}
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.build_type }}" = "Debug" ]; then
+            export CFLAGS="-O0 -g"
+          else
+            export CFLAGS="-O2"
+          fi
+          make clean
+          make
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        env:
+          CC: ccache clang
+          CXX: ccache clang++
+        run: |
+          set -euo pipefail
+          xcodebuild -project lltdDaemon.xcodeproj \
+            -target lltdDaemon \
+            -configuration ${{ matrix.build_type }} \
+            -derivedDataPath build
+
+      - name: Package artifact
+        run: |
+          set -euo pipefail
+          ARCH_RAW=$(uname -m)
+          case "$ARCH_RAW" in
+            x86_64) ARCH=amd64 ;;
+            aarch64|arm64) ARCH=arm64 ;;
+            *) ARCH=$ARCH_RAW ;;
+          esac
+          case "${{ runner.os }}" in
+            Linux) OS_NAME=linux ;;
+            macOS) OS_NAME=darwin ;;
+            *) OS_NAME=$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]') ;;
+          esac
+          ARTIFACT_NAME="lltdDaemon-${OS_NAME}-${ARCH}"
+          mkdir -p dist
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            if [ -f lltdReponder ]; then
+              cp lltdReponder "dist/${ARTIFACT_NAME}"
+            elif [ -f lltdResponder ]; then
+              cp lltdResponder "dist/${ARTIFACT_NAME}"
+            else
+              echo "Binary not found" >&2
+              exit 1
+            fi
+          else
+            cp "build/Build/Products/${{ matrix.build_type }}/lltdDaemon" "dist/${ARTIFACT_NAME}"
+          fi
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}-${{ matrix.build_type }}
+          path: dist/${{ env.ARTIFACT_NAME }}
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/**
+          generate_release_notes: true
+          body: Auto-generated

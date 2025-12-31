@@ -8,6 +8,26 @@
 
 #include "lltdDaemon.h"
 
+#if defined(ESP_PLATFORM)
+#include "esp_timer.h"
+#elif !defined(__APPLE__)
+#include <time.h>
+#endif
+
+static uint64_t lltd_monotonic_seconds(void) {
+#if defined(__APPLE__)
+    return mach_absolute_time() / 1000000000ULL;
+#elif defined(ESP_PLATFORM)
+    return (uint64_t)(esp_timer_get_time() / 1000000ULL);
+#else
+    struct timespec ts;
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+        return 0;
+    }
+    return (uint64_t)ts.tv_sec;
+#endif
+}
+
 #ifndef __enumeration_constants__
 #define __enumeration_constants__       0x00
 #define enum_sess_complete              0x00
@@ -22,7 +42,7 @@ automata* init_automata_mapping() {
     automata *autom = malloc( sizeof(automata) );
     autom->states_no = 3;
     autom->transitions_no = 13;
-    autom->last_ts = mach_absolute_time() / 1e9;
+    autom->last_ts = lltd_monotonic_seconds();
     autom->name = "Mapping";
     
     state quiescent, command, emit;
@@ -66,7 +86,7 @@ automata* switch_state_mapping(automata* autom, int input, char* debug) {
     state* current_state = &autom->states_table[ autom->current_state ];
     bool timeout = FALSE;
     
-    uint64_t now = mach_absolute_time() / 1e9;
+    uint64_t now = lltd_monotonic_seconds();
     uint64_t diff = (now - autom->last_ts);
     
     if (current_state->timeout != 0 && diff > current_state->timeout) {
@@ -107,7 +127,7 @@ automata* init_automata_enumeration() {
     automata *autom = malloc( sizeof(automata) );
     autom->states_no = 3;
     autom->transitions_no = 7;
-    autom->last_ts = mach_absolute_time() / 1e9;
+    autom->last_ts = lltd_monotonic_seconds();
     autom->name = "RepeatBand";
     
     state quiescent, pausing, wait;
@@ -147,7 +167,7 @@ automata* switch_state_enumeration(automata* autom, int input, char* debug) {
     state* current_state = &autom->states_table[ autom->current_state ];
     bool timeout = FALSE;
     
-    uint64_t now = mach_absolute_time() / 1e9;
+    uint64_t now = lltd_monotonic_seconds();
     uint64_t diff = (now - autom->last_ts);
     
     
@@ -177,7 +197,7 @@ automata* init_automata_session() {
     automata *autom = malloc( sizeof(automata) );
     autom->states_no = 4;
     autom->transitions_no = 16;
-    autom->last_ts = mach_absolute_time() / 1e9;
+    autom->last_ts = lltd_monotonic_seconds();
     autom->name = "Sesssion";
     
     state nascent, pending, temporary, complete;
@@ -223,7 +243,7 @@ automata* switch_state_session(automata* autom, int input, char* debug) {
     state* current_state = &autom->states_table[ autom->current_state ];
     bool timeout = FALSE;
     
-    uint64_t now = mach_absolute_time() / 1e9;
+    uint64_t now = lltd_monotonic_seconds();
     uint64_t diff = (now - autom->last_ts);
     
     if (current_state->timeout != 0 && diff > current_state->timeout) {
