@@ -16,10 +16,12 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository universe
-          sudo apt-get update
-          sudo apt-get install -y openwatcom python3
+          sudo apt-get install -y curl python3
+          curl -L -o /tmp/openwatcom.tar.gz https://github.com/open-watcom/open-watcom-v2/releases/download/2.0.0/open-watcom-2_0-linux-x64.tar.gz
+          sudo mkdir -p /opt/openwatcom
+          sudo tar -xzf /tmp/openwatcom.tar.gz -C /opt/openwatcom --strip-components=1
+          echo "WATCOM=/opt/openwatcom" >> "$GITHUB_ENV"
+          echo "/opt/openwatcom/binl64" >> "$GITHUB_PATH"
 
       - name: Build Win16 + Win9x + INF templates
         run: |
