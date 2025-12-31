@@ -17,7 +17,7 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y curl python3
-          curl -L -o /tmp/openwatcom.tar.gz https://sourceforge.net/projects/openwatcom/files/open-watcom-2.0/open-watcom-2_0-linux-x64.tar.gz/download
+          curl -fL -o /tmp/openwatcom.tar.gz https://downloads.sourceforge.net/project/openwatcom/open-watcom-2.0/open-watcom-2_0-linux-x64.tar.gz
           sudo mkdir -p /opt/openwatcom
           sudo tar -xzf /tmp/openwatcom.tar.gz -C /opt/openwatcom --strip-components=1
           echo "WATCOM=/opt/openwatcom" >> "$GITHUB_ENV"
