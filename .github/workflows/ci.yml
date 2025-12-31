@@ -22,7 +22,7 @@ jobs:
           fi
           export TERM=xterm
           export TERMINFO=/usr/share/terminfo
-          url="https://github.com/open-watcom/open-watcom-v2/releases/download/2025-12-01-Build/open-watcom-2_0-c-linux-x64"
+          url="https://github.com/open-watcom/open-watcom-v2/releases/download/2025-12-01-Build/open-watcom-2_0-c-linux-x86"
           curl -fL -o /tmp/openwatcom-installer "$url"
           chmod +x /tmp/openwatcom-installer
           sudo mkdir -p /opt/openwatcom
