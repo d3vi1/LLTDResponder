@@ -146,7 +146,23 @@ clean:
 	-rm -f lltdResponder
 	-rm -rf $(TEST_DIR)
 
+win9x-vxd:
+	./scripts/build-win9x-vxd.sh
+	./scripts/gen-inf.py
+
+win16:
+	./scripts/build-win16.sh
+	./scripts/gen-inf.py
+
+windows-infs:
+	./scripts/gen-inf.py
+
+windows-openwatcom: win16 win9x-vxd
+
+macos-universal:
+	./scripts/macos-build.sh
+
 %: %.c
 	$(CC) $(CFLAGS) -o $@ $<
 
-.PHONY: all linux clean test test-unit test-integration test-privileged test-check coverage clean-tests
+.PHONY: all linux clean test test-unit test-integration test-privileged test-check coverage clean-tests win9x-vxd win16 windows-infs windows-openwatcom macos-universal

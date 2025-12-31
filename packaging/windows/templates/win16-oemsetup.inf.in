@@ -1,0 +1,26 @@
+; LLTD Responder Win16 OEMSETUP.INF template
+; Generated from metadata
+
+[Identification]
+OptionType=Net
+
+[Options]
+${service_name}="${display_name}"
+
+[${service_name}]
+CopyFiles=LLTDCopyFiles
+
+[LLTDCopyFiles]
+lltd16.exe
+
+[SourceDisksNames]
+1="LLTD Responder Win16 Disk",,1
+
+[SourceDisksFiles]
+lltd16.exe=1
+
+[DestinationDirs]
+LLTDCopyFiles=11
+
+[Strings]
+Provider="${provider}"

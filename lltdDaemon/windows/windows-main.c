@@ -9,6 +9,8 @@
 #include "windows-backend.h"
 #include "windows-shared.h"
 
+windows_global_info_t globalInfo;
+
 int main(int argc, const char *argv[]) {
     (void)argc;
     (void)argv;

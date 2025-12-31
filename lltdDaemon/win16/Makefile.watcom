@@ -1,0 +1,20 @@
+WCC ?= wcc
+WLINK ?= wlink
+
+CFLAGS = -bt=windows -ms -d1 -zq -wx -fo=
+
+TARGET = lltd16.exe
+OBJS = lltd16_main.obj
+
+all: $(TARGET)
+
+lltd16_main.obj: lltd16_main.c
+	$(WCC) $(CFLAGS)$@ $<
+
+$(TARGET): $(OBJS)
+	$(WLINK) option quiet system windows name $(TARGET) file $(OBJS)
+
+clean:
+	-rm -f $(OBJS) $(TARGET)
+
+.PHONY: all clean

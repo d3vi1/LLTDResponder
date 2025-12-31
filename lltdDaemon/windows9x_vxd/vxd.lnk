@@ -1,0 +1,6 @@
+option quiet
+system vxd
+option entry=Device_Init
+name lltd.vxd
+file lltd_vxd.obj
+option map=lltd.map

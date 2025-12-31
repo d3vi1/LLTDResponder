@@ -11,6 +11,11 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#ifndef LLTD_BOOLEAN_T_DEFINED
+typedef bool boolean_t;
+#define LLTD_BOOLEAN_T_DEFINED
+#endif
+
 void getMachineName(char **data, size_t *stringSize);
 void getFriendlyName(char **data, size_t *stringSize);
 void getSupportInfo(void **data, size_t *stringSize);

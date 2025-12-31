@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  openwatcom:
+    name: openwatcom-win16-win9x
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Open Watcom
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y open-watcom python3
+
+      - name: Build Win16 + Win9x + INF templates
+        run: |
+          set -euo pipefail
+          make windows-openwatcom
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwatcom-windows
+          path: dist/windows/**
+
+  win32:
+    name: windows-win32-user-mode
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Win32 user-mode
+        run: powershell -File scripts/windows-build.ps1
+
+      - name: Upload Win32 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: win32-user-mode
+          path: dist/windows/win32/**
+
+  macos:
+    name: macos-universal
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build macOS universal
+        run: bash scripts/macos-build.sh
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-universal
+          path: dist/macos/**

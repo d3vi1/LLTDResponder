@@ -1,0 +1,35 @@
+; LLTD Responder Win9x INF template
+; Generated from metadata
+
+[Version]
+Signature="$CHICAGO$"
+Class=Net
+ClassGUID={4d36e972-e325-11ce-bfc1-08002be10318}
+Provider="${provider}"
+DriverVer=${version}
+
+[Manufacturer]
+%MfgName%=${driver_name}
+
+[${driver_name}]
+%DeviceDesc%=${driver_name}.Install, ${device_id}
+
+[${driver_name}.Install]
+CopyFiles=DriverCopyFiles
+
+[DriverCopyFiles]
+lltd.vxd
+
+[SourceDisksNames]
+1=%DiskName%,,1
+
+[SourceDisksFiles]
+lltd.vxd=1
+
+[DestinationDirs]
+DriverCopyFiles=11
+
+[Strings]
+MfgName="${provider}"
+DiskName="LLTD Responder Win9x Disk"
+DeviceDesc="${display_name}"

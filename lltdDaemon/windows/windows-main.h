@@ -11,12 +11,14 @@
 #include <stdint.h>
 #include <stddef.h>
 
-struct {
+typedef struct {
     void   *smallIcon;
     size_t  smallIconSize;
     void   *largeIcon;
     size_t  largeIconSize;
-} globalInfo;
+} windows_global_info_t;
+
+extern windows_global_info_t globalInfo;
 
 typedef struct {
     const char *deviceName;

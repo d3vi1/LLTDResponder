@@ -1,0 +1,20 @@
+WCC386 ?= wcc386
+WLINK ?= wlink
+
+CFLAGS = -bt=nt -d1 -zq -wx -fo=
+
+TARGET = lltd.vxd
+OBJS = lltd_vxd.obj
+
+all: $(TARGET)
+
+lltd_vxd.obj: lltd_vxd.c
+	$(WCC386) $(CFLAGS)$@ $<
+
+$(TARGET): $(OBJS) vxd.lnk
+	$(WLINK) @vxd.lnk
+
+clean:
+	-rm -f $(OBJS) $(TARGET) lltd.map
+
+.PHONY: all clean
