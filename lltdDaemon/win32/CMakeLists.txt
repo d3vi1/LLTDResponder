@@ -7,13 +7,12 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 add_executable(lltd_win32
     ../lltdAutomata.c
-    ../lltdBlock.c
-    ../lltdTlvOps.c
     ../windows/windows-backend-legacy.c
     ../windows/windows-backend-ndis.c
     ../windows/windows-main.c
     ../windows/windows-ops.c
     ../windows/windows-shared.c
+    lltd_win32_stubs.c
 )
 
 target_include_directories(lltd_win32 PRIVATE ..)
