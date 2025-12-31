@@ -140,13 +140,6 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-			isa = PBXGroup;
-			children = (
-				E5C7F9001C6A84FD002B9A1D /* darwin-main.c */,
-			);
-			path = lltddaemon;
-			sourceTree = "<group>";
-		};
 		E59E8BF618CF4D250054B295 /* lltdDaemon */ = {
 			isa = PBXGroup;
 			children = (
@@ -344,14 +337,6 @@
 			buildConfigurations = (
 				E522410618CF0CA200DD9E2F /* Debug */,
 				E522410718CF0CA200DD9E2F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				E59C3D7018E9B38C006836B0 /* Debug */,
-				E59C3D7118E9B38C006836B0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -21,7 +21,9 @@ jobs:
           curl -fL -o /tmp/openwatcom-installer "$url"
           chmod +x /tmp/openwatcom-installer
           sudo mkdir -p /opt/openwatcom
-          sudo /tmp/openwatcom-installer -d /opt/openwatcom -y
+          sudo QT_QPA_PLATFORM=offscreen /tmp/openwatcom-installer \
+            --mode unattended \
+            --target /opt/openwatcom
           test -x /opt/openwatcom/binl64/wcc
           echo "WATCOM=/opt/openwatcom" >> "$GITHUB_ENV"
           echo "/opt/openwatcom/binl64" >> "$GITHUB_PATH"
