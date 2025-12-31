@@ -45,8 +45,9 @@
     #include <SystemConfiguration/SCNetworkConfiguration.h>     // For IP Configuration
     #include <SystemConfiguration/SCNetworkConnection.h>        // For Connection status
     #include <SystemConfiguration/SCDynamicStoreCopyDHCPInfo.h> // For DHCPInfoGetOptionData
-    #include "darwin-main.h"
-    #include "darwin-ops.h"
+    #include <SystemConfiguration/CaptiveNetwork.h>             // darwin-ops WiFi SSID/BSSID
+    #include "darwin/darwin-main.h"
+    #include "darwin/darwin-ops.h"
     #include "msIcoFormat.h"
     #include "lltdBlock.h"
     #include "lltdTlvOps.h"
@@ -69,6 +70,8 @@
  */
 #ifdef __linux__
     #include <asm/types.h>
+    #include <stdarg.h>
+    #include <stdio.h>
     #include <sys/socket.h>
     #include <linux/netlink.h>
     #include <linux/rtnetlink.h>
@@ -76,18 +79,54 @@
     #include <errno.h>
     #include <signal.h>
     #include <syslog.h>
-    #include "linux-main.h"
-    #include "linux-ops.h"
+    #include <time.h>
+    #include "linux/linux-main.h"
+    #include "linux/linux-ops.h"
     #define  MYPROTO NETLINK_ROUTE
     #define  MYMGRP RTMGRP_IPV4_ROUTE
-    #define  log_debug(x, ...)   syslog(LOG_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define  log_info(x, ...)    syslog(LOG_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define  log_notice(x, ...)  syslog(LOG_NOTICE,  "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define  log_warning(x, ...) syslog(LOG_WARNING, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define  log_err(x, ...)     syslog(LOG_ERR,     "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define  log_crit(x, ...)    syslog(LOG_CRIT,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define  log_alert(x, ...)   syslog(LOG_ALERT,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
-    #define  log_emerg(x, ...)   syslog(LOG_EMERG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #if defined(LLTD_USE_SYSTEMD)
+        #include <systemd/sd-journal.h>
+        #define  log_debug(x, ...)   sd_journal_print(LOG_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_info(x, ...)    sd_journal_print(LOG_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_notice(x, ...)  sd_journal_print(LOG_NOTICE,  "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_warning(x, ...) sd_journal_print(LOG_WARNING, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_err(x, ...)     sd_journal_print(LOG_ERR,     "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_crit(x, ...)    sd_journal_print(LOG_CRIT,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_alert(x, ...)   sd_journal_print(LOG_ALERT,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_emerg(x, ...)   sd_journal_print(LOG_EMERG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #elif defined(LLTD_USE_CONSOLE)
+        static inline void lltd_console_log(int priority, const char *func, const char *fmt, ...) {
+            FILE *console = fopen("/dev/console", "a");
+            FILE *out = console ? console : stderr;
+            va_list args;
+            (void)priority;
+            va_start(args, fmt);
+            fprintf(out, "%s(): ", func);
+            vfprintf(out, fmt, args);
+            fprintf(out, "\n");
+            va_end(args);
+            if (console) {
+                fclose(console);
+            }
+        }
+        #define  log_debug(x, ...)   lltd_console_log(LOG_DEBUG,   __FUNCTION__, x, ##__VA_ARGS__)
+        #define  log_info(x, ...)    lltd_console_log(LOG_INFO,    __FUNCTION__, x, ##__VA_ARGS__)
+        #define  log_notice(x, ...)  lltd_console_log(LOG_NOTICE,  __FUNCTION__, x, ##__VA_ARGS__)
+        #define  log_warning(x, ...) lltd_console_log(LOG_WARNING, __FUNCTION__, x, ##__VA_ARGS__)
+        #define  log_err(x, ...)     lltd_console_log(LOG_ERR,     __FUNCTION__, x, ##__VA_ARGS__)
+        #define  log_crit(x, ...)    lltd_console_log(LOG_CRIT,    __FUNCTION__, x, ##__VA_ARGS__)
+        #define  log_alert(x, ...)   lltd_console_log(LOG_ALERT,   __FUNCTION__, x, ##__VA_ARGS__)
+        #define  log_emerg(x, ...)   lltd_console_log(LOG_EMERG,   __FUNCTION__, x, ##__VA_ARGS__)
+    #else
+        #define  log_debug(x, ...)   syslog(LOG_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_info(x, ...)    syslog(LOG_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_notice(x, ...)  syslog(LOG_NOTICE,  "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_warning(x, ...) syslog(LOG_WARNING, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_err(x, ...)     syslog(LOG_ERR,     "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_crit(x, ...)    syslog(LOG_CRIT,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_alert(x, ...)   syslog(LOG_ALERT,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+        #define  log_emerg(x, ...)   syslog(LOG_EMERG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #endif
 #endif /*__linux__*/
 
 /*
@@ -96,9 +135,53 @@
  RC Script and optional RelaunchD support
  */
 #ifdef __FreeBSD__
-    #include "freebsd-main.h"
-    #include "freebsd-ops.h"
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <stdbool.h>
+    #include <string.h>
+    #include <errno.h>
+    #include <signal.h>
+    #include <syslog.h>
+    #include "freebsd/freebsd-main.h"
+    #include "freebsd/freebsd-ops.h"
+    #include "lltdBlock.h"
+    #include "lltdTlvOps.h"
+    #include "lltdAutomata.h"
+    #define log_debug(x, ...)   syslog(LOG_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_info(x, ...)    syslog(LOG_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_notice(x, ...)  syslog(LOG_NOTICE,  "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_warning(x, ...) syslog(LOG_WARNING, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_err(x, ...)     syslog(LOG_ERR,     "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_crit(x, ...)    syslog(LOG_CRIT,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_alert(x, ...)   syslog(LOG_ALERT,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_emerg(x, ...)   syslog(LOG_EMERG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
 #endif /*__FreeBSD__*/
+
+/*
+ ESXi (VMkernel userworld) - draft userland implementation.
+ */
+#if defined(__VMKERNEL__) || defined(__ESXI__)
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <stdbool.h>
+    #include <string.h>
+    #include <errno.h>
+    #include <signal.h>
+    #include <syslog.h>
+    #include "esxi/esxi-main.h"
+    #include "esxi/esxi-ops.h"
+    #include "lltdBlock.h"
+    #include "lltdTlvOps.h"
+    #include "lltdAutomata.h"
+    #define log_debug(x, ...)   syslog(LOG_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_info(x, ...)    syslog(LOG_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_notice(x, ...)  syslog(LOG_NOTICE,  "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_warning(x, ...) syslog(LOG_WARNING, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_err(x, ...)     syslog(LOG_ERR,     "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_crit(x, ...)    syslog(LOG_CRIT,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_alert(x, ...)   syslog(LOG_ALERT,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_emerg(x, ...)   syslog(LOG_EMERG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+#endif
 
 /*
  Optionally use NWAM for listing the interfaces.
@@ -106,14 +189,70 @@
  Optionally use SMF.
  */
 #ifdef __sunos_5_10
-    #include "sunos-main.h"
-    #include "sunos-ops.h"
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <stdbool.h>
+    #include <string.h>
+    #include <errno.h>
+    #include <signal.h>
+    #include <syslog.h>
+    #include "sunos/sunos-main.h"
+    #include "sunos/sunos-ops.h"
+    #include "lltdBlock.h"
+    #include "lltdTlvOps.h"
+    #include "lltdAutomata.h"
+    #define log_debug(x, ...)   syslog(LOG_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_info(x, ...)    syslog(LOG_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_notice(x, ...)  syslog(LOG_NOTICE,  "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_warning(x, ...) syslog(LOG_WARNING, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_err(x, ...)     syslog(LOG_ERR,     "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_crit(x, ...)    syslog(LOG_CRIT,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_alert(x, ...)   syslog(LOG_ALERT,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_emerg(x, ...)   syslog(LOG_EMERG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
 #endif /*__sunos_5_10__*/
 
 #ifdef __BEOS__
-    #include "beos-main.h"
-    #include "beos-ops.h"
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <stdbool.h>
+    #include <string.h>
+    #include "beos/beos-main.h"
+    #include "beos/beos-ops.h"
+    #include "lltdBlock.h"
+    #include "lltdTlvOps.h"
+    #include "lltdAutomata.h"
+    #define log_debug(x, ...)   fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_info(x, ...)    fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_notice(x, ...)  fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_warning(x, ...) fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_err(x, ...)     fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_crit(x, ...)    fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_alert(x, ...)   fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_emerg(x, ...)   fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
 #endif /*__BEOS__*/
+
+/*
+ Windows family (Win16/Win9x/WinNT/2000).
+ */
+#if defined(_WIN32) || defined(_WIN16)
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <stdbool.h>
+    #include <string.h>
+    #include "windows/windows-main.h"
+    #include "windows/windows-ops.h"
+    #include "lltdBlock.h"
+    #include "lltdTlvOps.h"
+    #include "lltdAutomata.h"
+    #define log_debug(x, ...)   fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_info(x, ...)    fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_notice(x, ...)  fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_warning(x, ...) fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_err(x, ...)     fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_crit(x, ...)    fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_alert(x, ...)   fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+    #define log_emerg(x, ...)   fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
+#endif
 
 
 #endif /* lltdDaemon_h */

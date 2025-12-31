@@ -6,9 +6,8 @@ CFLAGS += -Wall -Wextra
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
 	CCFLAGS += -D LINUX
-#	LLTD_SRC_FILES = lltdDaemon/linux-main.c lltdDaemon/linux-ops.c lltdDaemon/lltdBlock.c lltdDaemon/lltdTlvOps.c
-	LLTD_SRC_FILES = lltdDaemon/linux-main.c
-#	LLMNR_SRC_FILES = lltdDaemon/linux-main.c lltdDaemon/linux-ops.c lltdDaemon/lltdBlock.c lltdDaemon/lltdTlvOps.c
+#	LLTD_SRC_FILES = lltdDaemon/linux/linux-main.c lltdDaemon/linux/linux-ops.c lltdDaemon/lltdBlock.c lltdDaemon/lltdTlvOps.c
+	LLTD_SRC_FILES = lltdDaemon/linux/linux-main.c
 endif
 ifeq ($(UNAME_S),Darwin)
 	CCFLAGS += -D OSX
@@ -17,9 +16,6 @@ ifeq ($(UNAME_S),SunOS)
 	CCFLAGS += -D SunOS
 endif
 ifeq ($(UNAME_S),FreeBSD)
-	CCFLAGS += -D FreeBSD
-endif
-ifeq ($(UNAME_S),AIX)
 	CCFLAGS += -D FreeBSD
 endif
 
@@ -55,18 +51,14 @@ ifneq ($(filter arm%,$(UNAME_P)),)
 	CCFLAGS += -D ARM
 endif
 
-#all: lltdResponder llmnrResponder
 all: lltdResponder
 
 lltdResponder: $(LLTD_SRC_FILES)
 	gcc -o lltdReponder $(LLTD_SRC_FILES)
 
-#llmnrResponder: $(LLMNR_SRC_FILES)
-#	gcc -o llmnrResponder $(LLMNR_SRC_FILES)
 
 clean:
 	-rm -f lltdResponder
-	-rm -f llmnrResponder
 
 %: %.c
 	$(CC) $(CFLAGS) -o $@ $<
