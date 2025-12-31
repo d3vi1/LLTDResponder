@@ -19,14 +19,24 @@ function build_flags() {
 function build_arch() {
   local arch="$1"
   local derived="$ROOT_DIR/build/macos/$arch"
-  xcodebuild $(build_flags "$arch") \
-    -derivedDataPath "$derived" \
-    build
+  if [[ -n "$SCHEME" ]]; then
+    xcodebuild $(build_flags "$arch") \
+      -derivedDataPath "$derived" \
+      build
+  else
+    SYMROOT="$derived" OBJROOT="$derived" xcodebuild $(build_flags "$arch") \
+      build
+  fi
 
   local settings
-  settings=$(xcodebuild $(build_flags "$arch") \
-    -derivedDataPath "$derived" \
-    -showBuildSettings)
+  if [[ -n "$SCHEME" ]]; then
+    settings=$(xcodebuild $(build_flags "$arch") \
+      -derivedDataPath "$derived" \
+      -showBuildSettings)
+  else
+    settings=$(SYMROOT="$derived" OBJROOT="$derived" xcodebuild $(build_flags "$arch") \
+      -showBuildSettings)
+  fi
 
   local build_dir
   build_dir=$(echo "$settings" | awk -F ' = ' '/TARGET_BUILD_DIR/ {print $2; exit}')
