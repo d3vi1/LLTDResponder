@@ -10,6 +10,16 @@
 
 #include "../lltdDaemon.h"
 
+#if defined(__APPLE__) && defined(__has_include)
+#if __has_include(<CoreServices/UTType.h>)
+#include <CoreServices/UTType.h>
+#endif
+#endif
+
+#ifndef kIOMasterPortDefault
+#define kIOMasterPortDefault kIOMainPortDefault
+#endif
+
 #pragma mark Functions that return machine information
 #pragma mark -
 
