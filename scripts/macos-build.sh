@@ -13,9 +13,9 @@ BUILD_FLAGS=()
 function build_flags() {
   local arch="$1"
   if [[ -n "$SCHEME" ]]; then
-    BUILD_FLAGS=(-project "$PROJECT" -scheme "$SCHEME" -configuration "$CONFIGURATION" -arch "$arch" -sdk "macosx")
+    BUILD_FLAGS=(-project "$PROJECT" -scheme "$SCHEME" -configuration "$CONFIGURATION" -arch "$arch" -sdk "macosx" "ARCHS=$arch" "ONLY_ACTIVE_ARCH=NO")
   else
-    BUILD_FLAGS=(-project "$PROJECT" -target "$TARGET" -configuration "$CONFIGURATION" -arch "$arch" -sdk "macosx")
+    BUILD_FLAGS=(-project "$PROJECT" -target "$TARGET" -configuration "$CONFIGURATION" -arch "$arch" -sdk "macosx" "ARCHS=$arch" "ONLY_ACTIVE_ARCH=NO")
   fi
 }
 
