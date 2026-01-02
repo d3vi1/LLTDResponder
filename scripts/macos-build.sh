@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BUILD_ROOT="${LLTD_BUILD_ROOT:-/tmp/lltd-build}"
 PROJECT="$ROOT_DIR/lltdDaemon.xcodeproj"
 SCHEME="${LLTD_SCHEME:-}"
 TARGET="${LLTD_TARGET:-lltdDaemon}"
@@ -20,7 +21,7 @@ function build_flags() {
 
 function build_arch() {
   local arch="$1"
-  local derived="$ROOT_DIR/build/macos/$arch"
+  local derived="$BUILD_ROOT/$arch"
   build_flags "$arch"
   if [[ -n "$SCHEME" ]]; then
     xcodebuild "${BUILD_FLAGS[@]}" \
