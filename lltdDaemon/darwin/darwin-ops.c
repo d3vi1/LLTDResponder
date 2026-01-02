@@ -20,24 +20,21 @@
 #endif
 #endif
 
-#ifndef kIOMasterPortDefault
-#define kIOMasterPortDefault kIOMainPortDefault
-#endif
-
 static mach_port_t lltdIOMasterPort(void) {
-#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 120000
-    return kIOMainPortDefault;
-#else
 #if defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 120000
     if (__builtin_available(macOS 12.0, *)) {
         return kIOMainPortDefault;
     }
 #endif
+    mach_port_t masterPort = MACH_PORT_NULL;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    return kIOMasterPortDefault;
+    kern_return_t kernel_return = IOMasterPort(MACH_PORT_NULL, &masterPort);
 #pragma clang diagnostic pop
-#endif
+    if (kernel_return != KERN_SUCCESS) {
+        return MACH_PORT_NULL;
+    }
+    return masterPort;
 }
 
 #pragma mark Functions that return machine information
