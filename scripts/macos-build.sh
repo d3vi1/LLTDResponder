@@ -7,34 +7,37 @@ SCHEME="${LLTD_SCHEME:-}"
 TARGET="${LLTD_TARGET:-lltdDaemon}"
 CONFIGURATION="${LLTD_CONFIGURATION:-Release}"
 
+BUILD_FLAGS=()
+
 function build_flags() {
   local arch="$1"
   if [[ -n "$SCHEME" ]]; then
-    echo "-project" "$PROJECT" "-scheme" "$SCHEME" "-configuration" "$CONFIGURATION" "-arch" "$arch" "-sdk" "macosx"
+    BUILD_FLAGS=(-project "$PROJECT" -scheme "$SCHEME" -configuration "$CONFIGURATION" -arch "$arch" -sdk "macosx")
   else
-    echo "-project" "$PROJECT" "-target" "$TARGET" "-configuration" "$CONFIGURATION" "-arch" "$arch" "-sdk" "macosx"
+    BUILD_FLAGS=(-project "$PROJECT" -target "$TARGET" -configuration "$CONFIGURATION" -arch "$arch" -sdk "macosx")
   fi
 }
 
 function build_arch() {
   local arch="$1"
   local derived="$ROOT_DIR/build/macos/$arch"
+  build_flags "$arch"
   if [[ -n "$SCHEME" ]]; then
-    xcodebuild $(build_flags "$arch") \
+    xcodebuild "${BUILD_FLAGS[@]}" \
       -derivedDataPath "$derived" \
       build
   else
-    SYMROOT="$derived" OBJROOT="$derived" xcodebuild $(build_flags "$arch") \
+    SYMROOT="$derived" OBJROOT="$derived" xcodebuild "${BUILD_FLAGS[@]}" \
       build
   fi
 
   local settings
   if [[ -n "$SCHEME" ]]; then
-    settings=$(xcodebuild $(build_flags "$arch") \
+    settings=$(xcodebuild "${BUILD_FLAGS[@]}" \
       -derivedDataPath "$derived" \
       -showBuildSettings)
   else
-    settings=$(SYMROOT="$derived" OBJROOT="$derived" xcodebuild $(build_flags "$arch") \
+    settings=$(SYMROOT="$derived" OBJROOT="$derived" xcodebuild "${BUILD_FLAGS[@]}" \
       -showBuildSettings)
   fi
 
