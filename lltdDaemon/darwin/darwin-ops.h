@@ -4,7 +4,7 @@
  *   lltdDaemon                                                               *
  *                                                                            *
  *   Created by Răzvan Corneliu C.R. VILT on 24.03.2014.                      *
- *   Copyright © 2014 Răzvan Corneliu C.R. VILT. All rights reserved.         *
+ *   Copyright © 2014-2026 Răzvan Corneliu C.R. VILT. All rights reserved.    *
  *                                                                            *
  ******************************************************************************/
 
@@ -34,19 +34,19 @@ boolean_t getWifiPhyMedium         (uint32_t *phyMedium, void *currentNetworkInt
 #pragma mark -
 
 //gets the IPv4 address if one is available
-//boolean getIfIPv4info
-//boolean getIfIPv6info
+boolean_t getIfIPv4info(uint32_t *ipv4, void *currentNetworkInterface);
+boolean_t getIfIPv6info(struct in6_addr *ipv6, void *currentNetworkInterface);
 //Type 0x2 uint8, Length 0x2 uint8, Bits: public, private, duplex, hasmanagement, loopback, reserved[11]
-//boolean getIfCharacteristics
-//boolean getQosCharacteristics
-//gets the IANAifType
-//void getIfPhysicalMedium
-//void WgetWirelessMode
-//void WgetIfRSSI
-//void WgetIfSSID
-//void WgetIfBSSID
-//void WgetIfMaxRate
-//void WgetIfPhyMedium
-//void WgetApAssociationTable
+boolean_t getIfCharacteristics(uint16_t *characteristics, void *currentNetworkInterface);
+boolean_t getQosCharacteristics(uint16_t *characteristics);
+boolean_t getIfIANAType(uint32_t *ifType, void *currentNetworkInterface);
+void getIfPhysicalMedium(uint32_t *mediumType, void *currentNetworkInterface);
+boolean_t WgetWirelessMode(uint8_t *mode, void *currentNetworkInterface);
+boolean_t WgetIfRSSI(int8_t *rssi, void *currentNetworkInterface);
+boolean_t WgetIfSSID(char **ssid, size_t *ssidSize, void *currentNetworkInterface);
+boolean_t WgetIfBSSID(void **bssid, void *currentNetworkInterface);
+boolean_t WgetIfMaxRate(uint32_t *rateMbps, void *currentNetworkInterface);
+boolean_t WgetIfPhyMedium(uint32_t *phyMedium, void *currentNetworkInterface);
+void WgetApAssociationTable(void **data, size_t *dataSize, void *currentNetworkInterface);
 
 #endif
