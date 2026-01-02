@@ -4,7 +4,7 @@
  *   lltdDaemon                                                               *
  *                                                                            *
  *   Created by Răzvan Corneliu C.R. VILT on 23.03.2014.                      *
- *   Copyright © 2014 Răzvan Corneliu C.R. VILT. All rights reserved.         *
+ *   Copyright © 2014-2026 Răzvan Corneliu C.R. VILT. All rights reserved.    *
  *                                                                            *
  ******************************************************************************/
 

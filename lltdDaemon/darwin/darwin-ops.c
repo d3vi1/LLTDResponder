@@ -4,7 +4,7 @@
  *   lltdDaemon                                                               *
  *                                                                            *
  *   Created by Răzvan Corneliu C.R. VILT on 24.03.2014.                      *
- *   Copyright (c) 2014 Răzvan Corneliu C.R. VILT. All rights reserved.       *
+ *   Copyright © 2014-2026 Răzvan Corneliu C.R. VILT. All rights reserved.    *
  *                                                                            *
  ******************************************************************************/
 
@@ -24,6 +24,22 @@
 #define kIOMasterPortDefault kIOMainPortDefault
 #endif
 
+static mach_port_t lltdIOMasterPort(void) {
+#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 120000
+    return kIOMainPortDefault;
+#else
+#if defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 120000
+    if (__builtin_available(macOS 12.0, *)) {
+        return kIOMainPortDefault;
+    }
+#endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    return kIOMasterPortDefault;
+#pragma clang diagnostic pop
+#endif
+}
+
 #pragma mark Functions that return machine information
 #pragma mark -
 
@@ -35,7 +51,7 @@
 //
 //==============================================================================
 void getUpnpUuid(void **pointer){
-    io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
+    io_service_t platformExpert = IOServiceGetMatchingService(lltdIOMasterPort(), IOServiceMatching("IOPlatformExpertDevice"));
     
     if (platformExpert) {
         CFStringRef uuidStr = IORegistryEntryCreateCFProperty(platformExpert,
@@ -60,7 +76,7 @@ void getUpnpUuid(void **pointer){
 
 
 static CFURLRef copyDeviceIconURL(void) {
-    io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
+    io_service_t platformExpert = IOServiceGetMatchingService(lltdIOMasterPort(), IOServiceMatching("IOPlatformExpertDevice"));
     CFDataRef modelCodeData = NULL;
     if (platformExpert) {
         modelCodeData = IORegistryEntryCreateCFProperty(platformExpert,
@@ -346,7 +362,7 @@ void getSupportInfo(void **data, size_t *stringSize){
     //
     // Get the serial number from the IOPlatformExpertDevice
     //
-    io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
+    io_service_t platformExpert = IOServiceGetMatchingService(lltdIOMasterPort(), IOServiceMatching("IOPlatformExpertDevice"));
     
     if (platformExpert) {
 
@@ -417,7 +433,7 @@ boolean_t getWifiMode(void *networkInterface){
         /*
          * Interface doesn't support SIOC{G,S}IFMEDIA.
          */
-        return;
+        return false;
     }
     MediaList = (int *)malloc(IFMediaRequest.ifm_count * sizeof(int));
     if (MediaList == NULL) log_err("%s malloc error", currentNetworkInterface->deviceName);
@@ -431,14 +447,15 @@ boolean_t getWifiMode(void *networkInterface){
         if(IFM_TYPE(IFMediaRequest.ifm_active)== IFM_IEEE80211){
             if(IFM_OPTIONS(IFMediaRequest.ifm_active)==IFM_IEEE80211_ADHOC){
                 free(MediaList);
-                return 0;
+                return false;
             } else {
                 free(MediaList);
-                return 1;
+                return true;
             }
         }
     }
     free(MediaList);
+    return false;
 }
 
 
@@ -481,8 +498,9 @@ static CFTypeRef copyWiFiProperty(const char *interfaceName, CFStringRef key) {
         return NULL;
     }
 
-    io_service_t interfaceService = IOServiceGetMatchingService(kIOMasterPortDefault,
-                                                                IOBSDNameMatching(kIOMasterPortDefault, 0, interfaceName));
+    mach_port_t masterPort = lltdIOMasterPort();
+    io_service_t interfaceService = IOServiceGetMatchingService(masterPort,
+                                                                IOBSDNameMatching(masterPort, 0, interfaceName));
     if (!interfaceService) {
         return NULL;
     }
@@ -496,58 +514,67 @@ static CFTypeRef copyWiFiProperty(const char *interfaceName, CFStringRef key) {
     return value;
 }
 
+static boolean_t copySSIDFromProperty(CFTypeRef value, char **data, size_t *dataSize) {
+    if (!value || !data || !dataSize) {
+        return false;
+    }
+
+    if (CFGetTypeID(value) == CFDataGetTypeID()) {
+        CFDataRef dataValue = (CFDataRef)value;
+        CFIndex length = CFDataGetLength(dataValue);
+        if (length <= 0) {
+            return false;
+        }
+
+        char *buffer = malloc((size_t)length + 1);
+        if (!buffer) {
+            return false;
+        }
+        memcpy(buffer, CFDataGetBytePtr(dataValue), (size_t)length);
+        buffer[length] = '\0';
+        *data = buffer;
+        *dataSize = (size_t)length;
+        return true;
+    }
+
+    if (CFGetTypeID(value) == CFStringGetTypeID()) {
+        CFStringRef stringValue = (CFStringRef)value;
+        CFIndex length = CFStringGetLength(stringValue);
+        CFIndex maxSize = CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8);
+        char *buffer = malloc((size_t)maxSize + 1);
+        if (!buffer) {
+            return false;
+        }
+        if (!CFStringGetCString(stringValue, buffer, maxSize + 1, kCFStringEncodingUTF8)) {
+            free(buffer);
+            return false;
+        }
+        *dataSize = strlen(buffer);
+        *data = buffer;
+        return true;
+    }
+
+    return false;
+}
+
 boolean_t getSSID(char **data, size_t *dataSize, void *networkInterface) {
-#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
     if (!data || !dataSize) {
         return false;
     }
 
     network_interface_t *currentNetworkInterface = (network_interface_t *)networkInterface;
-    CFStringRef interfaceName = CFStringCreateWithCString(kCFAllocatorDefault,
-                                                          currentNetworkInterface->deviceName,
-                                                          kCFStringEncodingUTF8);
-    if (!interfaceName) {
+    if (!currentNetworkInterface) {
         return false;
     }
 
-    CFDictionaryRef info = CNCopyCurrentNetworkInfo(interfaceName);
-    CFRelease(interfaceName);
-    if (!info) {
+    CFTypeRef ssidValue = copyWiFiProperty(currentNetworkInterface->deviceName, CFSTR("IO80211SSID"));
+    if (!ssidValue) {
         return false;
     }
 
-    CFStringRef ssid = CFDictionaryGetValue(info, kCNNetworkInfoKeySSID);
-    if (!ssid) {
-        CFRelease(info);
-        return false;
-    }
-
-    CFIndex length = CFStringGetLength(ssid);
-    CFIndex maxSize = CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8);
-    char *buffer = malloc((size_t)maxSize);
-    if (!buffer) {
-        CFRelease(info);
-        return false;
-    }
-
-    if (!CFStringGetCString(ssid, buffer, maxSize, kCFStringEncodingUTF8)) {
-        free(buffer);
-        CFRelease(info);
-        return false;
-    }
-
-    *dataSize = strlen(buffer);
-    *data = buffer;
-    CFRelease(info);
-    return true;
-#else
-    // CNCopyCurrentNetworkInfo and kCNNetworkInfoKeySSID are unavailable on macOS.
-    // Return false to indicate SSID is not retrievable on this platform with current implementation.
-    (void)data;
-    (void)dataSize;
-    (void)networkInterface;
-    return false;
-#endif
+    boolean_t ok = copySSIDFromProperty(ssidValue, data, dataSize);
+    CFRelease(ssidValue);
+    return ok;
 }
 
 boolean_t getWifiMaxRate(uint32_t *rateMbps, void *networkInterface) {
@@ -618,6 +645,165 @@ boolean_t getWifiPhyMedium(uint32_t *phyMedium, void *networkInterface) {
     return false;
 }
 
+boolean_t getIfIPv4info(uint32_t *ipv4, void *networkInterface) {
+    if (!ipv4) {
+        return false;
+    }
+
+    network_interface_t *currentNetworkInterface = (network_interface_t *)networkInterface;
+    if (!currentNetworkInterface) {
+        return false;
+    }
+
+    struct ifaddrs *interfaces = NULL;
+    if (getifaddrs(&interfaces) != 0) {
+        return false;
+    }
+
+    boolean_t found = false;
+    struct ifaddrs *temp_addr = interfaces;
+    while (temp_addr != NULL) {
+        if (temp_addr->ifa_addr && temp_addr->ifa_addr->sa_family == AF_INET &&
+            strcmp(currentNetworkInterface->deviceName, temp_addr->ifa_name) == 0) {
+            *ipv4 = ((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr.s_addr;
+            found = true;
+            break;
+        }
+        temp_addr = temp_addr->ifa_next;
+    }
+
+    freeifaddrs(interfaces);
+    return found;
+}
+
+boolean_t getIfIPv6info(struct in6_addr *ipv6, void *networkInterface) {
+    if (!ipv6) {
+        return false;
+    }
+
+    network_interface_t *currentNetworkInterface = (network_interface_t *)networkInterface;
+    if (!currentNetworkInterface) {
+        return false;
+    }
+
+    struct ifaddrs *interfaces = NULL;
+    if (getifaddrs(&interfaces) != 0) {
+        return false;
+    }
+
+    boolean_t found = false;
+    struct ifaddrs *temp_addr = interfaces;
+    while (temp_addr != NULL) {
+        if (temp_addr->ifa_addr && temp_addr->ifa_addr->sa_family == AF_INET6 &&
+            strcmp(currentNetworkInterface->deviceName, temp_addr->ifa_name) == 0) {
+            *ipv6 = ((struct sockaddr_in6 *)temp_addr->ifa_addr)->sin6_addr;
+            found = true;
+            break;
+        }
+        temp_addr = temp_addr->ifa_next;
+    }
+
+    freeifaddrs(interfaces);
+    return found;
+}
+
+boolean_t getIfCharacteristics(uint16_t *characteristics, void *networkInterface) {
+    if (!characteristics) {
+        return false;
+    }
+
+    network_interface_t *currentNetworkInterface = (network_interface_t *)networkInterface;
+    if (!currentNetworkInterface) {
+        return false;
+    }
+
+    uint16_t value = 0;
+    if (currentNetworkInterface->MediumType & IFM_FDX) {
+        value |= Config_TLV_NetworkInterfaceDuplex_Value;
+    }
+    if (currentNetworkInterface->flags & IFF_LOOPBACK) {
+        value |= Config_TLV_InterfaceIsLoopback_Value;
+    }
+
+    *characteristics = value;
+    return true;
+}
+
+boolean_t getQosCharacteristics(uint16_t *characteristics) {
+    if (!characteristics) {
+        return false;
+    }
+
+    *characteristics = Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN;
+    return true;
+}
+
+boolean_t getIfIANAType(uint32_t *ifType, void *networkInterface) {
+    if (!ifType) {
+        return false;
+    }
+
+    network_interface_t *currentNetworkInterface = (network_interface_t *)networkInterface;
+    if (!currentNetworkInterface) {
+        return false;
+    }
+
+    *ifType = currentNetworkInterface->ifType;
+    return true;
+}
+
+void getIfPhysicalMedium(uint32_t *mediumType, void *networkInterface) {
+    if (!mediumType) {
+        return;
+    }
+
+    network_interface_t *currentNetworkInterface = (network_interface_t *)networkInterface;
+    if (!currentNetworkInterface) {
+        return;
+    }
+
+    *mediumType = (uint32_t)currentNetworkInterface->MediumType;
+}
+
+boolean_t WgetWirelessMode(uint8_t *mode, void *networkInterface) {
+    if (!mode) {
+        return false;
+    }
+
+    *mode = (uint8_t)getWifiMode(networkInterface);
+    return true;
+}
+
+boolean_t WgetIfRSSI(int8_t *rssi, void *networkInterface) {
+    return getWifiRssi(rssi, networkInterface);
+}
+
+boolean_t WgetIfSSID(char **ssid, size_t *ssidSize, void *networkInterface) {
+    return getSSID(ssid, ssidSize, networkInterface);
+}
+
+boolean_t WgetIfBSSID(void **bssid, void *networkInterface) {
+    return getBSSID(bssid, networkInterface);
+}
+
+boolean_t WgetIfMaxRate(uint32_t *rateMbps, void *networkInterface) {
+    return getWifiMaxRate(rateMbps, networkInterface);
+}
+
+boolean_t WgetIfPhyMedium(uint32_t *phyMedium, void *networkInterface) {
+    return getWifiPhyMedium(phyMedium, networkInterface);
+}
+
+void WgetApAssociationTable(void **data, size_t *dataSize, void *networkInterface) {
+    (void)networkInterface;
+    if (data) {
+        *data = NULL;
+    }
+    if (dataSize) {
+        *dataSize = 0;
+    }
+}
+
 
 
 #pragma mark -
@@ -638,7 +824,7 @@ void getHwId(void *data){
         return;
     }
 
-    io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
+    io_service_t platformExpert = IOServiceGetMatchingService(lltdIOMasterPort(), IOServiceMatching("IOPlatformExpertDevice"));
     if (!platformExpert) {
         return;
     }
@@ -786,4 +972,3 @@ void setPromiscuous(void *networkInterface, boolean_t set){
     cleanup:
     free(interfaceName);
 }
-
