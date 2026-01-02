@@ -62,6 +62,31 @@ function build_arch() {
     exit 1
   fi
 
+  local arch_label="$arch"
+  if [[ "$arch" == "arm64" ]]; then
+    arch_label="aarch64"
+  fi
+  local arch_suffix="-$arch_label"
+
+  if [[ "$product_name" == *.app ]]; then
+    local app_base="${product_name%.app}"
+    local arch_name="${app_base}${arch_suffix}.app"
+    local arch_product="$build_dir/$arch_name"
+    if [[ "$product" != "$arch_product" ]]; then
+      rm -rf "$arch_product"
+      cp -R "$product" "$arch_product"
+    fi
+    product="$arch_product"
+  else
+    local arch_name="${product_name}${arch_suffix}"
+    local arch_product="$build_dir/$arch_name"
+    if [[ "$product" != "$arch_product" ]]; then
+      rm -f "$arch_product"
+      cp "$product" "$arch_product"
+    fi
+    product="$arch_product"
+  fi
+
   printf '%s|%s\n' "$product" "$executable_path"
 }
 
@@ -86,6 +111,15 @@ function copy_product() {
 }
 
 product_name=$(basename "$x86_product")
+if [[ "$product_name" == *.app ]]; then
+  product_name="${product_name/-x86_64.app/.app}"
+  product_name="${product_name/-aarch64.app/.app}"
+  product_name="${product_name/-arm64.app/.app}"
+else
+  product_name="${product_name/-x86_64/}"
+  product_name="${product_name/-aarch64/}"
+  product_name="${product_name/-arm64/}"
+fi
 
 copy_product "$x86_product" "$ROOT_DIR/dist/macos/x86_64/$product_name"
 copy_product "$arm_product" "$ROOT_DIR/dist/macos/arm64/$product_name"
