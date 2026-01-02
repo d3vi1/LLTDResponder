@@ -10,6 +10,8 @@
 
 #if defined(ESP_PLATFORM)
 #include "esp_timer.h"
+#elif defined(_WIN32)
+#include <windows.h>
 #elif !defined(__APPLE__)
 #include <time.h>
 #endif
@@ -19,6 +21,8 @@ static uint64_t lltd_monotonic_seconds(void) {
     return mach_absolute_time() / 1000000000ULL;
 #elif defined(ESP_PLATFORM)
     return (uint64_t)(esp_timer_get_time() / 1000000ULL);
+#elif defined(_WIN32)
+    return (uint64_t)(GetTickCount64() / 1000ULL);
 #else
     struct timespec ts;
     if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
@@ -84,14 +88,14 @@ automata* init_automata_mapping() {
 automata* switch_state_mapping(automata* autom, int input, char* debug) {
     uint8_t new_state = autom->current_state;
     state* current_state = &autom->states_table[ autom->current_state ];
-    bool timeout = FALSE;
+    bool timeout = false;
     
     uint64_t now = lltd_monotonic_seconds();
     uint64_t diff = (now - autom->last_ts);
     
     if (current_state->timeout != 0 && diff > current_state->timeout) {
         // timeout in effect
-        timeout = TRUE;
+        timeout = true;
         input = -1;
     }
     
@@ -140,7 +144,7 @@ automata* init_automata_enumeration() {
     
     autom->extra  = malloc(sizeof(band_state));
     band_state* band = (band_state*) autom->extra;
-    band->begun = FALSE;
+    band->begun = false;
     band->Ni    = BAND_NMAX;
     band->r     = BAND_BLOCK_TIME;
     
@@ -165,7 +169,7 @@ automata* init_automata_enumeration() {
 automata* switch_state_enumeration(automata* autom, int input, char* debug) {
     uint8_t new_state = autom->current_state;
     state* current_state = &autom->states_table[ autom->current_state ];
-    bool timeout = FALSE;
+    bool timeout = false;
     
     uint64_t now = lltd_monotonic_seconds();
     uint64_t diff = (now - autom->last_ts);
@@ -241,14 +245,14 @@ automata* init_automata_session() {
 automata* switch_state_session(automata* autom, int input, char* debug) {
     uint8_t new_state = autom->current_state;
     state* current_state = &autom->states_table[ autom->current_state ];
-    bool timeout = FALSE;
+    bool timeout = false;
     
     uint64_t now = lltd_monotonic_seconds();
     uint64_t diff = (now - autom->last_ts);
     
     if (current_state->timeout != 0 && diff > current_state->timeout) {
         // timeout in effect
-        timeout = TRUE;
+        timeout = true;
         input = -1;
     }
     

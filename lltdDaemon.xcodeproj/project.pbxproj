@@ -13,13 +13,11 @@
 		E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */ = {isa = PBXBuildFile; fileRef = E53E69BE1908293B0033F651 /* lltdBlock.c */; };
 		E59ADBBE1C80982300895932 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59ADBBD1C80982300895932 /* SystemConfiguration.framework */; };
 		E59C3D6A18E9B38C006836B0 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
-		E59C3D6D18E9B38C006836B0 /* (null) in Sources */ = {isa = PBXBuildFile; };
 		E59E8BF518CF4D250054B295 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
 		E59E8BFA18CF4D250054B295 /* lltdDaemon.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59E8BF918CF4D250054B295 /* lltdDaemon.1 */; };
 		E59E8BFF18CF4D4A0054B295 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BFE18CF4D4A0054B295 /* IOKit.framework */; };
 		E59E8C0318CF4D550054B295 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0218CF4D550054B295 /* CoreWLAN.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		E5A41A0E19082C0B00D5D2FD /* darwin-main.c in Sources */ = {isa = PBXBuildFile; fileRef = E5A41A0D19082C0B00D5D2FD /* darwin-main.c */; };
-		E5C7F9021C6A8509002B9A1D /* darwin-main.c in Sources */ = {isa = PBXBuildFile; fileRef = E5C7F9001C6A84FD002B9A1D /* darwin-main.c */; };
 		E5FD8AE0192A130900E4EA22 /* lltdTlvOps.c in Sources */ = {isa = PBXBuildFile; fileRef = E59A5324190BEBB500CF5329 /* lltdTlvOps.c */; };
 		FAD3A21C19EACF54000FB445 /* lltdAutomata.c in Sources */ = {isa = PBXBuildFile; fileRef = FAD3A21A19EACF54000FB445 /* lltdAutomata.c */; };
 		FAD3A22719EACFF8000FB445 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7E218E0427200863EAC /* CoreServices.framework */; };
@@ -32,15 +30,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		E59C3D6718E9B38C006836B0 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
 		E59E8BF118CF4D250054B295 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -92,14 +81,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		E59C3D6618E9B38C006836B0 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				E59C3D6A18E9B38C006836B0 /* CoreFoundation.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		E59E8BF018CF4D250054B295 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -159,13 +140,6 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-			isa = PBXGroup;
-			children = (
-				E5C7F9001C6A84FD002B9A1D /* darwin-main.c */,
-			);
-			path = lltddaemon;
-			sourceTree = "<group>";
-		};
 		E59E8BF618CF4D250054B295 /* lltdDaemon */ = {
 			isa = PBXGroup;
 			children = (
@@ -193,19 +167,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-			isa = PBXNativeTarget;
-			buildPhases = (
-				E59C3D6518E9B38C006836B0 /* Sources */,
-				E59C3D6618E9B38C006836B0 /* Frameworks */,
-				E59C3D6718E9B38C006836B0 /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			productName = lltddaemon;
-			productType = "com.apple.product-type.tool";
-		};
 		E59E8BF218CF4D250054B295 /* lltdDaemon */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E59E8BFD18CF4D250054B295 /* Build configuration list for PBXNativeTarget "lltdDaemon" */;
@@ -265,15 +226,6 @@
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
-		E59C3D6518E9B38C006836B0 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				E59C3D6D18E9B38C006836B0 /* (null) in Sources */,
-				E5C7F9021C6A8509002B9A1D /* darwin-main.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		E59E8BEF18CF4D250054B295 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -385,14 +337,6 @@
 			buildConfigurations = (
 				E522410618CF0CA200DD9E2F /* Debug */,
 				E522410718CF0CA200DD9E2F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				E59C3D7018E9B38C006836B0 /* Debug */,
-				E59C3D7118E9B38C006836B0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

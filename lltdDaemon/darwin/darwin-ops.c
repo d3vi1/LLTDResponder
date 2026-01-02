@@ -9,6 +9,20 @@
  ******************************************************************************/
 
 #include "../lltdDaemon.h"
+#include <CoreGraphics/CoreGraphics.h>
+#include <ImageIO/ImageIO.h>
+
+#if defined(__APPLE__) && defined(__has_include)
+#if __has_include(<MobileCoreServices/UTType.h>)
+#include <MobileCoreServices/UTType.h>
+#elif __has_include(<CoreServices/UTType.h>)
+#include <CoreServices/UTType.h>
+#endif
+#endif
+
+#ifndef kIOMasterPortDefault
+#define kIOMasterPortDefault kIOMainPortDefault
+#endif
 
 #pragma mark Functions that return machine information
 #pragma mark -
@@ -201,7 +215,7 @@ static CFDataRef copyPngThumbnail(CGImageSourceRef source, size_t index, uint32_
     CGImageDestinationAddImage(destination, thumbnail, NULL);
     CGImageDestinationFinalize(destination);
     CFRelease(destination);
-    CGImageRelease(thumbnail);
+    CFRelease(thumbnail);
 
     return imageStream;
 }
@@ -483,6 +497,7 @@ static CFTypeRef copyWiFiProperty(const char *interfaceName, CFStringRef key) {
 }
 
 boolean_t getSSID(char **data, size_t *dataSize, void *networkInterface) {
+#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
     if (!data || !dataSize) {
         return false;
     }
@@ -525,6 +540,14 @@ boolean_t getSSID(char **data, size_t *dataSize, void *networkInterface) {
     *data = buffer;
     CFRelease(info);
     return true;
+#else
+    // CNCopyCurrentNetworkInfo and kCNNetworkInfoKeySSID are unavailable on macOS.
+    // Return false to indicate SSID is not retrievable on this platform with current implementation.
+    (void)data;
+    (void)dataSize;
+    (void)networkInterface;
+    return false;
+#endif
 }
 
 boolean_t getWifiMaxRate(uint32_t *rateMbps, void *networkInterface) {
@@ -763,3 +786,4 @@ void setPromiscuous(void *networkInterface, boolean_t set){
     cleanup:
     free(interfaceName);
 }
+

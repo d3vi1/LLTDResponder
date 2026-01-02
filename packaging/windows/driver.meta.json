@@ -1,0 +1,38 @@
+{
+  "driver_name": "lltd",
+  "display_name": "LLTD Responder",
+  "provider": "Vilt Industries",
+  "version": "1.0.0.0",
+  "targets": {
+    "win9x": {
+      "inf_filename": "lltd.inf",
+      "os_tag": "Win9x",
+      "device_id": "LLTDRES",
+      "service_name": "LLTD"
+    },
+    "win16": {
+      "inf_filename": "oemsetup.inf",
+      "os_tag": "Win16",
+      "device_id": "LLTDRES",
+      "service_name": "LLTD16"
+    },
+    "nt3x": {
+      "inf_filename": "oemsetup.inf",
+      "os_tag": "Windows NT 3.x",
+      "device_id": "LLTDRES",
+      "service_name": "LLTDNT3"
+    },
+    "nt4": {
+      "inf_filename": "oemsetup.inf",
+      "os_tag": "Windows NT 4.0",
+      "device_id": "LLTDRES",
+      "service_name": "LLTDNT4"
+    },
+    "w2k": {
+      "inf_filename": "lltd.inf",
+      "os_tag": "Windows 2000",
+      "device_id": "LLTDRES",
+      "service_name": "LLTDW2K"
+    }
+  }
+}

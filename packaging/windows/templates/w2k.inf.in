@@ -1,0 +1,35 @@
+; LLTD Responder Windows 2000 INF template
+; Generated from metadata
+
+[Version]
+Signature="$Windows NT$"
+Class=Net
+ClassGUID={4d36e972-e325-11ce-bfc1-08002be10318}
+Provider="${provider}"
+DriverVer=${version}
+
+[Manufacturer]
+%MfgName%=${driver_name}
+
+[${driver_name}]
+%DeviceDesc%=${driver_name}.Install, ${device_id}
+
+[${driver_name}.Install]
+CopyFiles=DriverCopyFiles
+
+[DriverCopyFiles]
+lltd.sys
+
+[SourceDisksNames]
+1=%DiskName%,,1
+
+[SourceDisksFiles]
+lltd.sys=1
+
+[DestinationDirs]
+DriverCopyFiles=12
+
+[Strings]
+MfgName="${provider}"
+DiskName="LLTD Responder Windows 2000 Disk"
+DeviceDesc="${display_name}"
