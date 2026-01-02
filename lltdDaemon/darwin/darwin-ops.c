@@ -11,9 +11,7 @@
 #include "../lltdDaemon.h"
 
 #if defined(__APPLE__) && defined(__has_include)
-#if __has_include(<UniformTypeIdentifiers/UTType.h>)
-#include <UniformTypeIdentifiers/UTType.h>
-#elif __has_include(<MobileCoreServices/UTType.h>)
+#if __has_include(<MobileCoreServices/UTType.h>)
 #include <MobileCoreServices/UTType.h>
 #elif __has_include(<CoreServices/UTType.h>)
 #include <CoreServices/UTType.h>
