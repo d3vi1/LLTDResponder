@@ -26,10 +26,12 @@ function build_arch() {
   if [[ -n "$SCHEME" ]]; then
     xcodebuild "${BUILD_FLAGS[@]}" \
       -derivedDataPath "$derived" \
-      build
+      build \
+      1>&2
   else
     SYMROOT="$derived" OBJROOT="$derived" xcodebuild "${BUILD_FLAGS[@]}" \
-      build
+      build \
+      1>&2
   fi
 
   local settings
@@ -60,7 +62,7 @@ function build_arch() {
     exit 1
   fi
 
-  echo "$product|$executable_path"
+  printf '%s|%s\n' "$product" "$executable_path"
 }
 
 mkdir -p "$ROOT_DIR/dist/macos/x86_64" "$ROOT_DIR/dist/macos/arm64" "$ROOT_DIR/dist/macos/universal2"
