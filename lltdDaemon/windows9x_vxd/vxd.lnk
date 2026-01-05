@@ -1,6 +1,5 @@
 option quiet
-format windows vxd
-option entry=Device_Init
+system win_vxd
 name lltd.vxd
 file lltd_vxd.obj
 option map=lltd.map
