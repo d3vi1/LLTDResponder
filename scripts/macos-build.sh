@@ -20,15 +20,29 @@ function build_arch() {
   local arch="$1"
   local derived="$ROOT_DIR/build/macos/$arch"
 
-  # Always use -derivedDataPath for modern Xcode compatibility
-  xcodebuild $(build_flags "$arch") \
-    -derivedDataPath "$derived" \
-    build
+  if [[ -n "$SCHEME" ]]; then
+    xcodebuild $(build_flags "$arch") \
+      -derivedDataPath "$derived" \
+      build
+  else
+    # Use build settings (not env vars) for target-based builds
+    xcodebuild $(build_flags "$arch") \
+      SYMROOT="$derived" \
+      OBJROOT="$derived" \
+      build
+  fi
 
   local settings
-  settings=$(xcodebuild $(build_flags "$arch") \
-    -derivedDataPath "$derived" \
-    -showBuildSettings)
+  if [[ -n "$SCHEME" ]]; then
+    settings=$(xcodebuild $(build_flags "$arch") \
+      -derivedDataPath "$derived" \
+      -showBuildSettings)
+  else
+    settings=$(xcodebuild $(build_flags "$arch") \
+      SYMROOT="$derived" \
+      OBJROOT="$derived" \
+      -showBuildSettings)
+  fi
 
   local build_dir
   build_dir=$(echo "$settings" | awk -F ' = ' '/TARGET_BUILD_DIR/ {print $2; exit}')
