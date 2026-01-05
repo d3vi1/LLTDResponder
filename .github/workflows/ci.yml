@@ -36,9 +36,11 @@ jobs:
             echo "=== Retrying with strace ==="
             sudo strace -f -o /tmp/xvfb.trace xvfb-run -a /tmp/openwatcom-installer \
               --mode unattended \
-              --target /opt/openwatcom 2>&1 | tail -100
+              --target /opt/openwatcom 2>&1 || true
             echo "=== Last 100 lines of strace ==="
-            tail -100 /tmp/xvfb.trace
+            tail -100 /tmp/xvfb.trace || echo "No trace file generated"
+            echo "=== Checking for SIGFPE in trace ==="
+            grep -A5 -B5 "SIGFPE\|FPE_INTDIV\|/dev/tty" /tmp/xvfb.trace | tail -50 || echo "No SIGFPE found in trace"
             exit 1
           }
           test -x /opt/openwatcom/binl64/wcc
