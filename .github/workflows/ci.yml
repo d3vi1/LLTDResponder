@@ -26,23 +26,9 @@ jobs:
           url="https://github.com/open-watcom/open-watcom-v2/releases/download/2025-12-01-Build/open-watcom-2_0-c-linux-x64"
           curl -fL -o /tmp/openwatcom-installer "$url"
           chmod +x /tmp/openwatcom-installer
-          echo "=== Installing with xvfb-run ==="
+          echo "=== Installing with script + xvfb-run ==="
           sudo mkdir -p /opt/openwatcom
-          sudo xvfb-run -a /tmp/openwatcom-installer \
-            --mode unattended \
-            --target /opt/openwatcom || {
-            echo "=== Installation failed, checking for core dump ==="
-            ls -lh /tmp/core* 2>/dev/null || echo "No core dump found"
-            echo "=== Retrying with strace ==="
-            sudo strace -f -o /tmp/xvfb.trace xvfb-run -a /tmp/openwatcom-installer \
-              --mode unattended \
-              --target /opt/openwatcom 2>&1 || true
-            echo "=== Last 100 lines of strace ==="
-            tail -100 /tmp/xvfb.trace || echo "No trace file generated"
-            echo "=== Checking for SIGFPE in trace ==="
-            grep -A5 -B5 "SIGFPE\|FPE_INTDIV\|/dev/tty" /tmp/xvfb.trace | tail -50 || echo "No SIGFPE found in trace"
-            exit 1
-          }
+          script -qec "sudo xvfb-run -a /tmp/openwatcom-installer --mode unattended --target /opt/openwatcom" /dev/null
           test -x /opt/openwatcom/binl64/wcc
           echo "WATCOM=/opt/openwatcom" >> "$GITHUB_ENV"
           echo "/opt/openwatcom/binl64" >> "$GITHUB_PATH"
