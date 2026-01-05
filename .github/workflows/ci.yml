@@ -25,6 +25,9 @@ jobs:
           sudo tar -xJf /tmp/ow-snapshot.tar.xz -C /opt/openwatcom --strip-components=1
           test -x /opt/openwatcom/binl64/wcc
           echo "WATCOM=/opt/openwatcom" >> "$GITHUB_ENV"
+          echo "INCLUDE=/opt/openwatcom/h:/opt/openwatcom/h/win" >> "$GITHUB_ENV"
+          echo "EDPATH=/opt/openwatcom/eddat" >> "$GITHUB_ENV"
+          echo "WIPFC=/opt/openwatcom/wipfc" >> "$GITHUB_ENV"
           echo "/opt/openwatcom/binl64" >> "$GITHUB_PATH"
 
       - name: Build Win16 + Win9x + INF templates
