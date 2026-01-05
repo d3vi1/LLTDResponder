@@ -17,21 +17,17 @@ jobs:
           set -euo pipefail
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y curl python3 libc6:i386 libstdc++6:i386 libncurses6:i386 libtinfo6:i386
-          if [ ! -e /usr/share/terminfo ]; then
-            sudo ln -s /lib/terminfo /usr/share/terminfo
-          fi
-          export TERM=xterm
-          export TERMINFO=/usr/share/terminfo
-          url="https://github.com/open-watcom/open-watcom-v2/releases/download/2025-12-01-Build/open-watcom-2_0-c-linux-x86"
-          curl -fL -o /tmp/openwatcom-installer "$url"
-          chmod +x /tmp/openwatcom-installer
+          sudo apt-get install -y curl libc6:i386 libstdc++6:i386
+          echo "=== Downloading Open Watcom snapshot ==="
+          curl -fL -o /tmp/ow-snapshot.tar.xz "https://github.com/open-watcom/open-watcom-v2/releases/download/Last-CI-build/ow-snapshot.tar.xz"
+          echo "=== Extracting to /opt/openwatcom ==="
           sudo mkdir -p /opt/openwatcom
-          sudo setarch i386 -R QT_QPA_PLATFORM=offscreen /tmp/openwatcom-installer \
-            --mode unattended \
-            --target /opt/openwatcom
+          sudo tar -xJf /tmp/ow-snapshot.tar.xz -C /opt/openwatcom --strip-components=1
           test -x /opt/openwatcom/binl64/wcc
           echo "WATCOM=/opt/openwatcom" >> "$GITHUB_ENV"
+          echo "INCLUDE=/opt/openwatcom/h:/opt/openwatcom/h/win" >> "$GITHUB_ENV"
+          echo "EDPATH=/opt/openwatcom/eddat" >> "$GITHUB_ENV"
+          echo "WIPFC=/opt/openwatcom/wipfc" >> "$GITHUB_ENV"
           echo "/opt/openwatcom/binl64" >> "$GITHUB_PATH"
 
       - name: Build Win16 + Win9x + INF templates

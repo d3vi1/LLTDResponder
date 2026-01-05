@@ -20,8 +20,9 @@
 #endif
 #endif
 
-#ifndef kIOMasterPortDefault
-#define kIOMasterPortDefault kIOMainPortDefault
+/* Use legacy name for macOS < 12.0 compatibility */
+#ifndef kIOMainPortDefault
+#define kIOMainPortDefault kIOMasterPortDefault
 #endif
 
 #pragma mark Functions that return machine information
@@ -35,7 +36,7 @@
 //
 //==============================================================================
 void getUpnpUuid(void **pointer){
-    io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
+    io_service_t platformExpert = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
     
     if (platformExpert) {
         CFStringRef uuidStr = IORegistryEntryCreateCFProperty(platformExpert,

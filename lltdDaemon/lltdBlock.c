@@ -26,7 +26,7 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
     usleep(1000 * pause);
     ssize_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
     if (write < 0) {
-        log_crit("Socket write failed on PROBE/TRAIN: %s", strerror(write));
+        log_crit("Socket write failed on PROBE/TRAIN: %s", strerror(errno));
         return false;
     } else if (ack) {
         // write an ACK too with the seq number, the algorithm will not conitnue without it
@@ -37,7 +37,7 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
         write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                               sizeof(currentNetworkInterface->socketAddr));
         if (write < 0) {
-            log_crit("Socket write failed on ACK: %s", strerror(write));
+            log_crit("Socket write failed on ACK: %s", strerror(errno));
         }
     }
 }
@@ -45,8 +45,8 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
 //TODO: validate Query
 void parseQuery(void *inFrame, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
-    int packageSize = currentNetworkInterface->MTU + sizeof(ethernet_header_t),
-        offset = 0;
+    int packageSize = currentNetworkInterface->MTU + sizeof(ethernet_header_t);
+    size_t offset = 0;
     void *buffer = malloc( packageSize );
     memset(buffer, 0, packageSize);
     
@@ -85,7 +85,7 @@ void parseQuery(void *inFrame, void *networkInterface){
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
-        log_crit("Socket write failed on QryResp: %s", strerror(write));
+        log_crit("Socket write failed on QryResp: %s", strerror(errno));
     }
     
     free(buffer);
@@ -141,7 +141,7 @@ void sendImage(void *networkInterface, uint16_t offset) {
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
                            (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
-        log_crit("Socket write failed on sendImage: %s", strerror(write));
+        log_crit("Socket write failed on sendImage: %s", strerror(errno));
     }
     //free(icon);
 }
@@ -318,7 +318,7 @@ void answerHello(void *inFrame, void *networkInterface){
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                             sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
-        log_crit("Socket write failed: %s", strerror(write));
+        log_crit("Socket write failed: %s", strerror(errno));
     }
     
     setPromiscuous(networkInterface, true);

@@ -1,6 +1,6 @@
 option quiet
-system vxd
-option entry=Device_Init
+system win_vxd
 name lltd.vxd
 file lltd_vxd.obj
+export _LLTD_DDB
 option map=lltd.map
