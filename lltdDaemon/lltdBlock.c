@@ -26,7 +26,7 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
     usleep(1000 * pause);
     ssize_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
     if (write < 0) {
-        log_crit("Socket write failed on PROBE/TRAIN: %s", strerror(write));
+        log_crit("Socket write failed on PROBE/TRAIN: %s", strerror(errno));
         return false;
     } else if (ack) {
         // write an ACK too with the seq number, the algorithm will not conitnue without it
@@ -37,7 +37,7 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
         write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                               sizeof(currentNetworkInterface->socketAddr));
         if (write < 0) {
-            log_crit("Socket write failed on ACK: %s", strerror(write));
+            log_crit("Socket write failed on ACK: %s", strerror(errno));
         }
     }
 }
