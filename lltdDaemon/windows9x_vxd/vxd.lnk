@@ -1,7 +1,5 @@
 option quiet
 format windows vxd
-option offset=0x400
-option alignment=4
 option entry=Device_Init
 name lltd.vxd
 file lltd_vxd.obj
