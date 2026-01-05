@@ -22,12 +22,13 @@ static void write_binary(const char *path) {
 
 static void write_text(const char *path) {
     FILE *file = fopen(path, "w");
+    size_t i;
     if (!file) {
         return;
     }
     fprintf(file, "LLTD Win16 diagnostic stub\n");
     fprintf(file, "TLV bytes (%u):", (unsigned)sizeof(tlv_bytes));
-    for (size_t i = 0; i < sizeof(tlv_bytes); i++) {
+    for (i = 0; i < sizeof(tlv_bytes); i++) {
         fprintf(file, " %02X", tlv_bytes[i]);
     }
     fprintf(file, "\n");
