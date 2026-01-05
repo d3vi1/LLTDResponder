@@ -30,11 +30,17 @@ jobs:
           file /tmp/openwatcom-installer
           echo "=== Installer dependencies ==="
           ldd /tmp/openwatcom-installer || true
-          echo "=== Running installer ==="
+          echo "=== Testing installer startup ==="
+          /tmp/openwatcom-installer --help || echo "Installer crashed on --help"
+          echo "=== Running installer with strace ==="
           sudo mkdir -p /opt/openwatcom
-          sudo env QT_QPA_PLATFORM=offscreen /tmp/openwatcom-installer \
+          sudo strace -o /tmp/installer.trace env QT_QPA_PLATFORM=offscreen /tmp/openwatcom-installer \
             --mode unattended \
-            --target /opt/openwatcom
+            --target /opt/openwatcom || {
+            echo "=== Installer failed, showing last 50 lines of strace ==="
+            tail -50 /tmp/installer.trace
+            exit 1
+          }
           test -x /opt/openwatcom/binl64/wcc
           echo "WATCOM=/opt/openwatcom" >> "$GITHUB_ENV"
           echo "/opt/openwatcom/binl64" >> "$GITHUB_PATH"
