@@ -27,7 +27,7 @@ jobs:
           curl -fL -o /tmp/openwatcom-installer "$url"
           chmod +x /tmp/openwatcom-installer
           sudo mkdir -p /opt/openwatcom
-          sudo setarch i386 -R QT_QPA_PLATFORM=offscreen /tmp/openwatcom-installer \
+          sudo env QT_QPA_PLATFORM=offscreen setarch i386 -R /tmp/openwatcom-installer \
             --mode unattended \
             --target /opt/openwatcom
           test -x /opt/openwatcom/binl64/wcc
