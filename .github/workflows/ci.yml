@@ -14,7 +14,7 @@ jobs:
 
       - name: Install Open Watcom
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           sudo dpkg --add-architecture i386
           sudo apt-get update
           sudo apt-get install -y curl python3 libc6:i386 libstdc++6:i386 libncurses6:i386 libtinfo6:i386
@@ -26,6 +26,11 @@ jobs:
           url="https://github.com/open-watcom/open-watcom-v2/releases/download/2025-12-01-Build/open-watcom-2_0-c-linux-x64"
           curl -fL -o /tmp/openwatcom-installer "$url"
           chmod +x /tmp/openwatcom-installer
+          echo "=== Installer file info ==="
+          file /tmp/openwatcom-installer
+          echo "=== Installer dependencies ==="
+          ldd /tmp/openwatcom-installer || true
+          echo "=== Running installer ==="
           sudo mkdir -p /opt/openwatcom
           sudo env QT_QPA_PLATFORM=offscreen /tmp/openwatcom-installer \
             --mode unattended \
