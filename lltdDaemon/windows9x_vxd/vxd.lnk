@@ -2,4 +2,5 @@ option quiet
 system win_vxd
 name lltd.vxd
 file lltd_vxd.obj
+export _LLTD_DDB
 option map=lltd.map
