@@ -26,8 +26,10 @@ typedef struct {
 
 unsigned long __stdcall Device_Control(unsigned long, unsigned long, unsigned long, unsigned long, unsigned long);
 
-/* Export DDB as LLTD_DDB */
-__declspec(dllexport) DDB LLTD_DDB = {
+/* DDB must be in _LDATA segment for VxD */
+#pragma data_seg("_LDATA", "DATA")
+
+DDB LLTD_DDB = {
     0,              /* next_ddb */
     0x30A,          /* sdk_version (3.10) */
     0xFFFF,         /* undefined device number */
@@ -40,8 +42,11 @@ __declspec(dllexport) DDB LLTD_DDB = {
     0, 0, 0, 0, 0, 0, 0, 0
 };
 
+#pragma data_seg()
+
 unsigned long __stdcall Device_Control(unsigned long dwService, unsigned long dwDDB,
                                        unsigned long hVM, unsigned long lpRegs, unsigned long dwParam) {
     /* Minimal control handler - just succeed */
+    (void)dwService; (void)dwDDB; (void)hVM; (void)lpRegs; (void)dwParam;
     return 0;
 }
