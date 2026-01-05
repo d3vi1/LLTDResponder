@@ -85,7 +85,7 @@ void parseQuery(void *inFrame, void *networkInterface){
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
-        log_crit("Socket write failed on QryResp: %s", strerror(write));
+        log_crit("Socket write failed on QryResp: %s", strerror(errno));
     }
     
     free(buffer);
@@ -141,7 +141,7 @@ void sendImage(void *networkInterface, uint16_t offset) {
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
                            (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
-        log_crit("Socket write failed on sendImage: %s", strerror(write));
+        log_crit("Socket write failed on sendImage: %s", strerror(errno));
     }
     //free(icon);
 }
@@ -318,7 +318,7 @@ void answerHello(void *inFrame, void *networkInterface){
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                             sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
-        log_crit("Socket write failed: %s", strerror(write));
+        log_crit("Socket write failed: %s", strerror(errno));
     }
     
     setPromiscuous(networkInterface, true);
