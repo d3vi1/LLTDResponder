@@ -2,20 +2,17 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_ROOT="${LLTD_BUILD_ROOT:-/tmp/lltd-build}"
 PROJECT="$ROOT_DIR/lltdDaemon.xcodeproj"
 SCHEME="${LLTD_SCHEME:-}"
 TARGET="${LLTD_TARGET:-lltdDaemon}"
 CONFIGURATION="${LLTD_CONFIGURATION:-Release}"
 
-BUILD_FLAGS=()
-
 function build_flags() {
   local arch="$1"
   if [[ -n "$SCHEME" ]]; then
-    BUILD_FLAGS=(-project "$PROJECT" -scheme "$SCHEME" -configuration "$CONFIGURATION" -arch "$arch" -sdk "macosx" "ARCHS=$arch" "ONLY_ACTIVE_ARCH=NO")
+    echo "-project" "$PROJECT" "-scheme" "$SCHEME" "-configuration" "$CONFIGURATION" "-arch" "$arch" "-sdk" "macosx"
   else
-    BUILD_FLAGS=(-project "$PROJECT" -target "$TARGET" -configuration "$CONFIGURATION" -arch "$arch" -sdk "macosx" "ARCHS=$arch" "ONLY_ACTIVE_ARCH=NO")
+    echo "-project" "$PROJECT" "-target" "$TARGET" "-configuration" "$CONFIGURATION" "-arch" "$arch" "-sdk" "macosx"
   fi
 }
 
@@ -24,7 +21,7 @@ function build_arch() {
   local derived="$ROOT_DIR/build/macos/$arch"
 
   if [[ -n "$SCHEME" ]]; then
-    xcodebuild "${BUILD_FLAGS[@]}" \
+    xcodebuild $(build_flags "$arch") \
       -derivedDataPath "$derived" \
       build >&2
   else
@@ -37,7 +34,7 @@ function build_arch() {
  
   local settings
   if [[ -n "$SCHEME" ]]; then
-    settings=$(xcodebuild "${BUILD_FLAGS[@]}" \
+    settings=$(xcodebuild $(build_flags "$arch") \
       -derivedDataPath "$derived" \
       -showBuildSettings 2>&1)
   else
@@ -97,15 +94,6 @@ function copy_product() {
 }
 
 product_name=$(basename "$x86_product")
-if [[ "$product_name" == *.app ]]; then
-  product_name="${product_name/-x86_64.app/.app}"
-  product_name="${product_name/-aarch64.app/.app}"
-  product_name="${product_name/-arm64.app/.app}"
-else
-  product_name="${product_name/-x86_64/}"
-  product_name="${product_name/-aarch64/}"
-  product_name="${product_name/-arm64/}"
-fi
 
 copy_product "$x86_product" "$ROOT_DIR/dist/macos/x86_64/$product_name"
 copy_product "$arm_product" "$ROOT_DIR/dist/macos/arm64/$product_name"
