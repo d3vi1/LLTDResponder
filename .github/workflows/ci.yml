@@ -28,7 +28,13 @@ jobs:
           chmod +x /tmp/openwatcom-installer
           echo "=== Installing with script + xvfb-run ==="
           sudo mkdir -p /opt/openwatcom
-          script -qec "sudo xvfb-run -a /tmp/openwatcom-installer --mode unattended --target /opt/openwatcom" /dev/null
+          timeout 300 script -qec "sudo xvfb-run -a /tmp/openwatcom-installer --mode unattended --unattendedmodeui none --target /opt/openwatcom" /dev/null || {
+            echo "=== Installation timed out or failed ==="
+            echo "=== Checking if files were installed anyway ==="
+            ls -la /opt/openwatcom/ || echo "Directory not created"
+            ls -la /opt/openwatcom/binl64/ || echo "binl64 not found"
+            test -x /opt/openwatcom/binl64/wcc && echo "Success despite timeout!" || exit 1
+          }
           test -x /opt/openwatcom/binl64/wcc
           echo "WATCOM=/opt/openwatcom" >> "$GITHUB_ENV"
           echo "/opt/openwatcom/binl64" >> "$GITHUB_PATH"
