@@ -23,25 +23,25 @@ function build_arch() {
   if [[ -n "$SCHEME" ]]; then
     xcodebuild $(build_flags "$arch") \
       -derivedDataPath "$derived" \
-      build
+      build >&2
   else
     # Use build settings (not env vars) for target-based builds
     xcodebuild $(build_flags "$arch") \
       SYMROOT="$derived" \
       OBJROOT="$derived" \
-      build
+      build >&2
   fi
-
+ 
   local settings
   if [[ -n "$SCHEME" ]]; then
     settings=$(xcodebuild $(build_flags "$arch") \
       -derivedDataPath "$derived" \
-      -showBuildSettings)
+      -showBuildSettings 2>&1)
   else
     settings=$(xcodebuild $(build_flags "$arch") \
       SYMROOT="$derived" \
       OBJROOT="$derived" \
-      -showBuildSettings)
+      -showBuildSettings 2>&1)
   fi
 
   local build_dir
