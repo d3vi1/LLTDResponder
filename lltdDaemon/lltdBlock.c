@@ -45,8 +45,8 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
 //TODO: validate Query
 void parseQuery(void *inFrame, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
-    int packageSize = currentNetworkInterface->MTU + sizeof(ethernet_header_t),
-        offset = 0;
+    int packageSize = currentNetworkInterface->MTU + sizeof(ethernet_header_t);
+    size_t offset = 0;
     void *buffer = malloc( packageSize );
     memset(buffer, 0, packageSize);
     
