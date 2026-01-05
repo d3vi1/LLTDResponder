@@ -51,18 +51,26 @@ function build_arch() {
   local executable_path
   executable_path=$(echo "$settings" | awk -F ' = ' '/EXECUTABLE_PATH/ {print $2; exit}')
 
+  echo "DEBUG: build_dir='$build_dir'" >&2
+  echo "DEBUG: product_name='$product_name'" >&2
+  echo "DEBUG: executable_path='$executable_path'" >&2
+
   if [[ -z "$build_dir" || -z "$product_name" ]]; then
     echo "Failed to determine build output path" >&2
     exit 1
   fi
 
   local product="$build_dir/$product_name"
+  echo "DEBUG: product='$product'" >&2
+  echo "DEBUG: checking if product exists..." >&2
   if [[ ! -e "$product" ]]; then
     echo "Product not found: $product" >&2
     exit 1
   fi
+  echo "DEBUG: product exists, about to echo result..." >&2
 
   echo "$product|$executable_path"
+  echo "DEBUG: echo completed" >&2
 }
 
 mkdir -p "$ROOT_DIR/dist/macos/x86_64" "$ROOT_DIR/dist/macos/arm64" "$ROOT_DIR/dist/macos/universal2"
