@@ -1,7 +1,7 @@
 WCC386 ?= wcc386
 WLINK ?= wlink
 
-CFLAGS = -bt=nt -d1 -zq -wx -fo=
+CFLAGS = -bt=nt -d1 -zq -wx -s -fo=
 
 TARGET = lltd.vxd
 OBJS = lltd_vxd.obj

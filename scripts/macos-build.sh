@@ -21,27 +21,30 @@ function build_flags() {
 
 function build_arch() {
   local arch="$1"
-  local derived="$BUILD_ROOT/$arch"
-  build_flags "$arch"
+  local derived="$ROOT_DIR/build/macos/$arch"
+
   if [[ -n "$SCHEME" ]]; then
     xcodebuild "${BUILD_FLAGS[@]}" \
       -derivedDataPath "$derived" \
-      build \
-      1>&2
+      build >&2
   else
-    SYMROOT="$derived" OBJROOT="$derived" xcodebuild "${BUILD_FLAGS[@]}" \
-      build \
-      1>&2
+    # Use build settings (not env vars) for target-based builds
+    xcodebuild $(build_flags "$arch") \
+      SYMROOT="$derived" \
+      OBJROOT="$derived" \
+      build >&2
   fi
-
+ 
   local settings
   if [[ -n "$SCHEME" ]]; then
     settings=$(xcodebuild "${BUILD_FLAGS[@]}" \
       -derivedDataPath "$derived" \
-      -showBuildSettings)
+      -showBuildSettings 2>&1)
   else
-    settings=$(SYMROOT="$derived" OBJROOT="$derived" xcodebuild "${BUILD_FLAGS[@]}" \
-      -showBuildSettings)
+    settings=$(xcodebuild $(build_flags "$arch") \
+      SYMROOT="$derived" \
+      OBJROOT="$derived" \
+      -showBuildSettings 2>&1)
   fi
 
   local build_dir
@@ -51,43 +54,26 @@ function build_arch() {
   local executable_path
   executable_path=$(echo "$settings" | awk -F ' = ' '/EXECUTABLE_PATH/ {print $2; exit}')
 
+  echo "DEBUG: build_dir='$build_dir'" >&2
+  echo "DEBUG: product_name='$product_name'" >&2
+  echo "DEBUG: executable_path='$executable_path'" >&2
+
   if [[ -z "$build_dir" || -z "$product_name" ]]; then
     echo "Failed to determine build output path" >&2
     exit 1
   fi
 
   local product="$build_dir/$product_name"
+  echo "DEBUG: product='$product'" >&2
+  echo "DEBUG: checking if product exists..." >&2
   if [[ ! -e "$product" ]]; then
     echo "Product not found: $product" >&2
     exit 1
   fi
+  echo "DEBUG: product exists, about to echo result..." >&2
 
-  local arch_label="$arch"
-  if [[ "$arch" == "arm64" ]]; then
-    arch_label="aarch64"
-  fi
-  local arch_suffix="-$arch_label"
-
-  if [[ "$product_name" == *.app ]]; then
-    local app_base="${product_name%.app}"
-    local arch_name="${app_base}${arch_suffix}.app"
-    local arch_product="$build_dir/$arch_name"
-    if [[ "$product" != "$arch_product" ]]; then
-      rm -rf "$arch_product"
-      cp -R "$product" "$arch_product"
-    fi
-    product="$arch_product"
-  else
-    local arch_name="${product_name}${arch_suffix}"
-    local arch_product="$build_dir/$arch_name"
-    if [[ "$product" != "$arch_product" ]]; then
-      rm -f "$arch_product"
-      cp "$product" "$arch_product"
-    fi
-    product="$arch_product"
-  fi
-
-  printf '%s|%s\n' "$product" "$executable_path"
+  echo "$product|$executable_path"
+  echo "DEBUG: echo completed" >&2
 }
 
 mkdir -p "$ROOT_DIR/dist/macos/x86_64" "$ROOT_DIR/dist/macos/arm64" "$ROOT_DIR/dist/macos/universal2"

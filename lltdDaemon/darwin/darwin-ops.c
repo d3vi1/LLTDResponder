@@ -20,11 +20,9 @@
 #endif
 #endif
 
-static mach_port_t lltdIOMasterPort(void) {
-#if defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 120000
-    if (__builtin_available(macOS 12.0, *)) {
-        return kIOMainPortDefault;
-    }
+/* Use legacy name for macOS < 12.0 compatibility */
+#ifndef kIOMainPortDefault
+#define kIOMainPortDefault kIOMasterPortDefault
 #endif
     mach_port_t masterPort = MACH_PORT_NULL;
 #pragma clang diagnostic push
@@ -48,7 +46,7 @@ static mach_port_t lltdIOMasterPort(void) {
 //
 //==============================================================================
 void getUpnpUuid(void **pointer){
-    io_service_t platformExpert = IOServiceGetMatchingService(lltdIOMasterPort(), IOServiceMatching("IOPlatformExpertDevice"));
+    io_service_t platformExpert = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
     
     if (platformExpert) {
         CFStringRef uuidStr = IORegistryEntryCreateCFProperty(platformExpert,
