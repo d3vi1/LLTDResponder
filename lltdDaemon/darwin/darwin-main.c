@@ -587,13 +587,17 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     // Get the Interface Type.
     // A WiFi always conforms to 802.11 and Ethernet, so we check the 802.11
     // class first. On macOS 26+, we also check for IO80211 properties as fallback.
+    // Also set ifType to the IANA interface type for the PhysicalMediumTLV.
     //
     if ( IsWirelessInterface(IONetworkInterface) ) {
         currentNetworkInterface->interfaceType=NetworkInterfaceTypeIEEE80211;
+        currentNetworkInterface->ifType = 71;  // IANA ieee80211
     } else if ( IOObjectConformsTo( IONetworkInterface, "IOEthernetInterface" ) ) {
         currentNetworkInterface->interfaceType=NetworkInterfaceTypeEthernet;
+        currentNetworkInterface->ifType = 6;   // IANA ethernetCsmacd
     } else {
         currentNetworkInterface->interfaceType=NetworkInterfaceTypeEthernet;
+        currentNetworkInterface->ifType = 6;   // IANA ethernetCsmacd (default)
     }
     
     //
