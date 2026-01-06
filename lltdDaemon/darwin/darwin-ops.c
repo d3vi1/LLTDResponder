@@ -448,41 +448,35 @@ boolean_t getWifiMode(void *networkInterface){
 //==============================================================================
 //
 // Returns a copy of the 6 bytes comprising the BSSID.
+// Uses copyWiFiProperty to search both children (legacy) and parents (Skywalk).
 //
 //==============================================================================
-boolean_t getBSSID (void **data, void *networkInterface){
-    network_interface_t *currentNetworkInterface = (network_interface_t*)networkInterface;
+static CFTypeRef copyWiFiProperty(const char *interfaceName, CFStringRef key);
 
-    io_service_t  IONetworkInterface;
-    kern_return_t kernel_return;
-    mach_port_t   masterPort = MACH_PORT_NULL;
-    kernel_return = IOMasterPort(bootstrap_port, &masterPort);
-    if (kernel_return != KERN_SUCCESS) {
-        log_err("IOMasterPort returned 0x%x", kernel_return);
-        return EXIT_FAILURE;
+boolean_t getBSSID(void **data, void *networkInterface) {
+    network_interface_t *currentNetworkInterface = (network_interface_t *)networkInterface;
+    if (!currentNetworkInterface || !data) {
+        if (data) *data = NULL;
+        return false;
     }
-    
-    IONetworkInterface = IOServiceGetMatchingService(masterPort, IOBSDNameMatching(masterPort, NULL, currentNetworkInterface->deviceName));
-    
-    if(IONetworkInterface){
-        CFDataRef cfDATA = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR("IO80211BSSID"), kCFAllocatorDefault, 0);
-        IOObjectRelease(IONetworkInterface);
 
-        // Check if BSSID property exists (interface might not be associated)
-        if (!cfDATA) {
-            *data = NULL;
-            return false;
-        }
-
-        *data = malloc(kIOEthernetAddressSize);
-        memcpy(*data, CFDataGetBytePtr(cfDATA), kIOEthernetAddressSize);
-        CFRelease(cfDATA);
-        return true;
-    } else {
+    CFDataRef cfDATA = (CFDataRef)copyWiFiProperty(currentNetworkInterface->deviceName, CFSTR("IO80211BSSID"));
+    if (!cfDATA) {
         *data = NULL;
         return false;
     }
-    
+
+    // Verify it's CFData and has correct size
+    if (CFGetTypeID(cfDATA) != CFDataGetTypeID() || CFDataGetLength(cfDATA) < kIOEthernetAddressSize) {
+        CFRelease(cfDATA);
+        *data = NULL;
+        return false;
+    }
+
+    *data = malloc(kIOEthernetAddressSize);
+    memcpy(*data, CFDataGetBytePtr(cfDATA), kIOEthernetAddressSize);
+    CFRelease(cfDATA);
+    return true;
 }
 
 static CFTypeRef copyWiFiProperty(const char *interfaceName, CFStringRef key) {
@@ -496,11 +490,23 @@ static CFTypeRef copyWiFiProperty(const char *interfaceName, CFStringRef key) {
         return NULL;
     }
 
+    // First try searching children (legacy IOKit stack)
     CFTypeRef value = IORegistryEntrySearchCFProperty(interfaceService,
                                                       kIOServicePlane,
                                                       key,
                                                       kCFAllocatorDefault,
                                                       kIORegistryIterateRecursively);
+
+    // If not found, search parents (Skywalk stack on Tahoe+)
+    // On Skywalk, WiFi properties are on IOUserNetworkWLAN which is a parent node
+    if (!value) {
+        value = IORegistryEntrySearchCFProperty(interfaceService,
+                                                kIOServicePlane,
+                                                key,
+                                                kCFAllocatorDefault,
+                                                kIORegistryIterateRecursively | kIORegistryIterateParents);
+    }
+
     IOObjectRelease(interfaceService);
     return value;
 }
