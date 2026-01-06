@@ -67,33 +67,33 @@ flowchart LR
   %% -------------------------
   %% Normal transitions (0..10)
   %% -------------------------
-  Q -->|Discover acking| C
-  C -->|Emit| E
-  E -->|done emitees / ACK| C
-  C -->|Reset| Q
+  Q -->|"Discover acking"| C
+  C -->|"Emit"| E
+  E -->|"done emitees / ACK"| C
+  C -->|"Reset"| Q
 
-  E -->|Probe / add to log| E
-  E -->|pause / tx emitee (Probe or Train)| E
+  E -->|"Probe / add to log"| E
+  E -->|"pause / tx emitee - Probe or Train"| E
 
-  C -->|Query / QueryResp<br/>trim from log| C
-  C -->|QueryLargeTlv / QueryLargeTlvResp| C
-  C -->|Probe / add to log| C
-  C -->|Charge / ctc++<br/>then restart charge timeout| C
-  C -->|Discover acking<br/>Emit QueryLargeTlv / QueryLargeTlvResp| C
+  C -->|"Query / QueryResp<br/>trim from log"| C
+  C -->|"QueryLargeTlv / QueryLargeTlvResp"| C
+  C -->|"Probe / add to log"| C
+  C -->|"Charge / ctc++<br/>then restart charge timeout"| C
+  C -->|"Discover acking<br/>Emit QueryLargeTlv / QueryLargeTlvResp"| C
 
   %% --------------------------------
   %% Expected recovery transitions (11..13)
   %% --------------------------------
-  C -->|charge timeout / ctc=0| C
-  C -->|inactive timeout| Q
-  E -->|inactive timeout / Reset| Q
+  C -->|"charge timeout / ctc=0"| C
+  C -->|"inactive timeout"| Q
+  E -->|"inactive timeout / Reset"| Q
 
   %% -------------------------
   %% Error recovery (14..16)
   %% -------------------------
-  Q -->|ACK, Charge, Emit, Flat, Hello, Probe, Query,<br/>QueryLargeTlv, QueryLargeTlvResp, QueryResp, Reset, Train<br/>(ignore)| Q
-  C -->|ACK, Flat, Hello, QueryLargeTlvResp, QueryResp, Train<br/>(ignore)| C
-  E -->|ACK, Charge, Emit, Flat, Hello, Probe, Query,<br/>QueryLargeTlv, QueryLargeTlvResp, QueryResp, Reset, Train<br/>(ignore)| E
+  Q -->|"ACK, Charge, Emit, Flat, Hello, Probe, Query,<br/>QueryLargeTlv, QueryLargeTlvResp, QueryResp, Reset, Train<br/>- ignore"| Q
+  C -->|"ACK, Flat, Hello, QueryLargeTlvResp, QueryResp, Train<br/>- ignore"| C
+  E -->|"ACK, Charge, Emit, Flat, Hello, Probe, Query,<br/>QueryLargeTlv, QueryLargeTlvResp, QueryResp, Reset, Train<br/>- ignore"| E
 
   %% -------------------------
   %% Edge styling by index
@@ -190,25 +190,25 @@ flowchart LR
   %% -------------------------
   %% Normal transitions (0..1)
   %% -------------------------
-  Q -->|new session not in complete state /<br/>InitStats then ChooseHelloTime| P
-  P -->|session table complete| W
+  Q -->|"new session not in complete state /<br/>InitStats then ChooseHelloTime"| P
+  P -->|"session table complete"| W
 
   %% -------------------------
   %% Expected recovery (2..11)
   %% -------------------------
-  Q -->|new session in complete state| W
+  Q -->|"new session in complete state"| W
 
-  P -->|existing session in complete state,<br/>session table incomplete| P
-  P -->|Hello / r++| P
-  P -->|hello timeout / Hello<br/>then DoHello| P
-  P -->|block timeout / UpdateStats<br/>then ChooseHelloTime| P
-  P -->|new session / begun = true| P
+  P -->|"existing session in complete state,<br/>session table incomplete"| P
+  P -->|"Hello / r++"| P
+  P -->|"hello timeout / Hello<br/>then DoHello"| P
+  P -->|"block timeout / UpdateStats<br/>then ChooseHelloTime"| P
+  P -->|"new session / begun = true"| P
 
-  W -->|new session in complete state| W
-  W -->|new session not in complete state /<br/>InitStats then ChooseHelloTime| P
+  W -->|"new session in complete state"| W
+  W -->|"new session not in complete state /<br/>InitStats then ChooseHelloTime"| P
 
-  P -->|session table empty| Q
-  W -->|session table empty| Q
+  P -->|"session table empty"| Q
+  W -->|"session table empty"| Q
 
   %% -------------------------
   %% Edge styling by index
@@ -319,25 +319,25 @@ flowchart LR
   %% -------------------------
   %% Normal transitions (0..1)
   %% -------------------------
-  Q -->|new session not in complete state /<br/>InitStats then ChooseHelloTime| P
-  P -->|session table complete| W
+  Q -->|"new session not in complete state /<br/>InitStats then ChooseHelloTime"| P
+  P -->|"session table complete"| W
 
   %% -------------------------
   %% Expected recovery (2..11)
   %% -------------------------
-  Q -->|new session in complete state| W
+  Q -->|"new session in complete state"| W
 
-  P -->|existing session in complete state,<br/>session table incomplete| P
-  P -->|Hello / r++| P
-  P -->|hello timeout / Hello<br/>then DoHello| P
-  P -->|block timeout / UpdateStats<br/>then ChooseHelloTime| P
-  P -->|new session / begun = true| P
+  P -->|"existing session in complete state,<br/>session table incomplete"| P
+  P -->|"Hello / r++"| P
+  P -->|"hello timeout / Hello<br/>then DoHello"| P
+  P -->|"block timeout / UpdateStats<br/>then ChooseHelloTime"| P
+  P -->|"new session / begun = true"| P
 
-  W -->|new session in complete state| W
-  W -->|new session not in complete state /<br/>InitStats then ChooseHelloTime| P
+  W -->|"new session in complete state"| W
+  W -->|"new session not in complete state /<br/>InitStats then ChooseHelloTime"| P
 
-  P -->|session table empty| Q
-  W -->|session table empty| Q
+  P -->|"session table empty"| Q
+  W -->|"session table empty"| Q
 
   %% -------------------------
   %% Edge styling by index
