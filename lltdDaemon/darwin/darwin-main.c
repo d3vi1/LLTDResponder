@@ -137,6 +137,75 @@ void lltdLoop (void *data){
 
 //==============================================================================
 //
+// Helper: Recursively search for a CF property in IORegistry by walking parent
+// chain. This is needed for macOS 26+ where properties may be on parent nodes
+// in the Skywalk stack. Returns a retained CFTypeRef or NULL.
+// Compatible with Tiger+ (uses IORegistryEntryCreateCFProperty +
+// IORegistryEntryGetParentEntry instead of IORegistryEntrySearchCFProperty).
+//
+//==============================================================================
+static CFTypeRef CopyCFPropertyRecursive(io_service_t entry, CFStringRef key) {
+    CFTypeRef property = NULL;
+    io_service_t currentEntry = entry;
+    io_service_t parentEntry = MACH_PORT_NULL;
+    kern_return_t kr;
+
+    // Retain the initial entry since we'll be releasing it in the loop
+    IOObjectRetain(currentEntry);
+
+    while (currentEntry != MACH_PORT_NULL) {
+        // Try to get the property from the current entry
+        property = IORegistryEntryCreateCFProperty(currentEntry, key, kCFAllocatorDefault, kNilOptions);
+        if (property != NULL) {
+            IOObjectRelease(currentEntry);
+            return property; // Found it, return retained property
+        }
+
+        // Property not found, try parent
+        kr = IORegistryEntryGetParentEntry(currentEntry, kIOServicePlane, &parentEntry);
+        IOObjectRelease(currentEntry);
+
+        if (kr != KERN_SUCCESS || parentEntry == MACH_PORT_NULL) {
+            break; // No parent or error, stop searching
+        }
+
+        currentEntry = parentEntry;
+    }
+
+    return NULL; // Not found in chain
+}
+
+//==============================================================================
+//
+// Helper: Detect if interface is wireless using IORegistry properties.
+// Checks both legacy IOObjectConformsTo and fallback IO80211 properties.
+// Returns true if wireless, false otherwise.
+//
+//==============================================================================
+static bool IsWirelessInterface(io_service_t IONetworkInterface) {
+    // Primary check: legacy IOObjectConformsTo
+    if (IOObjectConformsTo(IONetworkInterface, "IO80211Interface")) {
+        return true;
+    }
+
+    // Fallback: check for IO80211-specific properties in provider chain
+    CFTypeRef ssid = CopyCFPropertyRecursive(IONetworkInterface, CFSTR("IO80211SSID"));
+    if (ssid != NULL) {
+        CFRelease(ssid);
+        return true;
+    }
+
+    CFTypeRef countryCode = CopyCFPropertyRecursive(IONetworkInterface, CFSTR("IO80211CountryCode"));
+    if (countryCode != NULL) {
+        CFRelease(countryCode);
+        return true;
+    }
+
+    return false;
+}
+
+//==============================================================================
+//
 // We are checking if it's an Ethernet Interface, if it's up, if it has an
 // IPv4 stack and if it has an IPv6 stack. If all are met, we are updating the
 // networkInterface object object with that information and starting listner
@@ -228,49 +297,61 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
             return;
         }
         
-        
+
         //
-        // Get/Check the Medium Speed
+        // Get/Check the Medium Speed (non-fatal on modern macOS)
         //
         CFTypeRef ioLinkSpeed = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOLinkSpeed), kCFAllocatorDefault, 0);
         if (ioLinkSpeed) {
             CFNumberGetValue((CFNumberRef)ioLinkSpeed, kCFNumberLongLongType, &currentNetworkInterface->LinkSpeed);
             CFRelease(ioLinkSpeed);
         } else {
-            //Not being able to read the LinkSpeed (even if it's ZERO) is fatal
-            //and we ignore the interface from here on.
-            log_err("%s Could not read ifLinkSpeed.", currentNetworkInterface->deviceName);
-            IOObjectRelease(IONetworkController);
-            free((void *)currentNetworkInterface->deviceName);
-            free(currentNetworkInterface);
-            return;
+            // LinkSpeed may be missing on modern macOS (Skywalk stacks).
+            // Set to 0 and continue - this is best-effort information.
+            log_debug("%s Could not read kIOLinkSpeed, setting to 0 (non-fatal).", currentNetworkInterface->deviceName);
+            currentNetworkInterface->LinkSpeed = 0;
         }
-        
-        
-        //
-        //Get/Check the Medium Type
-        //
-        CFDictionaryRef properties = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOMediumDictionary), kCFAllocatorDefault, kNilOptions);
-        if (properties){
-            CFNumberRef activeMediumIndex = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOActiveMedium), kCFAllocatorDefault, kNilOptions);
-            if (activeMediumIndex!=NULL) {
 
-                CFDictionaryRef activeMedium = (CFDictionaryRef)CFDictionaryGetValue(properties, activeMediumIndex);
-                if (activeMedium!=NULL){
-                    CFNumberGetValue(CFDictionaryGetValue(activeMedium, CFSTR(kIOMediumType)), kCFNumberLongLongType, &(currentNetworkInterface->MediumType));
-//                    CFRelease(activeMedium); //It's released when we release properties
+
+        //
+        // Get/Check the Medium Type (non-fatal on modern macOS, with fallback)
+        //
+        // On macOS 26+ with Skywalk, kIOMediumDictionary may be missing and
+        // kIOActiveMedium may be a CFString instead of CFNumber. We set a
+        // deterministic fallback and only override if we can read the properties.
+        //
+        bool isWireless = IsWirelessInterface(IONetworkInterface);
+
+        // Set fallback medium type based on interface type
+        if (isWireless) {
+            currentNetworkInterface->MediumType = kIOMediumIEEE80211Auto;
+        } else {
+            currentNetworkInterface->MediumType = kIOMediumEthernetAuto;
+        }
+
+        // Try to read the medium dictionary (may be on parent nodes in Skywalk)
+        CFDictionaryRef properties = CopyCFPropertyRecursive(IONetworkController, CFSTR(kIOMediumDictionary));
+        if (properties && CFGetTypeID(properties) == CFDictionaryGetTypeID()) {
+            // Try to read the active medium key (may be CFNumber or CFString)
+            CFTypeRef activeMediumKey = CopyCFPropertyRecursive(IONetworkController, CFSTR(kIOActiveMedium));
+            if (activeMediumKey != NULL) {
+                // Use the key (CFNumber or CFString) to look up the active medium
+                CFDictionaryRef activeMedium = (CFDictionaryRef)CFDictionaryGetValue(properties, activeMediumKey);
+                if (activeMedium != NULL && CFGetTypeID(activeMedium) == CFDictionaryGetTypeID()) {
+                    CFNumberRef mediumType = (CFNumberRef)CFDictionaryGetValue(activeMedium, CFSTR(kIOMediumType));
+                    if (mediumType != NULL && CFGetTypeID(mediumType) == CFNumberGetTypeID()) {
+                        // Successfully read medium type, override the fallback
+                        CFNumberGetValue(mediumType, kCFNumberLongLongType, &(currentNetworkInterface->MediumType));
+                    }
                 }
-
-                CFRelease(activeMediumIndex);
+                CFRelease(activeMediumKey);
             }
             CFRelease(properties);
-        } else {
-            log_err("%s Could not read Active Medium Type.", currentNetworkInterface->deviceName);
-            IOObjectRelease(IONetworkController);
-            free((void*)currentNetworkInterface->deviceName);
-            free(currentNetworkInterface);
-            return;
         }
+
+        // If we couldn't read the medium type, the fallback is already set
+        log_debug("%s MediumType: 0x%llx (%s)", currentNetworkInterface->deviceName,
+                  currentNetworkInterface->MediumType, isWireless ? "wireless" : "ethernet");
 
         
     } else {
@@ -328,9 +409,9 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     //
     // Get the Interface Type.
     // A WiFi always conforms to 802.11 and Ethernet, so we check the 802.11
-    // class first.
+    // class first. On macOS 26+, we also check for IO80211 properties as fallback.
     //
-    if ( IOObjectConformsTo( IONetworkInterface, "IO80211Interface" ) ) {
+    if ( IsWirelessInterface(IONetworkInterface) ) {
         currentNetworkInterface->interfaceType=NetworkInterfaceTypeIEEE80211;
     } else if ( IOObjectConformsTo( IONetworkInterface, "IOEthernetInterface" ) ) {
         currentNetworkInterface->interfaceType=NetworkInterfaceTypeEthernet;
