@@ -51,9 +51,22 @@ void sendHelloMessage(void *networkInterface) {
                              (ethernet_address_t *)&(currentNetworkInterface->MapperHwAddress),
                              currentNetworkInterface->MapperGeneration);
 
-    // Add minimal TLVs for Hello
+    // Add TLVs for Hello - include enough info for station identification
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
     offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
+    offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
+
+    // Add 802.11 specific TLVs if wireless interface
+    if (currentNetworkInterface->interfaceType == NetworkInterfaceTypeIEEE80211) {
+        offset += setWirelessTLV(buffer, offset, currentNetworkInterface);
+        offset += setBSSIDTLV(buffer, offset, currentNetworkInterface);
+        offset += setSSIDTLV(buffer, offset, currentNetworkInterface);
+        offset += set80211MediumTLV(buffer, offset, currentNetworkInterface);
+    }
+
+    // Add icon and identification TLVs
+    offset += setIconImageTLV(buffer, offset);
+    offset += setFriendlyNameTLV(buffer, offset);
     offset += setEndOfPropertyTLV(buffer, offset);
 
     ssize_t written = sendto(currentNetworkInterface->socket, buffer, offset, 0,
@@ -508,7 +521,32 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         log_debug("%s MediumType: 0x%llx (%s)", currentNetworkInterface->deviceName,
                   currentNetworkInterface->MediumType, isWireless ? "wireless" : "ethernet");
 
-        
+
+        //
+        // Get the MTU from the controller using kIOMaxPacketSize.
+        // This is more reliable on modern macOS with Skywalk.
+        //
+        CFTypeRef ioMaxPacketSize = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOMaxPacketSize), kCFAllocatorDefault, 0);
+        if (ioMaxPacketSize) {
+            CFNumberGetValue((CFNumberRef)ioMaxPacketSize, kCFNumberLongType, &currentNetworkInterface->MTU);
+            CFRelease(ioMaxPacketSize);
+        } else {
+            // Fallback to interface's kIOMaxTransferUnit if controller doesn't have kIOMaxPacketSize
+            CFTypeRef ioInterfaceMTU = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOMaxTransferUnit), kCFAllocatorDefault, 0);
+            if (ioInterfaceMTU) {
+                CFNumberGetValue((CFNumberRef)ioInterfaceMTU, kCFNumberLongType, &currentNetworkInterface->MTU);
+                CFRelease(ioInterfaceMTU);
+            } else {
+                log_err("%s Could not read MTU from controller or interface", currentNetworkInterface->deviceName);
+                IOObjectRelease(IONetworkController);
+                IOObjectRelease(IONetworkInterface);
+                free((void*)currentNetworkInterface->deviceName);
+                free(currentNetworkInterface);
+                return;
+            }
+        }
+
+
     } else {
         log_err("%s Could not get the interface controller", currentNetworkInterface->deviceName);
         IOObjectRelease(IONetworkInterface);
@@ -516,24 +554,8 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         free(currentNetworkInterface);
         return;
     }
-    
-    IOObjectRelease(IONetworkController);
 
-    
-    //
-    // Get the interface MTU.
-    //
-    CFTypeRef ioInterfaceMTU = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOMaxTransferUnit), kCFAllocatorDefault, 0);
-    if (ioInterfaceMTU) {
-        CFNumberGetValue((CFNumberRef)ioInterfaceMTU, kCFNumberLongType, &currentNetworkInterface->MTU);
-        CFRelease(ioInterfaceMTU);
-    } else {
-        log_err("%s Could not read ifMaxTransferUnit", currentNetworkInterface->deviceName);
-        IOObjectRelease(IONetworkInterface);
-        free((void*)currentNetworkInterface->deviceName);
-        free(currentNetworkInterface);
-        return;
-    }
+    IOObjectRelease(IONetworkController);
 
 
     //
@@ -547,7 +569,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
 
         if( (!(currentNetworkInterface->flags & (IFF_UP | IFF_BROADCAST))) | (currentNetworkInterface->flags & IFF_LOOPBACK)){
             log_err("%s Failed the flags check", currentNetworkInterface->deviceName);
-            IOServiceAddInterestNotification(globalInfo.notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+            // Note: IONetworkController was already released, so we only register on the interface
             IOServiceAddInterestNotification(globalInfo.notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
             IOObjectRelease(IONetworkInterface);
             CFRelease(CFFlags);

@@ -690,6 +690,8 @@ void automata_tick(automata* mapping, automata* enumeration, session_table* sess
         // Check inactive timeout
         if (mapping_check_inactive_timeout(mstate)) {
             log_debug("Mapping: Inactive timeout triggered");
+            // Reset the timeout so it doesn't keep firing
+            mstate->inactive_timeout_ts = 0;
             // Transition to Quiescent
             switch_state_mapping(mapping, -1, "inactive_timeout");
             mapping_reset_charge(mstate);
