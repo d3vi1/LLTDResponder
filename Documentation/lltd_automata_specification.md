@@ -14,7 +14,7 @@ These automata work together to provide complete LLTD protocol functionality as 
 
 Throughout the state diagrams, transitions are styled to indicate their purpose:
 
-- **Thick black lines** - Normal operational transitions
+- **Thick blue lines** - Normal operational transitions
 - **Thin gray solid lines** - Expected recovery transitions (timeout handling, state resets)
 - **Thin gray dotted lines** - Error recovery transitions (handling unexpected messages)
 
@@ -56,7 +56,7 @@ The Mapping Engine automaton is responsible for the core topology discovery proc
 ```mermaid
 flowchart LR
   %% Styles (edges):
-  %% - normal transition: thick black
+  %% - normal transition: thick blue
   %% - expected recovery: thin gray solid
   %% - error recovery: thin gray dotted
 
@@ -98,7 +98,7 @@ flowchart LR
   %% -------------------------
   %% Edge styling by index
   %% -------------------------
-  linkStyle 0,1,2,3,4,5,6,7,8,9,10 stroke:#000,stroke-width:3px
+  linkStyle 0,1,2,3,4,5,6,7,8,9,10 stroke:#1f77b4,stroke-width:3px
   linkStyle 11,12,13 stroke:#888,stroke-width:1.5px
   linkStyle 14,15,16 stroke:#888,stroke-width:1.5px,stroke-dasharray:3 3
 ```
@@ -179,7 +179,7 @@ The Enumeration Engine automaton manages the discovery and enumeration of networ
 
 ```mermaid
 flowchart LR
-  %% - normal transition: thick black
+  %% - normal transition: thick blue
   %% - expected recovery: thin gray solid
   %% (nu apare error recovery distinct în diagramă)
 
@@ -213,7 +213,7 @@ flowchart LR
   %% -------------------------
   %% Edge styling by index
   %% -------------------------
-  linkStyle 0,1 stroke:#000,stroke-width:3px
+  linkStyle 0,1 stroke:#1f77b4,stroke-width:3px
   linkStyle 2,3,4,5,6,7,8,9,10,11 stroke:#888,stroke-width:1.5px
 ```
 
@@ -308,7 +308,7 @@ The Session Table automaton manages the state of individual sessions for discove
 
 ```mermaid
 flowchart LR
-  %% - normal transition: thick black
+  %% - normal transition: thick blue
   %% - expected recovery: thin gray solid
   %% (nu apare error recovery distinct în diagramă)
 
@@ -342,7 +342,7 @@ flowchart LR
   %% -------------------------
   %% Edge styling by index
   %% -------------------------
-  linkStyle 0,1 stroke:#000,stroke-width:3px
+  linkStyle 0,1 stroke:#1f77b4,stroke-width:3px
   linkStyle 2,3,4,5,6,7,8,9,10,11 stroke:#888,stroke-width:1.5px
 ```
 
