@@ -87,28 +87,42 @@ size_t setHostIdTLV(void *buffer, uint64_t offset, void *networkInterface) {
 size_t setCharacteristicsTLV(void *buffer, uint64_t offset, void *networkInterface) {
     network_interface_t *currentNetworkInterface = networkInterface;
     generic_tlv_t *characteristicsTLV = (generic_tlv_t *) (buffer+offset);
-    uint16_t *characteristicsValue = (void *) (buffer + offset + sizeof(*characteristicsTLV));
+    uint32_t *characteristicsValue = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
     characteristicsTLV->TLVType = tlv_characterisics;
     characteristicsTLV->TLVLength = sizeof(*characteristicsValue);
-    
+
+    // Characteristics flags are in upper 16 bits of 32-bit value (network order)
+    uint32_t flags = 0;
     //Checking if we're full duplex
     if (currentNetworkInterface->MediumType & IFM_FDX){
-        *characteristicsValue = htons(Config_TLV_NetworkInterfaceDuplex_Value);
+        flags |= Config_TLV_NetworkInterfaceDuplex_Value;
     }
     //shouldn't be here EVER because we don't start on loopback interfaces
     if (currentNetworkInterface->flags & IFF_LOOPBACK){
-        *characteristicsValue = htons(Config_TLV_InterfaceIsLoopback_Value);
+        flags |= Config_TLV_InterfaceIsLoopback_Value;
     }
-    return (sizeof(*characteristicsTLV) + sizeof(*characteristicsValue));
+    // Shift flags to upper 16 bits and convert to network order
+    *characteristicsValue = htonl(flags << 16);
+    return (sizeof(generic_tlv_t) + sizeof(*characteristicsValue));
 }
 
 size_t setPerfCounterTLV(void *buffer, uint64_t offset){
     generic_tlv_t *perf = (generic_tlv_t *) (buffer+offset);
-    uint32_t *perfValue = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
     perf->TLVType       = tlv_perfCounterFrequency;
-    perf->TLVLength     = sizeof(*perfValue);
-   *perfValue           = htonl(1000000);
-    return sizeof(generic_tlv_t)+sizeof(*perfValue);
+    perf->TLVLength     = sizeof(uint64_t);
+
+    // Write 64-bit value in big-endian (network) order
+    uint64_t freq = 1000000;  // 1 MHz performance counter frequency
+    uint8_t *bytes = (uint8_t *)(buffer + offset + sizeof(generic_tlv_t));
+    bytes[0] = (freq >> 56) & 0xFF;
+    bytes[1] = (freq >> 48) & 0xFF;
+    bytes[2] = (freq >> 40) & 0xFF;
+    bytes[3] = (freq >> 32) & 0xFF;
+    bytes[4] = (freq >> 24) & 0xFF;
+    bytes[5] = (freq >> 16) & 0xFF;
+    bytes[6] = (freq >> 8) & 0xFF;
+    bytes[7] = freq & 0xFF;
+    return sizeof(generic_tlv_t) + sizeof(uint64_t);
 }
 
 size_t setIconImageTLV(void *buffer, uint64_t offset){
@@ -197,7 +211,8 @@ size_t setQosCharacteristicsTLV(void *buffer, uint64_t offset){
     uint32_t *qosCharacteristics         = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
     QosCharacteristicsTLV->TLVType       = tlv_qos_characteristics;
     QosCharacteristicsTLV->TLVLength     = sizeof(*qosCharacteristics);
-    *qosCharacteristics                  = htonl(Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN);
+    // QoS flags are in upper 16 bits of 32-bit value
+    *qosCharacteristics                  = htonl((Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN) << 16);
     return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 

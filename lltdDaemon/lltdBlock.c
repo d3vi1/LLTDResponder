@@ -305,18 +305,17 @@ void answerHello(void *inFrame, void *networkInterface){
         offset += setSSIDTLV(buffer, offset, currentNetworkInterface);
         offset += setWifiMaxRateTLV(buffer, offset, currentNetworkInterface);
         offset += setWifiRssiTLV(buffer, offset, currentNetworkInterface);
-        offset += set80211MediumTLV(buffer, offset, currentNetworkInterface);
+        // Note: Physical Medium TLV already set above with correct IANA type
         offset += setAPAssociationTableTLV(buffer, offset, currentNetworkInterface);
         offset += setRepeaterAPLineageTLV(buffer, offset, currentNetworkInterface);
         offset += setRepeaterAPTableTLV(buffer, offset, currentNetworkInterface);
     }
     offset += setQosCharacteristicsTLV (buffer, offset);
-    offset += setIconImageTLV          (buffer, offset);
-    offset += setFriendlyNameTLV       (buffer, offset);
+    offset += setIconImageTLV          (buffer, offset);   // Length 0, data via QueryLargeTLV
+    offset += setFriendlyNameTLV       (buffer, offset);   // Length 0, data via QueryLargeTLV
     offset += setUuidTLV               (buffer, offset);
-    offset += setHardwareIdTLV         (buffer, offset);
-    offset += setDetailedIconTLV       (buffer, offset);
-    offset += setComponentTableTLV     (buffer, offset);
+    // Note: Hardware ID (0x13), Detailed Icon, and Component Table are
+    // QueryLargeTLV-only and should not appear in Hello frames
     offset += setEndOfPropertyTLV      (buffer, offset);
 
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
