@@ -3,3 +3,5 @@
 lltdDaemon.xcodeproj/project.xcworkspace/
 LLMNRd.xcodeproj/project.xcworkspace/xcshareddata/
 LLMNRd.xcodeproj/project.xcworkspace/xcshareddata/LLMNRd.xccheckout
+build
+dist
