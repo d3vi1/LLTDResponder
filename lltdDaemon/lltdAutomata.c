@@ -168,7 +168,7 @@ automata* switch_state_mapping(automata* autom, int input, char* debug) {
 automata* init_automata_enumeration() {
     automata *autom = malloc( sizeof(automata) );
     autom->states_no = 3;
-    autom->transitions_no = 7;
+    autom->transitions_no = 8;
     autom->last_ts = lltd_monotonic_seconds();
     autom->name = "RepeatBand";
     
@@ -195,14 +195,15 @@ automata* init_automata_enumeration() {
     autom->states_table[2] = wait;
     
     transition *t = autom->transitions_table;
-    t[ 0].from = 0; t[ 0].to = 1; t[ 0].with = enum_sess_not_complete;
-    t[ 1].from = 0; t[ 1].to = 2; t[ 1].with = enum_sess_complete;
-    t[ 2].from = 1; t[ 2].to = 1; t[ 2].with = enum_sess_complete;
-    t[ 3].from = 1; t[ 3].to = 1; t[ 3].with = enum_hello;
-    t[ 4].from = 1; t[ 4].to = 1; t[ 4].with = enum_new_session;
-    t[ 5].from = 2; t[ 5].to = 1; t[ 5].with = enum_sess_not_complete;
-    t[ 6].from = 2; t[ 6].to = 2; t[ 6].with = enum_sess_complete;
-    
+    t[ 0].from = 0; t[ 0].to = 1; t[ 0].with = enum_sess_not_complete;  // Quiescent -> Pausing
+    t[ 1].from = 0; t[ 1].to = 1; t[ 1].with = enum_new_session;        // Quiescent -> Pausing (on Discover)
+    t[ 2].from = 1; t[ 2].to = 1; t[ 2].with = enum_sess_complete;      // Pausing -> Pausing (continue)
+    t[ 3].from = 1; t[ 3].to = 1; t[ 3].with = enum_hello;              // Pausing -> Pausing (on Hello)
+    t[ 4].from = 1; t[ 4].to = 1; t[ 4].with = enum_new_session;        // Pausing -> Pausing
+    t[ 5].from = 2; t[ 5].to = 1; t[ 5].with = enum_sess_not_complete;  // Wait -> Pausing
+    t[ 6].from = 2; t[ 6].to = 0; t[ 6].with = enum_sess_complete;      // Wait -> Quiescent (table empty)
+    t[ 7].from = 2; t[ 7].to = 1; t[ 7].with = enum_new_session;        // Wait -> Pausing (new session)
+
     return autom;
 }
 
@@ -708,8 +709,8 @@ void automata_tick(automata* mapping, automata* enumeration, session_table* sess
         for (int i = 0; i < SESSION_TABLE_MAX_ENTRIES; i++) {
             session_entry* entry = &sessions->entries[i];
             if (entry->valid) {
-                // Check for session timeout (1 second inactivity removes session)
-                if (now_s > entry->last_activity_ts + 1) {
+                // Check for session timeout (60 second inactivity removes session)
+                if (now_s > entry->last_activity_ts + 60) {
                     log_debug("Session timeout for mapper %02x:%02x:%02x:%02x:%02x:%02x",
                               entry->mapper_mac[0], entry->mapper_mac[1], entry->mapper_mac[2],
                               entry->mapper_mac[3], entry->mapper_mac[4], entry->mapper_mac[5]);
@@ -730,22 +731,18 @@ void automata_tick(automata* mapping, automata* enumeration, session_table* sess
         bool all_complete = session_table_all_complete(sessions);
 
         // Determine enumeration input based on session table state
-        int enum_input = -1;
-        if (table_empty) {
-            // If we're in Pausing or Wait and table becomes empty, go to Quiescent
-            if (enumeration->current_state == 1 || enumeration->current_state == 2) {
-                // Transition back to Quiescent (no sessions to enumerate)
-                switch_state_enumeration(enumeration, enum_sess_complete, "table_empty");
+        // Only send inputs when NOT in Quiescent (state 0) to avoid spam
+        if (enumeration->current_state != 0) {
+            if (table_empty) {
+                // Table empty - if in Wait, go to Quiescent; if in Pausing, continue until block timeout
+                if (enumeration->current_state == 2) {
+                    switch_state_enumeration(enumeration, enum_sess_complete, "table_empty");
+                }
+            } else if (all_complete) {
+                switch_state_enumeration(enumeration, enum_sess_complete, "tick");
+            } else {
+                switch_state_enumeration(enumeration, enum_sess_not_complete, "tick");
             }
-        } else if (all_complete) {
-            enum_input = enum_sess_complete;
-        } else {
-            enum_input = enum_sess_not_complete;
-        }
-
-        // Process enumeration state machine if we have an input
-        if (enum_input >= 0) {
-            switch_state_enumeration(enumeration, enum_input, "tick");
         }
 
         // Only process hello/block timeouts if in Pausing state (index 1)
