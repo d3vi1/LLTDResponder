@@ -166,13 +166,12 @@ size_t setUuidTLV(void *buffer, uint64_t offset){
 // Hardware ID TLV - sends the hardware identifier (platform UUID as UCS-2LE)
 // Returns size of TLV written, or 0 if no hardware ID available
 size_t setHardwareIdTLV(void *buffer, uint64_t offset){
-#ifdef __APPLE__
-    // Get the platform UUID as hardware ID
+    // Get the platform UUID as hardware ID (platform-specific implementation)
     uint8_t hwIdData[64];
     memset(hwIdData, 0, sizeof(hwIdData));
     getHwId(hwIdData);
 
-    // Check if we got any data (first byte non-zero indicates data)
+    // Check if we got any data (find last non-zero UCS-2LE char)
     size_t dataLen = 0;
     for (size_t i = 0; i < 64; i += 2) {
         if (hwIdData[i] != 0 || hwIdData[i+1] != 0) {
@@ -187,10 +186,7 @@ size_t setHardwareIdTLV(void *buffer, uint64_t offset){
         memcpy((void *)(buffer + offset + sizeof(generic_tlv_t)), hwIdData, dataLen);
         return sizeof(generic_tlv_t) + dataLen;
     }
-#else
-    (void)buffer;
-    (void)offset;
-#endif
+
     // No hardware ID available - don't emit the TLV at all
     return 0;
 }
@@ -208,7 +204,6 @@ size_t setQosCharacteristicsTLV(void *buffer, uint64_t offset){
 // Detailed Icon TLV - sends the detailed icon image (multi-resolution ICO)
 // Only used with QueryLargeTLV. Returns raw icon data without TLV header.
 size_t setDetailedIconTLV(void *buffer, uint64_t offset){
-#ifdef __APPLE__
     void *iconData = NULL;
     size_t iconSize = 0;
     getDetailedIconImage(&iconData, &iconSize);
@@ -222,17 +217,12 @@ size_t setDetailedIconTLV(void *buffer, uint64_t offset){
     if (iconData) {
         free(iconData);
     }
-#else
-    (void)buffer;
-    (void)offset;
-#endif
     return 0;
 }
 
 // Component Table TLV - sends the component descriptor table
 // Only used with QueryLargeTLV. Returns raw component data without TLV header.
 size_t setComponentTableTLV(void *buffer, uint64_t offset){
-#ifdef __APPLE__
     void *tableData = NULL;
     size_t tableSize = 0;
     getComponentTable(&tableData, &tableSize);
@@ -246,10 +236,6 @@ size_t setComponentTableTLV(void *buffer, uint64_t offset){
     if (tableData) {
         free(tableData);
     }
-#else
-    (void)buffer;
-    (void)offset;
-#endif
     return 0;
 }
 
@@ -388,7 +374,6 @@ size_t setSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
     ssidTlv->TLVType = tlv_ssid;
     ssidTlv->TLVLength = 0;
 
-#ifdef __APPLE__
     char *ssid = NULL;
     size_t ssidSize = 0;
     if (getSSID(&ssid, &ssidSize, networkInterface) && ssid && ssidSize > 0) {
@@ -403,7 +388,6 @@ size_t setSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
     if (ssid) {
         free(ssid);
     }
-#endif
     return sizeof(generic_tlv_t);
 }
 
@@ -414,12 +398,11 @@ size_t setWifiMaxRateTLV(void *buffer, uint64_t offset, void *networkInterface){
 
     uint32_t *rate = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
     *rate = 0;
-#ifdef __APPLE__
+
     uint32_t rateMbps = 0;
     if (getWifiMaxRate(&rateMbps, networkInterface)) {
         *rate = htonl(rateMbps);
     }
-#endif
     return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 
@@ -430,12 +413,11 @@ size_t setWifiRssiTLV(void *buffer, uint64_t offset, void *networkInterface){
 
     int8_t *rssi = (int8_t *)(buffer + offset + sizeof(generic_tlv_t));
     *rssi = 0;
-#ifdef __APPLE__
+
     int8_t rssiValue = 0;
     if (getWifiRssi(&rssiValue, networkInterface)) {
         *rssi = rssiValue;
     }
-#endif
     return sizeof(generic_tlv_t) + sizeof(int8_t);
 }
 
@@ -446,12 +428,11 @@ size_t set80211MediumTLV(void *buffer, uint64_t offset, void *networkInterface){
 
     uint32_t *medium = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
     *medium = 0;
-#ifdef __APPLE__
+
     uint32_t phyMedium = 0;
     if (getWifiPhyMedium(&phyMedium, networkInterface)) {
         *medium = htonl(phyMedium);
     }
-#endif
     return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 

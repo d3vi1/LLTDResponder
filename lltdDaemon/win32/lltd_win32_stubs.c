@@ -15,3 +15,7 @@ void parseFrame(void *frame, void *networkInterface) {
     (void)frame;
     (void)networkInterface;
 }
+
+void sendHelloMessage(void *networkInterface) {
+    (void)networkInterface;
+}
