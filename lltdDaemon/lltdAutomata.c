@@ -91,7 +91,7 @@ automata* init_automata_mapping() {
     quiescent.name = "Quiescent";
     quiescent.timeout = 0;
     command.name = "Command";
-    command.timeout = 1;
+    command.timeout = 5;  // Allow 5 seconds between frames during mapping
     emit.name = "Emit";
     emit.timeout = 30;
 
