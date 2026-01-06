@@ -228,7 +228,16 @@ void lltdLoop (void *data){
         }
 
         // Update mapping automaton with opcode
+        // Track previous state to detect Quiescent transition
+        uint8_t prev_mapping_state = currentNetworkInterface->mappingAutomata->current_state;
         switch_state_mapping(currentNetworkInterface->mappingAutomata, header->opcode, "rx");
+
+        // If Mapping just transitioned to Quiescent (timeout or otherwise), clear session table
+        // This ensures RepeatBand stops when the mapping session ends
+        if (prev_mapping_state != 0 && currentNetworkInterface->mappingAutomata->current_state == 0) {
+            log_debug("Mapping transitioned to Quiescent, clearing session table");
+            session_table_clear(currentNetworkInterface->sessionTable);
+        }
 
         // Reset inactive timeout on any valid frame
         if (currentNetworkInterface->mappingAutomata->extra) {
