@@ -61,7 +61,7 @@ void sendHelloMessage(void *networkInterface) {
         offset += setWirelessTLV(buffer, offset, currentNetworkInterface);
         offset += setBSSIDTLV(buffer, offset, currentNetworkInterface);
         offset += setSSIDTLV(buffer, offset, currentNetworkInterface);
-        offset += set80211MediumTLV(buffer, offset, currentNetworkInterface);
+        // Note: Physical Medium TLV already set above with correct IANA type (71 for 802.11)
     }
 
     // Add icon and identification TLVs

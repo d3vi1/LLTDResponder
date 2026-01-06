@@ -104,11 +104,11 @@ size_t setCharacteristicsTLV(void *buffer, uint64_t offset, void *networkInterfa
 
 size_t setPerfCounterTLV(void *buffer, uint64_t offset){
     generic_tlv_t *perf = (generic_tlv_t *) (buffer+offset);
-    uint32_t *perfValue = (void *) (perf + sizeof(*perf));
+    uint32_t *perfValue = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
     perf->TLVType       = tlv_perfCounterFrequency;
     perf->TLVLength     = sizeof(*perfValue);
    *perfValue           = htonl(1000000);
-    return sizeof(*perf)+sizeof(*perfValue);
+    return sizeof(generic_tlv_t)+sizeof(*perfValue);
 }
 
 size_t setIconImageTLV(void *buffer, uint64_t offset){
@@ -194,11 +194,11 @@ size_t setHardwareIdTLV(void *buffer, uint64_t offset){
 //TODO: see if there really is support for Level2 Forwarding.. ? or just leave it hardcoded
 size_t setQosCharacteristicsTLV(void *buffer, uint64_t offset){
     generic_tlv_t *QosCharacteristicsTLV = (generic_tlv_t *) (buffer + offset);
-    uint16_t *qosCharacteristics         = (void *)(buffer + offset + sizeof(generic_tlv_t));
+    uint32_t *qosCharacteristics         = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
     QosCharacteristicsTLV->TLVType       = tlv_qos_characteristics;
     QosCharacteristicsTLV->TLVLength     = sizeof(*qosCharacteristics);
-    *qosCharacteristics                  = htons(Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN);
-    return sizeof(generic_tlv_t) + sizeof(uint16_t);
+    *qosCharacteristics                  = htonl(Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN);
+    return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 
 // Detailed Icon TLV - sends the detailed icon image (multi-resolution ICO)
@@ -396,31 +396,32 @@ size_t setSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
 size_t setWifiMaxRateTLV(void *buffer, uint64_t offset, void *networkInterface){
     generic_tlv_t *rateTlv = (generic_tlv_t *) (buffer + offset);
     rateTlv->TLVType = tlv_wifiMaxRate;
-    rateTlv->TLVLength = sizeof(uint32_t);
+    rateTlv->TLVLength = sizeof(uint16_t);
 
-    uint32_t *rate = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
+    uint16_t *rate = (uint16_t *)(buffer + offset + sizeof(generic_tlv_t));
     *rate = 0;
 
+    // Get rate in Mbps and convert to 0.5 Mbps units for LLTD spec
     uint32_t rateMbps = 0;
     if (getWifiMaxRate(&rateMbps, networkInterface)) {
-        *rate = htonl(rateMbps);
+        *rate = htons((uint16_t)(rateMbps * 2));  // Convert Mbps to 0.5 Mbps units
     }
-    return sizeof(generic_tlv_t) + sizeof(uint32_t);
+    return sizeof(generic_tlv_t) + sizeof(uint16_t);
 }
 
 size_t setWifiRssiTLV(void *buffer, uint64_t offset, void *networkInterface){
     generic_tlv_t *rssiTlv = (generic_tlv_t *) (buffer + offset);
     rssiTlv->TLVType = tlv_wifiRssi;
-    rssiTlv->TLVLength = sizeof(int8_t);
+    rssiTlv->TLVLength = sizeof(int32_t);
 
-    int8_t *rssi = (int8_t *)(buffer + offset + sizeof(generic_tlv_t));
+    int32_t *rssi = (int32_t *)(buffer + offset + sizeof(generic_tlv_t));
     *rssi = 0;
 
     int8_t rssiValue = 0;
     if (getWifiRssi(&rssiValue, networkInterface)) {
-        *rssi = rssiValue;
+        *rssi = htonl((int32_t)rssiValue);
     }
-    return sizeof(generic_tlv_t) + sizeof(int8_t);
+    return sizeof(generic_tlv_t) + sizeof(int32_t);
 }
 
 size_t set80211MediumTLV(void *buffer, uint64_t offset, void *networkInterface){
