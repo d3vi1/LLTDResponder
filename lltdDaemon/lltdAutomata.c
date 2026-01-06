@@ -734,10 +734,12 @@ void automata_tick(automata* mapping, automata* enumeration, session_table* sess
         // Only send inputs when NOT in Quiescent (state 0) to avoid spam
         if (enumeration->current_state != 0) {
             if (table_empty) {
-                // Table empty - if in Wait, go to Quiescent; if in Pausing, continue until block timeout
-                if (enumeration->current_state == 2) {
-                    switch_state_enumeration(enumeration, enum_sess_complete, "table_empty");
-                }
+                // Table empty (Reset received) - go to Quiescent from any active state
+                log_debug("RepeatBand: Table empty, returning to Quiescent");
+                enumeration->current_state = 0;  // Quiescent
+                band->hello_timeout_ts = 0;
+                band->block_timeout_ts = 0;
+                band->begun = false;
             } else if (all_complete) {
                 switch_state_enumeration(enumeration, enum_sess_complete, "tick");
             } else {
