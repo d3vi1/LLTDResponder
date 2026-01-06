@@ -466,13 +466,20 @@ boolean_t getBSSID (void **data, void *networkInterface){
     
     if(IONetworkInterface){
         CFDataRef cfDATA = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR("IO80211BSSID"), kCFAllocatorDefault, 0);
-        *data = malloc(kIOEthernetAddressSize);
-        memcpy(*data,CFDataGetBytePtr(cfDATA),kIOEthernetAddressSize);
-        CFRelease(cfDATA);
         IOObjectRelease(IONetworkInterface);
+
+        // Check if BSSID property exists (interface might not be associated)
+        if (!cfDATA) {
+            *data = NULL;
+            return false;
+        }
+
+        *data = malloc(kIOEthernetAddressSize);
+        memcpy(*data, CFDataGetBytePtr(cfDATA), kIOEthernetAddressSize);
+        CFRelease(cfDATA);
         return true;
     } else {
-        data = NULL;
+        *data = NULL;
         return false;
     }
     

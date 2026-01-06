@@ -361,12 +361,14 @@ size_t setBSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
     bssid_tlv_t *bssidTlv = (bssid_tlv_t *) (buffer + offset);
     bssidTlv->TLVType        = tlv_bssid;
     bssidTlv->TLVLength      = 6;
-    if(getBSSID((void *)&(bssidTlv->macAddress), networkInterface)){
+
+    void *bssidData = NULL;
+    if (getBSSID(&bssidData, networkInterface) && bssidData) {
+        memcpy(bssidTlv->macAddress, bssidData, 6);
+        free(bssidData);
         return sizeof(bssid_tlv_t);
-    } else {
-        return 0;
     }
-    
+    return 0;
 }
 
 size_t setSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
