@@ -20,22 +20,10 @@
 #endif
 #endif
 
-static mach_port_t lltdIOMasterPort(void) {
-#if defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 120000
-    if (__builtin_available(macOS 12.0, *)) {
-        return kIOMainPortDefault;
-    }
+/* Use legacy name for macOS < 12.0 compatibility */
+#ifndef kIOMainPortDefault
+#define kIOMainPortDefault kIOMasterPortDefault
 #endif
-    mach_port_t masterPort = MACH_PORT_NULL;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    kern_return_t kernel_return = IOMasterPort(MACH_PORT_NULL, &masterPort);
-#pragma clang diagnostic pop
-    if (kernel_return != KERN_SUCCESS) {
-        return MACH_PORT_NULL;
-    }
-    return masterPort;
-}
 
 #pragma mark Functions that return machine information
 #pragma mark -
@@ -48,7 +36,7 @@ static mach_port_t lltdIOMasterPort(void) {
 //
 //==============================================================================
 void getUpnpUuid(void **pointer){
-    io_service_t platformExpert = IOServiceGetMatchingService(lltdIOMasterPort(), IOServiceMatching("IOPlatformExpertDevice"));
+    io_service_t platformExpert = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
     
     if (platformExpert) {
         CFStringRef uuidStr = IORegistryEntryCreateCFProperty(platformExpert,
@@ -73,7 +61,7 @@ void getUpnpUuid(void **pointer){
 
 
 static CFURLRef copyDeviceIconURL(void) {
-    io_service_t platformExpert = IOServiceGetMatchingService(lltdIOMasterPort(), IOServiceMatching("IOPlatformExpertDevice"));
+    io_service_t platformExpert = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
     CFDataRef modelCodeData = NULL;
     if (platformExpert) {
         modelCodeData = IORegistryEntryCreateCFProperty(platformExpert,
@@ -359,7 +347,7 @@ void getSupportInfo(void **data, size_t *stringSize){
     //
     // Get the serial number from the IOPlatformExpertDevice
     //
-    io_service_t platformExpert = IOServiceGetMatchingService(lltdIOMasterPort(), IOServiceMatching("IOPlatformExpertDevice"));
+    io_service_t platformExpert = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
     
     if (platformExpert) {
 
@@ -495,9 +483,8 @@ static CFTypeRef copyWiFiProperty(const char *interfaceName, CFStringRef key) {
         return NULL;
     }
 
-    mach_port_t masterPort = lltdIOMasterPort();
-    io_service_t interfaceService = IOServiceGetMatchingService(masterPort,
-                                                                IOBSDNameMatching(masterPort, 0, interfaceName));
+    io_service_t interfaceService = IOServiceGetMatchingService(kIOMainPortDefault,
+                                                                IOBSDNameMatching(kIOMainPortDefault, 0, interfaceName));
     if (!interfaceService) {
         return NULL;
     }
@@ -821,7 +808,7 @@ void getHwId(void *data){
         return;
     }
 
-    io_service_t platformExpert = IOServiceGetMatchingService(lltdIOMasterPort(), IOServiceMatching("IOPlatformExpertDevice"));
+    io_service_t platformExpert = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
     if (!platformExpert) {
         return;
     }

@@ -3,8 +3,8 @@
 //  Automata
 //
 //  Created by Alex Georoceanu on 06/10/14.
-//  Copyright © 2014 Alex Georoceanu. All rights reserved.
 //  Copyright © 2014-2026 Răzvan Corneliu C.R. VILT. All rights reserved.
+//  Copyright © 2014 Alex GEOROCEANU. All rights reserved.
 //
 
 #include <stdio.h>

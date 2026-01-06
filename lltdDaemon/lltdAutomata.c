@@ -3,7 +3,8 @@
 //  Automata
 //
 //  Created by Alex Georoceanu on 06/10/14.
-//  Copyright (c) 2014-2026 Alex Georoceanu. All rights reserved.
+//  Copyright © 2014-2026 Răzvan Corneliu C.R. VILT. All rights reserved.
+//  Copyright © 2014 Alex GEOROCEANU. All rights reserved.
 //
 
 #include "lltdDaemon.h"
