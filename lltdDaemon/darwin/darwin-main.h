@@ -30,6 +30,7 @@ struct {
 } globalInfo;
 
 typedef struct automata automata;
+typedef struct session_table session_table;
 
 typedef struct {
     io_object_t            notification;
@@ -42,7 +43,7 @@ typedef struct {
 
     //We can get these by ioctls:
     //IFRTYPE_FAMILY_ETHERNET(IFRTYPE_SUBFAMILY_ANY,IFRTYPE_SUBFAMILY_USB,IFRTYPE_SUBFAMILY_BLUETOOTH,IFRTYPE_SUBFAMILY_WIFI,IFRTYPE_SUBFAMILY_THUNDERBOLT), IFRTYPE_FAMILY_VLAN, IFRTYPE_FAMILY_BOND, IFRTYPE_FAMILY_BRIDGE
-    
+
     int64_t                flags;               // kIOInterfaceFlags from the Interface
     uint64_t               linkStatus;          // kIOLinkStatus from the Controller
     uint32_t               MTU;                 // We'll set the buffer size to the MTU size
@@ -54,12 +55,14 @@ typedef struct {
     void                  *seeList;
     uint32_t               seeListCount;
     uint16_t               MapperSeqNumber;
+    uint16_t               MapperGeneration;    // Current mapper generation number
     uint8_t                macAddress      [ kIOEthernetAddressSize ];
     uint8_t                MapperHwAddress [ kIOEthernetAddressSize ];
     void                  *recvBuffer;          //We need to clear the receive Buffer when we kill the thread.
     automata              *mappingAutomata;
     automata              *sessionAutomata;
     automata              *enumerationAutomata;
+    session_table         *sessionTable;        // Session table for multi-mapper support
 } network_interface_t;
 
 void deviceAppeared   (void *refCon, io_iterator_t iterator);

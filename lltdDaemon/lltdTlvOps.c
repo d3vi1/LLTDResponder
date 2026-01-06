@@ -145,16 +145,53 @@ size_t setFriendlyNameTLV(void *buffer, uint64_t offset){
 size_t setUuidTLV(void *buffer, uint64_t offset){
     void *machineUUID = NULL;
     getUpnpUuid(&machineUUID);
+
     generic_tlv_t *upnpUuidTLV = (generic_tlv_t *) (buffer + offset);
     upnpUuidTLV->TLVType = tlv_uuid;
-    upnpUuidTLV->TLVLength = 16;
-    memcpy((void *)(buffer + offset + sizeof(generic_tlv_t)), upnpUuidTLV, 16);
-    free(machineUUID);
-    return (sizeof(generic_tlv_t) + 16);
+
+    // UUID is always 16 bytes
+    if (machineUUID != NULL) {
+        upnpUuidTLV->TLVLength = 16;
+        // Copy the UUID bytes from machineUUID, not from the TLV header
+        memcpy((void *)(buffer + offset + sizeof(generic_tlv_t)), machineUUID, 16);
+        free(machineUUID);
+        return (sizeof(generic_tlv_t) + 16);
+    } else {
+        // No UUID available - emit TLV with zero length
+        upnpUuidTLV->TLVLength = 0;
+        return sizeof(generic_tlv_t);
+    }
 }
 
-//TODO: Maybe... Need to look this up
+// Hardware ID TLV - sends the hardware identifier (platform UUID as UCS-2LE)
+// Returns size of TLV written, or 0 if no hardware ID available
 size_t setHardwareIdTLV(void *buffer, uint64_t offset){
+#ifdef __APPLE__
+    // Get the platform UUID as hardware ID
+    uint8_t hwIdData[64];
+    memset(hwIdData, 0, sizeof(hwIdData));
+    getHwId(hwIdData);
+
+    // Check if we got any data (first byte non-zero indicates data)
+    size_t dataLen = 0;
+    for (size_t i = 0; i < 64; i += 2) {
+        if (hwIdData[i] != 0 || hwIdData[i+1] != 0) {
+            dataLen = i + 2;
+        }
+    }
+
+    if (dataLen > 0) {
+        generic_tlv_t *hwIdTLV = (generic_tlv_t *)(buffer + offset);
+        hwIdTLV->TLVType = tlv_hwIdProperty;
+        hwIdTLV->TLVLength = (uint8_t)dataLen;
+        memcpy((void *)(buffer + offset + sizeof(generic_tlv_t)), hwIdData, dataLen);
+        return sizeof(generic_tlv_t) + dataLen;
+    }
+#else
+    (void)buffer;
+    (void)offset;
+#endif
+    // No hardware ID available - don't emit the TLV at all
     return 0;
 }
 
@@ -168,11 +205,51 @@ size_t setQosCharacteristicsTLV(void *buffer, uint64_t offset){
     return sizeof(generic_tlv_t) + sizeof(uint16_t);
 }
 
+// Detailed Icon TLV - sends the detailed icon image (multi-resolution ICO)
+// Only used with QueryLargeTLV. Returns raw icon data without TLV header.
 size_t setDetailedIconTLV(void *buffer, uint64_t offset){
+#ifdef __APPLE__
+    void *iconData = NULL;
+    size_t iconSize = 0;
+    getDetailedIconImage(&iconData, &iconSize);
+
+    if (iconData != NULL && iconSize > 0) {
+        // For QueryLargeTLV response, we write raw data without TLV header
+        memcpy((void *)(buffer + offset), iconData, iconSize);
+        free(iconData);
+        return iconSize;
+    }
+    if (iconData) {
+        free(iconData);
+    }
+#else
+    (void)buffer;
+    (void)offset;
+#endif
     return 0;
 }
 
+// Component Table TLV - sends the component descriptor table
+// Only used with QueryLargeTLV. Returns raw component data without TLV header.
 size_t setComponentTableTLV(void *buffer, uint64_t offset){
+#ifdef __APPLE__
+    void *tableData = NULL;
+    size_t tableSize = 0;
+    getComponentTable(&tableData, &tableSize);
+
+    if (tableData != NULL && tableSize > 0) {
+        // For QueryLargeTLV response, we write raw data without TLV header
+        memcpy((void *)(buffer + offset), tableData, tableSize);
+        free(tableData);
+        return tableSize;
+    }
+    if (tableData) {
+        free(tableData);
+    }
+#else
+    (void)buffer;
+    (void)offset;
+#endif
     return 0;
 }
 

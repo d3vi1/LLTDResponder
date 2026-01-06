@@ -27,6 +27,51 @@ static void free_automata(automata *autom) {
 
 //==============================================================================
 //
+// Send a Hello message on the given interface (used by RepeatBand algorithm)
+//
+//==============================================================================
+void sendHelloMessage(void *networkInterface) {
+    network_interface_t *currentNetworkInterface = networkInterface;
+    if (!currentNetworkInterface) return;
+
+    void *buffer = malloc(currentNetworkInterface->MTU);
+    if (!buffer) return;
+
+    memset(buffer, 0, currentNetworkInterface->MTU);
+    uint64_t offset = 0;
+
+    offset = setLltdHeader(buffer,
+                           (ethernet_address_t *)&(currentNetworkInterface->macAddress),
+                           (ethernet_address_t *)&EthernetBroadcast,
+                           0x00, opcode_hello, tos_discovery);
+
+    // Add Hello upper header with current mapper info
+    offset += setHelloHeader(buffer, offset,
+                             (ethernet_address_t *)&(currentNetworkInterface->MapperHwAddress),
+                             (ethernet_address_t *)&(currentNetworkInterface->MapperHwAddress),
+                             currentNetworkInterface->MapperGeneration);
+
+    // Add minimal TLVs for Hello
+    offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
+    offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
+    offset += setEndOfPropertyTLV(buffer, offset);
+
+    ssize_t written = sendto(currentNetworkInterface->socket, buffer, offset, 0,
+                             (struct sockaddr *)&currentNetworkInterface->socketAddr,
+                             sizeof(currentNetworkInterface->socketAddr));
+    if (written < 0) {
+        int err = errno;
+        log_debug("sendHelloMessage: Socket write failed: %s", strerror(err));
+    } else {
+        log_debug("sendHelloMessage: Sent Hello on %s (%zd bytes)",
+                  currentNetworkInterface->deviceName, written);
+    }
+
+    free(buffer);
+}
+
+//==============================================================================
+//
 // This is the thread that is opened for each valid interface
 //
 //==============================================================================
@@ -100,28 +145,129 @@ void lltdLoop (void *data){
     }
     
     //
-    // Start the run loop
+    // Start the run loop with select() for timeout-based tick mechanism
     //
-    unsigned int cyclNo = 0;
     currentNetworkInterface->recvBuffer = malloc(currentNetworkInterface->MTU);
-    
+
     if(currentNetworkInterface->recvBuffer == NULL) {
-        log_err("The receive buffer couldn't be allocated. We've failed misserably on interface %s", currentNetworkInterface->deviceName);
+        log_err("The receive buffer couldn't be allocated. We've failed miserably on interface %s", currentNetworkInterface->deviceName);
     } else for(;;){
-        recvfrom(fileDescriptor, currentNetworkInterface->recvBuffer, currentNetworkInterface->MTU, 0, NULL, NULL);
-        if(currentNetworkInterface->recvBuffer == NULL) {
-            log_err("For some reason the receive buffer has been free-ed by someone. HEEELP");
+        // Use select() with 100ms timeout for tick-based timeout handling
+        fd_set readfds;
+        struct timeval timeout;
+        FD_ZERO(&readfds);
+        FD_SET(fileDescriptor, &readfds);
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 100000; // 100ms tick interval
+
+        int selectResult = select(fileDescriptor + 1, &readfds, NULL, NULL, &timeout);
+
+        if (selectResult < 0) {
+            int err = errno;
+            if (err != EINTR) {
+                log_err("select() failed on %s: %s", currentNetworkInterface->deviceName, strerror(err));
+            }
+            continue;
         }
+
+        // Always run the automata tick, even on timeout
+        automata_tick(currentNetworkInterface->mappingAutomata,
+                      currentNetworkInterface->enumerationAutomata,
+                      currentNetworkInterface->sessionTable,
+                      currentNetworkInterface);
+
+        if (selectResult == 0) {
+            // Timeout - no data available, loop back for next tick
+            continue;
+        }
+
+        // Data is available on the socket
+        ssize_t recvLen = recvfrom(fileDescriptor, currentNetworkInterface->recvBuffer,
+                                   currentNetworkInterface->MTU, 0, NULL, NULL);
+        if (recvLen <= 0) {
+            continue;
+        }
+
+        if(currentNetworkInterface->recvBuffer == NULL) {
+            log_err("For some reason the receive buffer has been freed by someone. HELP");
+            break;
+        }
+
         lltd_demultiplex_header_t *header = currentNetworkInterface->recvBuffer;
+
+        // Derive session event from the received frame
+        int sess_event = derive_session_event(currentNetworkInterface->recvBuffer,
+                                              currentNetworkInterface->sessionTable,
+                                              currentNetworkInterface->macAddress);
+
+        // Update session table based on received frame
+        if (header->opcode == opcode_discover) {
+            lltd_discover_upper_header_t *disc_header =
+                (lltd_discover_upper_header_t*)(header + 1);
+            uint16_t generation = ntohs(disc_header->generation);
+
+            // Add/update session entry
+            session_entry* entry = session_table_add(currentNetworkInterface->sessionTable,
+                                                     header->realSource.a,
+                                                     generation,
+                                                     ntohs(header->seqNumber));
+            if (entry) {
+                entry->state = (uint8_t)sess_event;
+                entry->last_activity_ts = lltd_monotonic_seconds();
+                if (sess_event == sess_discover_acking || sess_event == sess_discover_acking_chgd_xid) {
+                    entry->complete = true;
+                }
+                // Update interface-level mapper info
+                memcpy(currentNetworkInterface->MapperHwAddress, header->realSource.a, 6);
+                currentNetworkInterface->MapperGeneration = generation;
+            }
+            session_table_update_complete_status(currentNetworkInterface->sessionTable);
+        } else if (header->opcode == opcode_reset) {
+            // Clear session table on reset
+            session_table_clear(currentNetworkInterface->sessionTable);
+        }
+
+        // Update mapping automaton with opcode
         switch_state_mapping(currentNetworkInterface->mappingAutomata, header->opcode, "rx");
-        switch_state_session(currentNetworkInterface->sessionAutomata, header->opcode, "rx");
+
+        // Reset inactive timeout on any valid frame
+        if (currentNetworkInterface->mappingAutomata->extra) {
+            mapping_reset_inactive_timeout((mapping_state*)currentNetworkInterface->mappingAutomata->extra);
+        }
+
+        // Handle charge opcode specially for charge timeout counter
+        if (header->opcode == opcode_charge && currentNetworkInterface->mappingAutomata->extra) {
+            mapping_on_charge((mapping_state*)currentNetworkInterface->mappingAutomata->extra);
+        }
+
+        // Update session automaton with derived session event
+        if (sess_event >= 0) {
+            switch_state_session(currentNetworkInterface->sessionAutomata, sess_event, "rx");
+        }
+
+        // Update enumeration automaton based on frame type
         if (header->opcode == opcode_hello) {
+            // Received Hello from another station
+            if (currentNetworkInterface->enumerationAutomata->extra) {
+                band_on_hello_received((band_state*)currentNetworkInterface->enumerationAutomata->extra);
+            }
             switch_state_enumeration(currentNetworkInterface->enumerationAutomata, enum_hello, "rx");
         } else if (header->opcode == opcode_discover) {
+            // New session starting - initialize RepeatBand if needed
+            if (currentNetworkInterface->enumerationAutomata->current_state == 0) {
+                // In Quiescent, start enumeration
+                if (currentNetworkInterface->enumerationAutomata->extra) {
+                    band_init_stats((band_state*)currentNetworkInterface->enumerationAutomata->extra);
+                    band_choose_hello_time((band_state*)currentNetworkInterface->enumerationAutomata->extra);
+                }
+            } else if (currentNetworkInterface->enumerationAutomata->extra) {
+                // Already enumerating, mark begun
+                ((band_state*)currentNetworkInterface->enumerationAutomata->extra)->begun = true;
+            }
             switch_state_enumeration(currentNetworkInterface->enumerationAutomata, enum_new_session, "rx");
-        } else {
-            switch_state_enumeration(currentNetworkInterface->enumerationAutomata, enum_sess_complete, "rx");
         }
+
+        // Parse and handle the frame
         parseFrame(currentNetworkInterface->recvBuffer, currentNetworkInterface);
     }
     
@@ -561,6 +707,7 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
         free_automata(currentNetworkInterface->mappingAutomata);
         free_automata(currentNetworkInterface->sessionAutomata);
         free_automata(currentNetworkInterface->enumerationAutomata);
+        session_table_destroy(currentNetworkInterface->sessionTable);
         free(currentNetworkInterface);
     /*
      * Keep the struct, the notification and the deviceName.
@@ -656,6 +803,7 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
         currentNetworkInterface->mappingAutomata = init_automata_mapping();
         currentNetworkInterface->sessionAutomata = init_automata_session();
         currentNetworkInterface->enumerationAutomata = init_automata_enumeration();
+        currentNetworkInterface->sessionTable = session_table_create();
         
         //
         // Let's get the device name. If we don't have a BSD name, we are

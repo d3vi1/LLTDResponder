@@ -23,20 +23,47 @@
 
 typedef bool boolean_t;
 
+// Forward declarations for automata types
+struct automata;
+struct session_table;
+
 typedef struct {
     const char *deviceName;
     uint32_t    ifType;
     uint32_t    MediumType;
     uint32_t    flags;
-    uint32_t    LinkSpeed;
+    uint64_t    LinkSpeed;
     uint8_t     macAddress[6];
+    uint8_t     MapperHwAddress[6];
+    uint16_t    MapperSeqNumber;
+    uint16_t    MapperGeneration;
+    int         socket;
+    uint32_t    MTU;
+    void       *seeList;
+    uint32_t    seeListCount;
+    void       *recvBuffer;
+    struct automata *mappingAutomata;
+    struct automata *sessionAutomata;
+    struct automata *enumerationAutomata;
+    struct session_table *sessionTable;
+    struct sockaddr_ndrv {
+        unsigned char snd_len;
+        unsigned char snd_family;
+        char snd_name[12];
+    } socketAddr;
 } network_interface_t;
 
 #define lltdEtherType 0x88D9
 
+// Host information functions
 void getMachineName(char **name, size_t *size);
 void getSupportInfo(void **info, size_t *size);
 void getUpnpUuid(void **uuid);
+void getHwId(void *data);
+void getDetailedIconImage(void **data, size_t *iconsize);
+void getComponentTable(void **data, size_t *dataSize);
+
+// WiFi interface functions
 uint8_t getWifiMode(void *networkInterface);
 bool getBSSID(void *bssid, void *networkInterface);
 bool getSSID(char **ssid, size_t *size, void *networkInterface);
