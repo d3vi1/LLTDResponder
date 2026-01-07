@@ -40,10 +40,11 @@ void sendHelloMessage(void *networkInterface) {
     memset(buffer, 0, currentNetworkInterface->MTU);
     uint64_t offset = 0;
 
+    // Hello frames are part of the current mapper session; use the mapper-provided seqNumber.
     offset = setLltdHeader(buffer,
                            (ethernet_address_t *)&(currentNetworkInterface->macAddress),
                            (ethernet_address_t *)&EthernetBroadcast,
-                           0x00, opcode_hello, tos_discovery);
+                           currentNetworkInterface->MapperSeqNumber, opcode_hello, tos_discovery);
 
     // Add Hello upper header with current mapper info
     offset += setHelloHeader(buffer, offset,

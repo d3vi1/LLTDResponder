@@ -197,7 +197,9 @@ automata* init_automata_enumeration() {
     transition *t = autom->transitions_table;
     t[ 0].from = 0; t[ 0].to = 1; t[ 0].with = enum_sess_not_complete;  // Quiescent -> Pausing
     t[ 1].from = 0; t[ 1].to = 1; t[ 1].with = enum_new_session;        // Quiescent -> Pausing (on Discover)
-    t[ 2].from = 1; t[ 2].to = 1; t[ 2].with = enum_sess_complete;      // Pausing -> Pausing (continue)
+    // When all sessions are complete, stop emitting Hello frames.
+    // Park in Wait so we can quickly re-enter Pausing on a new session.
+    t[ 2].from = 1; t[ 2].to = 2; t[ 2].with = enum_sess_complete;      // Pausing -> Wait (sessions complete)
     t[ 3].from = 1; t[ 3].to = 1; t[ 3].with = enum_hello;              // Pausing -> Pausing (on Hello)
     t[ 4].from = 1; t[ 4].to = 1; t[ 4].with = enum_new_session;        // Pausing -> Pausing
     t[ 5].from = 2; t[ 5].to = 1; t[ 5].with = enum_sess_not_complete;  // Wait -> Pausing

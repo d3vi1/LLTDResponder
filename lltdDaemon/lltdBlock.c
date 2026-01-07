@@ -18,7 +18,9 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
    
     // This one should be correct
     uint8_t code = type == 0x01 ? opcode_probe : opcode_train;
-    setLltdHeader(probe, (ethernet_address_t *) &src, (ethernet_address_t *) &dst, 0x00, code, tos_discovery);
+    // Probe/Train frames belong to the current mapping session; they must carry the mapper's seqNumber.
+    setLltdHeader(probe, (ethernet_address_t *) &src, (ethernet_address_t *) &dst,
+                  currentNetworkInterface->MapperSeqNumber, code, tos_discovery);
 
 
     log_alert("Trying to send probe/train with seqNumber %d", ntohs(probe->seqNumber));
@@ -59,29 +61,49 @@ void parseQuery(void *inFrame, void *networkInterface){
     qry_resp_upper_header_t *respH  = buffer + sizeof(lltd_demultiplex_header_t);
     // HERE I AM
     
+    // NOTE: `seeList` is a linked list of `probe_t` nodes. The wire format of a QueryResp
+    // descriptor must NOT include the host-only `nextProbe` pointer.
+    typedef struct __attribute__((packed)) {
+        uint16_t type;
+        ethernet_address_t realSourceAddr;
+        ethernet_address_t sourceAddr;
+        ethernet_address_t destAddr;
+    } lltd_probe_desc_wire_t;
+
     log_crit("I've seen %d probes", currentNetworkInterface->seeListCount);
-    probe_t currentProbe;
-    
-    for(long i = 0; i < currentNetworkInterface->seeListCount; i++) {
-        memcpy(&currentProbe, currentNetworkInterface->seeList + (i * sizeof(probe_t)), sizeof(probe_t));
-        log_crit("\tType %d, Source: "ETHERNET_ADDR_FMT", Dest: "ETHERNET_ADDR_FMT", RealSource: "ETHERNET_ADDR_FMT,
-                    currentProbe.type, ETHERNET_ADDR(currentProbe.sourceAddr.a), ETHERNET_ADDR(currentProbe.destAddr.a), ETHERNET_ADDR(currentProbe.realSourceAddr.a) );
-    }
-    // TODO: split this into multiple messages if it's the case
-    respH->numDescs                 = htons(currentNetworkInterface->seeListCount);
+
+    // TODO: split into multiple QueryResp frames if needed.
+    respH->numDescs = htons(currentNetworkInterface->seeListCount);
     offset += sizeof(qry_resp_upper_header_t);
-    
-    if (currentNetworkInterface->seeListCount) {
-        
-        memcpy( buffer + offset, currentNetworkInterface->seeList, sizeof(probe_t) * currentNetworkInterface->seeListCount );
-        
-        offset += sizeof(probe_t) * currentNetworkInterface->seeListCount;
-        
-        free(currentNetworkInterface->seeList);
-        currentNetworkInterface->seeList=NULL;
-        currentNetworkInterface->seeListCount = 0;
-        
+
+    probe_t *node = (probe_t *)currentNetworkInterface->seeList;
+    long remaining = currentNetworkInterface->seeListCount;
+    while (node != NULL && remaining > 0) {
+        lltd_probe_desc_wire_t wire;
+        memset(&wire, 0, sizeof(wire));
+        wire.type = node->type; // already stored in network order
+        wire.realSourceAddr = node->realSourceAddr;
+        wire.sourceAddr = node->sourceAddr;
+        wire.destAddr = node->destAddr;
+
+        log_crit("\tType %d, Source: "ETHERNET_ADDR_FMT", Dest: "ETHERNET_ADDR_FMT", RealSource: "ETHERNET_ADDR_FMT,
+                 ntohs(wire.type), ETHERNET_ADDR(wire.sourceAddr.a), ETHERNET_ADDR(wire.destAddr.a), ETHERNET_ADDR(wire.realSourceAddr.a));
+
+        if (offset + sizeof(wire) > packageSize) {
+            log_crit("QryResp buffer too small (%zu) for %zu bytes", packageSize, offset + sizeof(wire));
+            break;
+        }
+        memcpy(((uint8_t *)buffer) + offset, &wire, sizeof(wire));
+        offset += sizeof(wire);
+
+        probe_t *next = node->nextProbe;
+        free(node);
+        node = next;
+        remaining--;
     }
+
+    currentNetworkInterface->seeList = NULL;
+    currentNetworkInterface->seeListCount = 0;
     
     
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
@@ -217,14 +239,14 @@ void parseProbe(void *inFrame, void *networkInterface) {
     // if the probe is destined to us, we record it
     lltd_demultiplex_header_t * header = inFrame;
     
-    // see if it's intended for us
-    if ( compareEthernetAddress(&(header->frameHeader.destination), (ethernet_address_t *) &currentNetworkInterface->macAddress) || true	 )  {
+    // Only record probes/train frames intended for us.
+    if (compareEthernetAddress(&(header->frameHeader.destination), (ethernet_address_t *)&currentNetworkInterface->macAddress)) {
 
         // store it then, unless we have it already??
         probe_t *probe          = malloc( sizeof(probe_t) );
         
         // initialize the probe, then search for it in our array
-        probe->type             = 0x00;
+        probe->type             = htons((header->opcode == opcode_probe) ? 1 : 0);
         probe->sourceAddr       = header->frameHeader.source;
         probe->destAddr         = header->frameHeader.destination;
         probe->realSourceAddr   = header->realSource;
@@ -314,18 +336,22 @@ void answerHello(void *inFrame, void *networkInterface){
     
     lltd_demultiplex_header_t    *inFrameHeader  = inFrame;
     lltd_demultiplex_header_t    *lltdHeader     = buffer;
-    lltd_discover_upper_header_t *discoverHeader = (void *)inFrameHeader + sizeof(lltdHeader);
+    // The Discover upper header immediately follows the demultiplex header.
+    lltd_discover_upper_header_t *discoverHeader = (lltd_discover_upper_header_t *)((uint8_t *)inFrameHeader + sizeof(*inFrameHeader));
     
     //
     //Validate that real mac address == src address
     //If it's not, silently fail.
     //
-    if (!compareEthernetAddress(&lltdHeader->realSource, &lltdHeader->frameHeader.source)){
+    if (!compareEthernetAddress(&inFrameHeader->realSource, &inFrameHeader->frameHeader.source)) {
         log_debug("Discovery validation failed real mac is not equal to source.");
+        free(buffer);
         return;
     }
     
-    offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->macAddress), (ethernet_address_t *) &EthernetBroadcast, 0x00, opcode_hello, inFrameHeader->tos);
+    // Hello frames are part of the same discovery session: preserve the mapper seqNumber.
+    offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->macAddress), (ethernet_address_t *) &EthernetBroadcast,
+                          inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
     
     //offset = setLltdHeader(buffer, currentNetworkInterface->hwAddress, (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, tos_quick_discovery);
     
