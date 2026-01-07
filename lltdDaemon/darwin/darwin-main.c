@@ -76,9 +76,11 @@ void sendHelloMessageEx(
         generation
     );
 
-    log_debug("sendHelloMessageEx(): %s tos=%u opcode=0x%x seq=%u seq_wire=0x%02x%02x gen_host=0x%04x gen_wire=0x%02x%02x curMapper="
+    const char *gen_store = (tos == tos_quick_discovery) ? "quick" : "topology";
+    log_debug("sendHelloMessageEx(): %s mapper_id="ETHERNET_ADDR_FMT" tos=%u opcode=0x%x seq=%u seq_wire=0x%02x%02x gen_host=0x%04x gen_wire=0x%02x%02x gen_store=%s curMapper="
               ETHERNET_ADDR_FMT" appMapper="ETHERNET_ADDR_FMT,
               currentNetworkInterface->deviceName,
+              ETHERNET_ADDR(mapperRealAddress->a),
               tos,
               opcode_hello,
               seqNumber,
@@ -87,6 +89,7 @@ void sendHelloMessageEx(
               generation,
               ((uint8_t *)&helloHeader->generation)[0],
               ((uint8_t *)&helloHeader->generation)[1],
+              gen_store,
               ETHERNET_ADDR(mapperRealAddress->a),
               ETHERNET_ADDR(mapperApparentAddress->a));
 
@@ -144,7 +147,7 @@ void sendHelloMessage(void *networkInterface) {
         tos_discovery,
         (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
         (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
-        currentNetworkInterface->MapperGeneration
+        currentNetworkInterface->MapperGenerationTopology
     );
 }
 
@@ -285,6 +288,12 @@ void lltdLoop (void *data){
                 (lltd_discover_upper_header_t*)(header + 1);
             uint16_t generation = ntohs(disc_header->generation);
 
+            log_debug("%s: mapper_id="ETHERNET_ADDR_FMT" ethSrc="ETHERNET_ADDR_FMT" tos=%u xid=%u",
+                      currentNetworkInterface->deviceName,
+                      ETHERNET_ADDR(header->realSource.a),
+                      ETHERNET_ADDR(header->frameHeader.source.a),
+                      header->tos,
+                      ntohs(header->seqNumber));
             // Add/update session entry
             session_entry* entry = session_table_add(currentNetworkInterface->sessionTable,
                                                      header->realSource.a,
@@ -298,7 +307,11 @@ void lltdLoop (void *data){
                 }
                 // Update interface-level mapper info
                 memcpy(currentNetworkInterface->MapperHwAddress, header->realSource.a, 6);
-                currentNetworkInterface->MapperGeneration = generation;
+                if (header->tos == tos_quick_discovery) {
+                    currentNetworkInterface->MapperGenerationQuick = generation;
+                } else {
+                    currentNetworkInterface->MapperGenerationTopology = generation;
+                }
             }
             session_table_update_complete_status(currentNetworkInterface->sessionTable);
         } else if (header->opcode == opcode_reset) {

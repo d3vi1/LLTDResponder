@@ -37,7 +37,8 @@ typedef struct {
     uint8_t     MapperHwAddress[6];
     uint8_t     MapperApparentAddress[6];
     uint16_t    MapperSeqNumber;
-    uint16_t    MapperGeneration;
+    uint16_t    MapperGenerationTopology;
+    uint16_t    MapperGenerationQuick;
     int         socket;
     uint32_t    MTU;
     void       *seeList;

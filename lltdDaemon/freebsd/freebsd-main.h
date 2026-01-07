@@ -33,7 +33,8 @@ typedef struct {
     void         *seeList;
     uint32_t      seeListCount;
     uint16_t      MapperSeqNumber;
-    uint16_t      MapperGeneration;
+    uint16_t      MapperGenerationTopology;
+    uint16_t      MapperGenerationQuick;
     void         *recvBuffer;
     size_t        recvBufferSize;
     int           helloSent;

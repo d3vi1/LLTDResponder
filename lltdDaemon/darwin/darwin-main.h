@@ -63,7 +63,8 @@ typedef struct {
     void                  *seeList;
     uint32_t               seeListCount;
     uint16_t               MapperSeqNumber;
-    uint16_t               MapperGeneration;    // Current mapper generation number
+    uint16_t               MapperGenerationTopology; // Mapper generation for topology discovery (host order)
+    uint16_t               MapperGenerationQuick;    // Mapper generation for quick discovery (host order)
     uint8_t                macAddress             [ kIOEthernetAddressSize ];
     uint8_t                MapperHwAddress        [ kIOEthernetAddressSize ];  // Real (LLTD) mapper address
     uint8_t                MapperApparentAddress  [ kIOEthernetAddressSize ];  // Ethernet (bridge) mapper address
