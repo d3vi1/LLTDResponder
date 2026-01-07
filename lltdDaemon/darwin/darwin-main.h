@@ -11,6 +11,14 @@
 #ifndef LLTDd_darwin_h
 #define LLTDd_darwin_h
 
+
+/*
+ * darwin-main.h references ethernet_address_t (LLTD wire-format MAC wrapper).
+ * Keep the definition centralized in lltdBlock.h.
+ */
+
+#include "../lltdBlock.h"
+
 #pragma mark -
 
 #pragma pack( push )
