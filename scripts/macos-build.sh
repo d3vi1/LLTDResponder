@@ -20,36 +20,55 @@ function build_arch() {
   local arch="$1"
   local derived="$ROOT_DIR/build/macos/$arch"
 
+  local args=()
   if [[ -n "$SCHEME" ]]; then
-    xcodebuild $(build_flags "$arch") \
-      -derivedDataPath "$derived" \
-      build >&2
+    args=( -project "$PROJECT" -scheme "$SCHEME" -configuration "$CONFIGURATION" -arch "$arch" -sdk macosx )
+    xcodebuild "${args[@]}" -derivedDataPath "$derived" build >&2
   else
-    # Use build settings (not env vars) for target-based builds
-    xcodebuild $(build_flags "$arch") \
-      SYMROOT="$derived" \
-      OBJROOT="$derived" \
-      build >&2
+    args=( -project "$PROJECT" -target "$TARGET" -configuration "$CONFIGURATION" -arch "$arch" -sdk macosx )
+    xcodebuild "${args[@]}" SYMROOT="$derived" OBJROOT="$derived" build >&2
   fi
- 
+
   local settings
   if [[ -n "$SCHEME" ]]; then
-    settings=$(xcodebuild $(build_flags "$arch") \
+    settings=$(xcodebuild "${args[@]}" \
       -derivedDataPath "$derived" \
-      -showBuildSettings 2>&1)
+      -showBuildSettings 2>&1) || {
+        echo "xcodebuild -showBuildSettings failed:" >&2
+        echo "$settings" >&2
+        exit 1
+      }
   else
-    settings=$(xcodebuild $(build_flags "$arch") \
+    settings=$(xcodebuild "${args[@]}" \
       SYMROOT="$derived" \
       OBJROOT="$derived" \
-      -showBuildSettings 2>&1)
+      -showBuildSettings 2>&1) || {
+        echo "xcodebuild -showBuildSettings failed:" >&2
+        echo "$settings" >&2
+        exit 1
+      }
   fi
 
   local build_dir
-  build_dir=$(echo "$settings" | awk -F ' = ' '/TARGET_BUILD_DIR/ {print $2; exit}')
+  build_dir=$(printf '%s\n' "$settings" | awk -F '=' '
+    /^[[:space:]]*TARGET_BUILD_DIR[[:space:]]*=/ {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2);
+      print $2; exit
+    }')
+
   local product_name
-  product_name=$(echo "$settings" | awk -F ' = ' '/FULL_PRODUCT_NAME/ {print $2; exit}')
+  product_name=$(printf '%s\n' "$settings" | awk -F '=' '
+    /^[[:space:]]*FULL_PRODUCT_NAME[[:space:]]*=/ {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2);
+      print $2; exit
+    }')
+
   local executable_path
-  executable_path=$(echo "$settings" | awk -F ' = ' '/EXECUTABLE_PATH/ {print $2; exit}')
+  executable_path=$(printf '%s\n' "$settings" | awk -F '=' '
+    /^[[:space:]]*EXECUTABLE_PATH[[:space:]]*=/ {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2);
+      print $2; exit
+    }')
 
   echo "DEBUG: build_dir='$build_dir'" >&2
   echo "DEBUG: product_name='$product_name'" >&2
