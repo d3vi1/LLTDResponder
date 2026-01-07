@@ -503,7 +503,9 @@ void parseFrame(void *frame, void *networkInterface){
                     lltd_hello_upper_header_t *inHello =
                         (lltd_hello_upper_header_t *)((uint8_t *)frame + sizeof(lltd_demultiplex_header_t));
 
-                    currentNetworkInterface->MapperHwAddress  = header->realSource;
+                    memcpy(currentNetworkInterface->MapperHwAddress,
+                           header->realSource.a,
+                           sizeof(currentNetworkInterface->MapperHwAddress));
                     currentNetworkInterface->MapperSeqNumber  = header->seqNumber;
                     currentNetworkInterface->MapperGeneration = inHello->generation;
 
