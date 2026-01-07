@@ -38,17 +38,23 @@ void sendHelloMessageEx(
     const ethernet_address_t *mapperApparentAddress,
     uint16_t generation
 ) {
+    uint8_t *buffer = calloc(1, currentNetworkInterface->MTU);
+    if (!buffer) {
+        log_err("calloc failed in sendHelloMessageEx");
+        return;
+    }
 
-    size_t offset = 0;
+    uint64_t offset = 0;
 
-    // Allocate memory for the LLTD response
-    uint8_t *buffer = (uint8_t *)calloc(currentNetworkInterface->MTU, sizeof(uint8_t));
-
-    // Set the LLTD header
+    /*
+     * IMPORTANT:
+     * setLltdHeader() are semnătura:
+     *   setLltdHeader(buffer, source, destination, seqNumber, opcode, tos)
+     */
     offset = setLltdHeader(
-        buffer,
-        currentNetworkInterface->MACAddress,
-        etherBroadcastAddress,
+        (void *)buffer,
+        (ethernet_address_t *)&(currentNetworkInterface->macAddress),
+        (ethernet_address_t *)(uintptr_t)mapperApparentAddress,
         seqNumber,
         opcode_hello,
         tos
