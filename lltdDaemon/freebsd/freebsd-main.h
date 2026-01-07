@@ -30,11 +30,17 @@ typedef struct {
     uint8_t       macAddress[6];
     uint8_t       MapperHwAddress[6];
     uint8_t       MapperApparentAddress[6];
+    uint8_t       MapperKnown;
     void         *seeList;
     uint32_t      seeListCount;
     uint16_t      MapperSeqNumber;
     uint16_t      MapperGenerationTopology;
     uint16_t      MapperGenerationQuick;
+    uint64_t      LastHelloTxMs;
+    uint64_t      LastHelloReplyMs;
+    uint16_t      LastHelloReplyXid;
+    uint16_t      LastHelloReplyGen;
+    uint8_t       LastHelloReplyTos;
     void         *recvBuffer;
     size_t        recvBufferSize;
     int           helloSent;

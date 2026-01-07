@@ -68,6 +68,12 @@ typedef struct {
     uint8_t                macAddress             [ kIOEthernetAddressSize ];
     uint8_t                MapperHwAddress        [ kIOEthernetAddressSize ];  // Real (LLTD) mapper address
     uint8_t                MapperApparentAddress  [ kIOEthernetAddressSize ];  // Ethernet (bridge) mapper address
+    uint8_t                MapperKnown;
+    uint64_t               LastHelloTxMs;
+    uint64_t               LastHelloReplyMs;
+    uint16_t               LastHelloReplyXid;
+    uint16_t               LastHelloReplyGen;
+    uint8_t                LastHelloReplyTos;
     void                  *recvBuffer;          //We need to clear the receive Buffer when we kill the thread.
     automata              *mappingAutomata;
     automata              *sessionAutomata;

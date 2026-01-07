@@ -77,6 +77,8 @@
 #define BAND_TXC 4
 #define BAND_FRAME_TIME 6.667
 #define BAND_BLOCK_TIME 300
+// Minimum interval between Hello transmissions (milliseconds)
+#define HELLO_MIN_INTERVAL_MS 1000
 // Want 6.67 ms per frame. Equals 20/3.
 #define BAND_MUL_FRAME(_x) (((_x) * 20) / 3)
 
