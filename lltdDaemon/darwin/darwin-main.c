@@ -10,6 +10,10 @@
 
 
 #include "../lltdDaemon.h"
+#include <sys/file.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 
 void SignalHandler(int Signal) {
     log_debug("Interrupted by signal #%d", Signal);
@@ -686,6 +690,41 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
 
 //==============================================================================
 //
+// Check if another instance of lltdDaemon is already running.
+// Uses an exclusive lock on a file to ensure single instance.
+// Returns the lock fd on success, -1 if another instance is running.
+//
+//==============================================================================
+static int acquireInstanceLock(void) {
+    const char *lockPath = "/tmp/lltdDaemon.lock";
+    int lockFd = open(lockPath, O_CREAT | O_RDWR, 0644);
+    if (lockFd < 0) {
+        fprintf(stderr, "Warning: Could not open lock file %s: %s\n", lockPath, strerror(errno));
+        return -1;
+    }
+
+    if (flock(lockFd, LOCK_EX | LOCK_NB) < 0) {
+        if (errno == EWOULDBLOCK) {
+            fprintf(stderr, "Error: Another instance of lltdDaemon is already running.\n");
+            fprintf(stderr, "Kill the existing process or wait for it to exit.\n");
+        } else {
+            fprintf(stderr, "Warning: Could not acquire lock: %s\n", strerror(errno));
+        }
+        close(lockFd);
+        return -1;
+    }
+
+    // Write our PID to the lock file for debugging
+    ftruncate(lockFd, 0);
+    char pidStr[32];
+    snprintf(pidStr, sizeof(pidStr), "%d\n", getpid());
+    write(lockFd, pidStr, strlen(pidStr));
+
+    return lockFd;
+}
+
+//==============================================================================
+//
 // main
 // TODO: Convert to a Launch Daemon
 //
@@ -696,7 +735,16 @@ int main(int argc, const char *argv[]){
     mach_port_t           masterPort;
     CFRunLoopSourceRef    runLoopSource;
     io_iterator_t         newDevicesIterator;
-    
+    int                   lockFd;
+
+    //
+    // Check for existing instance before doing anything else
+    //
+    lockFd = acquireInstanceLock();
+    if (lockFd < 0) {
+        return EXIT_FAILURE;
+    }
+
     //
     // Create a new Apple System Log facility entry
     // of Daemon type with the LLTD name
