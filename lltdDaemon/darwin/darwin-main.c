@@ -62,17 +62,39 @@ void sendHelloMessageEx(
 
     // Set the Hello upper header
     offset += setHelloHeader(
-        (uint8_t *)&buffer[offset],
-        (ethernet_address_t *)mapperApparentAddress,
-        (ethernet_address_t *)mapperRealAddress,
+        (void *)buffer,
+        offset,
+        (ethernet_address_t *)(uintptr_t)mapperApparentAddress,
+        (ethernet_address_t *)(uintptr_t)mapperRealAddress,
         generation
     );
 
     // Add Station TLVs
-    offset += addStationTLVs((uint8_t *)&buffer[offset], currentNetworkInterface);
+    offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
+    offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
+    offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
+    offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
+    offset += setIPv6TLV(buffer, offset, currentNetworkInterface);
+    offset += setPerfCounterTLV(buffer, offset);
+    offset += setLinkSpeedTLV(buffer, offset, currentNetworkInterface);
+    offset += setHostnameTLV(buffer, offset);
+    if (currentNetworkInterface->interfaceType == NetworkInterfaceTypeIEEE80211) {
+        offset += setWirelessTLV(buffer, offset, currentNetworkInterface);
+        offset += setBSSIDTLV(buffer, offset, currentNetworkInterface);
+        offset += setSSIDTLV(buffer, offset, currentNetworkInterface);
+        offset += setWifiMaxRateTLV(buffer, offset, currentNetworkInterface);
+        offset += setWifiRssiTLV(buffer, offset, currentNetworkInterface);
+        // Note: Physical Medium TLV already set above with correct IANA type
+        offset += setAPAssociationTableTLV(buffer, offset, currentNetworkInterface);
+        offset += setRepeaterAPLineageTLV(buffer, offset, currentNetworkInterface);
+        offset += setRepeaterAPTableTLV(buffer, offset, currentNetworkInterface);
+    }
+    offset += setQosCharacteristicsTLV(buffer, offset);
+    offset += setIconImageTLV(buffer, offset);     // Length 0, data via QueryLargeTLV
+    offset += setFriendlyNameTLV(buffer, offset);  // Length 0, data via QueryLargeTLV
 
     // Add ending TLV
-    offset += addTlvEnd((uint8_t *)&buffer[offset]);
+    offset += setEndOfPropertyTLV(buffer, offset);
 
     // Send the LLTD response
     if (sendto(
@@ -85,7 +107,7 @@ void sendHelloMessageEx(
         ) == -1) {
         log_err("sendHelloMessageEx(): failed to send Hello on %s", currentNetworkInterface->deviceName);
     } else {
-        log_debug("sendHelloMessageEx(): Hello (%zu bytes) sent on %s", offset, currentNetworkInterface->deviceName);
+        log_debug("sendHelloMessageEx(): Hello (%llu bytes) sent on %s", (unsigned long long)offset, currentNetworkInterface->deviceName);
     }
 
     free(buffer);
@@ -98,8 +120,8 @@ void sendHelloMessage(void *networkInterface) {
         currentNetworkInterface,
         currentNetworkInterface->MapperSeqNumber,
         tos_discovery,
-        &currentNetworkInterface->MapperHwAddress,
-        &currentNetworkInterface->MapperHwAddress,
+        (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
+        (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
         currentNetworkInterface->MapperGeneration
     );
 }
