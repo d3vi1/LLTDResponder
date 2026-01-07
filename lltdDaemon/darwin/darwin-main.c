@@ -229,6 +229,16 @@ void lltdLoop (void *data){
     log_notice("Successfully binded to %s", currentNetworkInterface->deviceName);
 
     //
+    // Set receive timeout to avoid select() issues on AF_NDRV
+    //
+    struct timeval recvTimeout;
+    recvTimeout.tv_sec = 0;
+    recvTimeout.tv_usec = 100000; // 100ms tick interval
+    if (setsockopt(fileDescriptor, SOL_SOCKET, SO_RCVTIMEO, &recvTimeout, sizeof(recvTimeout)) != 0) {
+        log_err("Failed to set SO_RCVTIMEO on %s: %s", currentNetworkInterface->deviceName, strerror(errno));
+    }
+
+    //
     //Rename the thread to listener: $ifName
     //
     char *threadName = malloc(strlen(currentNetworkInterface->deviceName)+strlen("listener: ")+1);
@@ -240,46 +250,25 @@ void lltdLoop (void *data){
     }
     
     //
-    // Start the run loop with select() for timeout-based tick mechanism
+    // Start the run loop with SO_RCVTIMEO-based tick mechanism
     //
     currentNetworkInterface->recvBuffer = malloc(currentNetworkInterface->MTU);
 
     if(currentNetworkInterface->recvBuffer == NULL) {
         log_err("The receive buffer couldn't be allocated. We've failed miserably on interface %s", currentNetworkInterface->deviceName);
     } else for(;;){
-        // Use select() with 100ms timeout for tick-based timeout handling
-        fd_set readfds;
-        struct timeval timeout;
-        FD_ZERO(&readfds);
-        FD_SET(fileDescriptor, &readfds);
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 100000; // 100ms tick interval
-
-        int selectResult = select(fileDescriptor + 1, &readfds, NULL, NULL, &timeout);
-
-        if (selectResult < 0) {
-            int err = errno;
-            if (err != EINTR) {
-                log_err("select() failed on %s: %s", currentNetworkInterface->deviceName, strerror(err));
-            }
-            continue;
-        }
-
-        // Always run the automata tick, even on timeout
-        automata_tick(currentNetworkInterface->mappingAutomata,
-                      currentNetworkInterface->enumerationAutomata,
-                      currentNetworkInterface->sessionTable,
-                      currentNetworkInterface);
-
-        if (selectResult == 0) {
-            // Timeout - no data available, loop back for next tick
-            continue;
-        }
-
-        // Data is available on the socket
         ssize_t recvLen = recvfrom(fileDescriptor, currentNetworkInterface->recvBuffer,
                                    currentNetworkInterface->MTU, 0, NULL, NULL);
-        if (recvLen <= 0) {
+        if (recvLen < 0) {
+            int err = errno;
+            if (err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+                log_err("recvfrom() failed on %s: %s", currentNetworkInterface->deviceName, strerror(err));
+            }
+            // Always run the automata tick, even on timeout
+            automata_tick(currentNetworkInterface->mappingAutomata,
+                          currentNetworkInterface->enumerationAutomata,
+                          currentNetworkInterface->sessionTable,
+                          currentNetworkInterface);
             continue;
         }
 
@@ -393,6 +382,12 @@ void lltdLoop (void *data){
 
         // Parse and handle the frame
         parseFrame(currentNetworkInterface->recvBuffer, currentNetworkInterface);
+
+        // Run periodic automata tick after handling frame
+        automata_tick(currentNetworkInterface->mappingAutomata,
+                      currentNetworkInterface->enumerationAutomata,
+                      currentNetworkInterface->sessionTable,
+                      currentNetworkInterface);
     }
     
     //
