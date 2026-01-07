@@ -7,9 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C1A0D7D618E01E0900863EA1 /* lltd_wifi_corewlan.m in Sources */ = {isa = PBXBuildFile; fileRef = C1A0D7D518E01E0900863EA1 /* lltd_wifi_corewlan.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		C1A0D7D618E01E0900863EA1 /* lltd_wifi_iokit.c in Sources */ = {isa = PBXBuildFile; fileRef = C1A0D7D518E01E0900863EA1 /* lltd_wifi_iokit.c */; };
 		C1A0D7D618E01E0900863EA2 /* lltd_wifi_rates.c in Sources */ = {isa = PBXBuildFile; fileRef = C1A0D7D518E01E0900863EA2 /* lltd_wifi_rates.c */; };
-		C1A0D7D618E01E0900863EA5 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1A0D7D518E01E0900863EA5 /* Foundation.framework */; };
 		E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */ = {isa = PBXBuildFile; fileRef = E500D7D518E01E0900863EAC /* darwin-ops.c */; };
 		E500D7DD18E02F3900863EAC /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7DC18E02F3900863EAC /* ImageIO.framework */; };
 		E500D7E318E0427200863EAC /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7E218E0427200863EAC /* CoreServices.framework */; };
@@ -56,11 +55,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		C1A0D7D518E01E0900863EA1 /* lltd_wifi_corewlan.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = "lltd_wifi_corewlan.m"; path = "lltdDaemon/darwin/lltd_wifi_corewlan.m"; sourceTree = SOURCE_ROOT; };
+		C1A0D7D518E01E0900863EA1 /* lltd_wifi_iokit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "lltd_wifi_iokit.c"; path = "lltdDaemon/darwin/lltd_wifi_iokit.c"; sourceTree = SOURCE_ROOT; };
 		C1A0D7D518E01E0900863EA2 /* lltd_wifi_rates.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "lltd_wifi_rates.c"; path = "lltdDaemon/darwin/lltd_wifi_rates.c"; sourceTree = SOURCE_ROOT; };
 		C1A0D7D518E01E0900863EA3 /* lltd_wifi_corewlan.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "lltd_wifi_corewlan.h"; path = "lltdDaemon/darwin/lltd_wifi_corewlan.h"; sourceTree = SOURCE_ROOT; };
 		C1A0D7D518E01E0900863EA4 /* lltd_wifi_rates.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "lltd_wifi_rates.h"; path = "lltdDaemon/darwin/lltd_wifi_rates.h"; sourceTree = SOURCE_ROOT; };
-		C1A0D7D518E01E0900863EA5 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		E500D7D518E01E0900863EAC /* darwin-ops.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "darwin-ops.c"; path = "lltdDaemon/darwin/darwin-ops.c"; sourceTree = SOURCE_ROOT; };
 		E500D7D718E01E1800863EAC /* darwin-ops.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "darwin-ops.h"; path = "lltdDaemon/darwin/darwin-ops.h"; sourceTree = SOURCE_ROOT; };
 		E500D7DC18E02F3900863EAC /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
@@ -93,7 +91,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C1A0D7D618E01E0900863EA5 /* Foundation.framework in Frameworks */,
 				E59ADBBE1C80982300895932 /* SystemConfiguration.framework in Frameworks */,
 				E500D7E318E0427200863EAC /* CoreServices.framework in Frameworks */,
 				E500D7DD18E02F3900863EAC /* ImageIO.framework in Frameworks */,
@@ -139,7 +136,6 @@
 		E52240FA18CF0CA200DD9E2F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				C1A0D7D518E01E0900863EA5 /* Foundation.framework */,
 				E59ADBBD1C80982300895932 /* SystemConfiguration.framework */,
 				E500D7E218E0427200863EAC /* CoreServices.framework */,
 				E500D7DC18E02F3900863EAC /* ImageIO.framework */,
@@ -160,7 +156,7 @@
 				E5774FA718D61F5E00988358 /* darwin-main.h */,
 				E500D7D518E01E0900863EAC /* darwin-ops.c */,
 				E500D7D718E01E1800863EAC /* darwin-ops.h */,
-				C1A0D7D518E01E0900863EA1 /* lltd_wifi_corewlan.m */,
+				C1A0D7D518E01E0900863EA1 /* lltd_wifi_iokit.c */,
 				C1A0D7D518E01E0900863EA3 /* lltd_wifi_corewlan.h */,
 				C1A0D7D518E01E0900863EA2 /* lltd_wifi_rates.c */,
 				C1A0D7D518E01E0900863EA4 /* lltd_wifi_rates.h */,
@@ -246,7 +242,7 @@
 			files = (
 				E5A41A0E19082C0B00D5D2FD /* darwin-main.c in Sources */,
 				E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */,
-				C1A0D7D618E01E0900863EA1 /* lltd_wifi_corewlan.m in Sources */,
+				C1A0D7D618E01E0900863EA1 /* lltd_wifi_iokit.c in Sources */,
 				C1A0D7D618E01E0900863EA2 /* lltd_wifi_rates.c in Sources */,
 				FAD3A21C19EACF54000FB445 /* lltdAutomata.c in Sources */,
 				E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */,
