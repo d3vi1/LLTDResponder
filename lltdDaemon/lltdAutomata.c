@@ -601,11 +601,16 @@ uint64_t band_choose_hello_time(band_state* band) {
     // Calculate next hello time based on Ni and FRAME_TIME
     // hello_interval = FRAME_TIME * TXC * (Ni / GAMMA)
     uint64_t now = lltd_monotonic_milliseconds();
-    uint64_t interval_ms = (uint64_t)(BAND_FRAME_TIME * BAND_TXC * band->Ni / BAND_GAMMA);
+    uint64_t numerator = (uint64_t)BAND_TXC * band->Ni * 20;
+    uint64_t denominator = (uint64_t)BAND_GAMMA * 3;
+    uint64_t interval_ms = numerator / denominator;
+    if (numerator % denominator != 0) {
+        interval_ms += 1; // round up to avoid 0-delay scheduling
+    }
 
     // Ensure minimum interval of one frame time
-    if (interval_ms < (uint64_t)BAND_FRAME_TIME) {
-        interval_ms = (uint64_t)BAND_FRAME_TIME;
+    if (interval_ms < (uint64_t)BAND_MUL_FRAME(1)) {
+        interval_ms = (uint64_t)BAND_MUL_FRAME(1);
     }
 
     band->hello_timeout_ts = now + interval_ms;
@@ -755,16 +760,35 @@ void automata_tick(automata* mapping, automata* enumeration, session_table* sess
         if (enumeration->current_state == 1) {
             // Check hello timeout
             if (band->hello_timeout_ts > 0 && now_ms >= band->hello_timeout_ts) {
-                log_debug("Enumeration: Hello timeout - sending Hello");
+                network_interface_t *iface = (network_interface_t *)network_interface;
+                uint64_t last_tx = iface ? iface->LastHelloTxMs : 0;
+                if (iface && last_tx > 0 && now_ms - last_tx < HELLO_MIN_INTERVAL_MS) {
+                    log_debug("Enumeration: Hello timeout suppressed t=%llu last_tx=%llu next_min=%llu",
+                              (unsigned long long)now_ms,
+                              (unsigned long long)last_tx,
+                              (unsigned long long)(last_tx + HELLO_MIN_INTERVAL_MS));
+                    band->hello_timeout_ts = last_tx + HELLO_MIN_INTERVAL_MS;
+                } else {
+                    log_debug("Enumeration: Hello timeout - sending Hello t=%llu deadline=%llu last_tx=%llu",
+                              (unsigned long long)now_ms,
+                              (unsigned long long)band->hello_timeout_ts,
+                              (unsigned long long)last_tx);
 #ifndef LLTD_TESTING
-                if (network_interface) {
-                    sendHelloMessage(network_interface);
-                }
+                    if (network_interface) {
+                        sendHelloMessage(network_interface);
+                        if (iface) {
+                            iface->LastHelloTxMs = now_ms;
+                        }
+                    }
 #else
-                (void)network_interface;
+                    (void)network_interface;
 #endif
-                band_do_hello(band);
-                switch_state_enumeration(enumeration, enum_hello, "hello_timeout");
+                    band_do_hello(band);
+                    if (band->hello_timeout_ts < now_ms + HELLO_MIN_INTERVAL_MS) {
+                        band->hello_timeout_ts = now_ms + HELLO_MIN_INTERVAL_MS;
+                    }
+                    switch_state_enumeration(enumeration, enum_hello, "hello_timeout");
+                }
             }
 
             // Check block timeout

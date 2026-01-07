@@ -35,8 +35,16 @@ typedef struct {
     uint64_t    LinkSpeed;
     uint8_t     macAddress[6];
     uint8_t     MapperHwAddress[6];
+    uint8_t     MapperApparentAddress[6];
+    uint8_t     MapperKnown;
     uint16_t    MapperSeqNumber;
-    uint16_t    MapperGeneration;
+    uint16_t    MapperGenerationTopology;
+    uint16_t    MapperGenerationQuick;
+    uint64_t    LastHelloTxMs;
+    uint64_t    LastHelloReplyMs;
+    uint16_t    LastHelloReplyXid;
+    uint16_t    LastHelloReplyGen;
+    uint8_t     LastHelloReplyTos;
     int         socket;
     uint32_t    MTU;
     void       *seeList;
@@ -51,6 +59,7 @@ typedef struct {
         unsigned char snd_family;
         char snd_name[12];
     } socketAddr;
+    int         helloSent;
 } network_interface_t;
 
 #define lltdEtherType 0x88D9

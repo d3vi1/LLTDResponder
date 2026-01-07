@@ -26,7 +26,8 @@ size_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_address
     memcpy(&lltdHeader->frameHeader.destination, destination, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->realSource, source, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->realDestination, destination, sizeof(ethernet_address_t));
-    lltdHeader->seqNumber = seqNumber;
+    /* seqNumber is provided in host order; serialize in network order. */
+    lltdHeader->seqNumber = htons(seqNumber);
     lltdHeader->opcode = opcode;
     lltdHeader->tos = tos;
     lltdHeader->version = 1;
@@ -60,7 +61,8 @@ size_t setLltdHeaderEx(void *buffer,
     memcpy(&lltdHeader->frameHeader.destination, ethDest, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->realSource, realSource, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->realDestination, realDest, sizeof(ethernet_address_t));
-    lltdHeader->seqNumber = seqNumber;
+    /* seqNumber is provided in host order; serialize in network order. */
+    lltdHeader->seqNumber = htons(seqNumber);
     lltdHeader->opcode = opcode;
     lltdHeader->tos = tos;
     lltdHeader->version = 1;
@@ -148,7 +150,7 @@ size_t setPerfCounterTLV(void *buffer, uint64_t offset){
 
     // Write 64-bit value in big-endian (network) order
     uint64_t freq = 1000000;  // 1 MHz performance counter frequency
-    uint8_t *bytes = (uint8_t *)(buffer + offset + sizeof(generic_tlv_t));
+    uint8_t bytes[sizeof(uint64_t)];
     bytes[0] = (freq >> 56) & 0xFF;
     bytes[1] = (freq >> 48) & 0xFF;
     bytes[2] = (freq >> 40) & 0xFF;
@@ -157,6 +159,7 @@ size_t setPerfCounterTLV(void *buffer, uint64_t offset){
     bytes[5] = (freq >> 16) & 0xFF;
     bytes[6] = (freq >> 8) & 0xFF;
     bytes[7] = freq & 0xFF;
+    memcpy(buffer + offset + sizeof(generic_tlv_t), bytes, sizeof(bytes));
     return sizeof(generic_tlv_t) + sizeof(uint64_t);
 }
 
@@ -243,11 +246,11 @@ size_t setHardwareIdTLV(void *buffer, uint64_t offset){
 //TODO: see if there really is support for Level2 Forwarding.. ? or just leave it hardcoded
 size_t setQosCharacteristicsTLV(void *buffer, uint64_t offset){
     generic_tlv_t *QosCharacteristicsTLV = (generic_tlv_t *) (buffer + offset);
-    uint32_t *qosCharacteristics         = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
     QosCharacteristicsTLV->TLVType       = tlv_qos_characteristics;
-    QosCharacteristicsTLV->TLVLength     = sizeof(*qosCharacteristics);
+    QosCharacteristicsTLV->TLVLength     = sizeof(uint32_t);
     // QoS flags are in upper 16 bits of 32-bit value
-    *qosCharacteristics                  = htonl((Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN) << 16);
+    uint32_t qosCharacteristics = htonl((Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN) << 16);
+    memcpy(buffer + offset + sizeof(generic_tlv_t), &qosCharacteristics, sizeof(qosCharacteristics));
     return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 

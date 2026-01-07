@@ -63,10 +63,17 @@ typedef struct {
     void                  *seeList;
     uint32_t               seeListCount;
     uint16_t               MapperSeqNumber;
-    uint16_t               MapperGeneration;    // Current mapper generation number
+    uint16_t               MapperGenerationTopology; // Mapper generation for topology discovery (host order)
+    uint16_t               MapperGenerationQuick;    // Mapper generation for quick discovery (host order)
     uint8_t                macAddress             [ kIOEthernetAddressSize ];
     uint8_t                MapperHwAddress        [ kIOEthernetAddressSize ];  // Real (LLTD) mapper address
     uint8_t                MapperApparentAddress  [ kIOEthernetAddressSize ];  // Ethernet (bridge) mapper address
+    uint8_t                MapperKnown;
+    uint64_t               LastHelloTxMs;
+    uint64_t               LastHelloReplyMs;
+    uint16_t               LastHelloReplyXid;
+    uint16_t               LastHelloReplyGen;
+    uint8_t                LastHelloReplyTos;
     void                  *recvBuffer;          //We need to clear the receive Buffer when we kill the thread.
     automata              *mappingAutomata;
     automata              *sessionAutomata;
@@ -94,7 +101,8 @@ void sendHelloMessageEx(
     uint8_t tos,
     const ethernet_address_t *mapperRealAddress,
     const ethernet_address_t *mapperApparentAddress,
-    uint16_t generation
+    uint16_t generation,
+    hello_tx_reason_t reason
 );
 
 #endif

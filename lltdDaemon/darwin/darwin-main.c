@@ -10,6 +10,10 @@
 
 
 #include "../lltdDaemon.h"
+#include <sys/file.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 
 void SignalHandler(int Signal) {
     log_debug("Interrupted by signal #%d", Signal);
@@ -36,7 +40,8 @@ void sendHelloMessageEx(
     uint8_t tos,
     const ethernet_address_t *mapperRealAddress,
     const ethernet_address_t *mapperApparentAddress,
-    uint16_t generation
+    uint16_t generation,
+    hello_tx_reason_t reason
 ) {
     uint8_t *buffer = calloc(1, currentNetworkInterface->MTU);
     if (!buffer) {
@@ -62,6 +67,8 @@ void sendHelloMessageEx(
         tos
     );
 
+    lltd_demultiplex_header_t *lltdHeader =
+        (lltd_demultiplex_header_t *)buffer;
     lltd_hello_upper_header_t *helloHeader =
         (lltd_hello_upper_header_t *)(buffer + offset);
 
@@ -74,12 +81,33 @@ void sendHelloMessageEx(
         generation
     );
 
-    log_debug("sendHelloMessageEx(): tos=%u opcode=0x%x seq=%u gen_host=0x%04x gen_wire=0x%04x",
+    const char *gen_store = (tos == tos_quick_discovery) ? "quick" : "topology";
+    const char *reason_str = (reason == hello_reason_reply_to_discover) ? "reply_to_discover" : "hello_timeout";
+    log_debug("sendHelloMessageEx(): %s mapper_id="ETHERNET_ADDR_FMT" tos=%u opcode=0x%x seq=%u seq_wire=0x%02x%02x gen_host=0x%04x gen_wire=0x%02x%02x gen_store=%s reason=%s curMapper="
+              ETHERNET_ADDR_FMT" appMapper="ETHERNET_ADDR_FMT,
+              currentNetworkInterface->deviceName,
+              ETHERNET_ADDR(mapperRealAddress->a),
               tos,
               opcode_hello,
-              ntohs(seqNumber),
+              seqNumber,
+              ((uint8_t *)&lltdHeader->seqNumber)[0],
+              ((uint8_t *)&lltdHeader->seqNumber)[1],
               generation,
-              helloHeader->generation);
+              ((uint8_t *)&helloHeader->generation)[0],
+              ((uint8_t *)&helloHeader->generation)[1],
+              gen_store,
+              reason_str,
+              ETHERNET_ADDR(mapperRealAddress->a),
+              ETHERNET_ADDR(mapperApparentAddress->a));
+    log_debug("t=%llu TX %s tos=%u op=%u xid=0x%04x gen=0x%04x seq=0x%04x reason=%s",
+              (unsigned long long)lltd_monotonic_milliseconds(),
+              currentNetworkInterface->deviceName,
+              tos,
+              opcode_hello,
+              0,
+              generation,
+              seqNumber,
+              reason_str);
 
     // Add Station TLVs
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
@@ -131,11 +159,12 @@ void sendHelloMessage(void *networkInterface) {
 
     sendHelloMessageEx(
         currentNetworkInterface,
-        currentNetworkInterface->MapperSeqNumber,
+        0,
         tos_discovery,
         (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
         (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
-        currentNetworkInterface->MapperGeneration
+        currentNetworkInterface->MapperGenerationTopology,
+        hello_reason_periodic_timeout
     );
 }
 
@@ -204,6 +233,16 @@ void lltdLoop (void *data){
     log_notice("Successfully binded to %s", currentNetworkInterface->deviceName);
 
     //
+    // Set receive timeout to avoid select() issues on AF_NDRV
+    //
+    struct timeval recvTimeout;
+    recvTimeout.tv_sec = 0;
+    recvTimeout.tv_usec = 100000; // 100ms tick interval
+    if (setsockopt(fileDescriptor, SOL_SOCKET, SO_RCVTIMEO, &recvTimeout, sizeof(recvTimeout)) != 0) {
+        log_err("Failed to set SO_RCVTIMEO on %s: %s", currentNetworkInterface->deviceName, strerror(errno));
+    }
+
+    //
     //Rename the thread to listener: $ifName
     //
     char *threadName = malloc(strlen(currentNetworkInterface->deviceName)+strlen("listener: ")+1);
@@ -215,46 +254,25 @@ void lltdLoop (void *data){
     }
     
     //
-    // Start the run loop with select() for timeout-based tick mechanism
+    // Start the run loop with SO_RCVTIMEO-based tick mechanism
     //
     currentNetworkInterface->recvBuffer = malloc(currentNetworkInterface->MTU);
 
     if(currentNetworkInterface->recvBuffer == NULL) {
         log_err("The receive buffer couldn't be allocated. We've failed miserably on interface %s", currentNetworkInterface->deviceName);
     } else for(;;){
-        // Use select() with 100ms timeout for tick-based timeout handling
-        fd_set readfds;
-        struct timeval timeout;
-        FD_ZERO(&readfds);
-        FD_SET(fileDescriptor, &readfds);
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 100000; // 100ms tick interval
-
-        int selectResult = select(fileDescriptor + 1, &readfds, NULL, NULL, &timeout);
-
-        if (selectResult < 0) {
-            int err = errno;
-            if (err != EINTR) {
-                log_err("select() failed on %s: %s", currentNetworkInterface->deviceName, strerror(err));
-            }
-            continue;
-        }
-
-        // Always run the automata tick, even on timeout
-        automata_tick(currentNetworkInterface->mappingAutomata,
-                      currentNetworkInterface->enumerationAutomata,
-                      currentNetworkInterface->sessionTable,
-                      currentNetworkInterface);
-
-        if (selectResult == 0) {
-            // Timeout - no data available, loop back for next tick
-            continue;
-        }
-
-        // Data is available on the socket
         ssize_t recvLen = recvfrom(fileDescriptor, currentNetworkInterface->recvBuffer,
                                    currentNetworkInterface->MTU, 0, NULL, NULL);
-        if (recvLen <= 0) {
+        if (recvLen < 0) {
+            int err = errno;
+            if (err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+                log_err("recvfrom() failed on %s: %s", currentNetworkInterface->deviceName, strerror(err));
+            }
+            // Always run the automata tick, even on timeout
+            automata_tick(currentNetworkInterface->mappingAutomata,
+                          currentNetworkInterface->enumerationAutomata,
+                          currentNetworkInterface->sessionTable,
+                          currentNetworkInterface);
             continue;
         }
 
@@ -276,6 +294,22 @@ void lltdLoop (void *data){
                 (lltd_discover_upper_header_t*)(header + 1);
             uint16_t generation = ntohs(disc_header->generation);
 
+            {
+                char mapper_id[18];
+                char eth_src[18];
+                snprintf(mapper_id, sizeof(mapper_id), "%02x:%02x:%02x:%02x:%02x:%02x",
+                         header->realSource.a[0], header->realSource.a[1], header->realSource.a[2],
+                         header->realSource.a[3], header->realSource.a[4], header->realSource.a[5]);
+                snprintf(eth_src, sizeof(eth_src), "%02x:%02x:%02x:%02x:%02x:%02x",
+                         header->frameHeader.source.a[0], header->frameHeader.source.a[1], header->frameHeader.source.a[2],
+                         header->frameHeader.source.a[3], header->frameHeader.source.a[4], header->frameHeader.source.a[5]);
+                log_debug("%s: mapper_id=%s ethSrc=%s tos=%u xid=%u",
+                          currentNetworkInterface->deviceName,
+                          mapper_id,
+                          eth_src,
+                          header->tos,
+                          ntohs(header->seqNumber));
+            }
             // Add/update session entry
             session_entry* entry = session_table_add(currentNetworkInterface->sessionTable,
                                                      header->realSource.a,
@@ -289,7 +323,11 @@ void lltdLoop (void *data){
                 }
                 // Update interface-level mapper info
                 memcpy(currentNetworkInterface->MapperHwAddress, header->realSource.a, 6);
-                currentNetworkInterface->MapperGeneration = generation;
+                if (header->tos == tos_quick_discovery) {
+                    currentNetworkInterface->MapperGenerationQuick = generation;
+                } else {
+                    currentNetworkInterface->MapperGenerationTopology = generation;
+                }
             }
             session_table_update_complete_status(currentNetworkInterface->sessionTable);
         } else if (header->opcode == opcode_reset) {
@@ -348,6 +386,12 @@ void lltdLoop (void *data){
 
         // Parse and handle the frame
         parseFrame(currentNetworkInterface->recvBuffer, currentNetworkInterface);
+
+        // Run periodic automata tick after handling frame
+        automata_tick(currentNetworkInterface->mappingAutomata,
+                      currentNetworkInterface->enumerationAutomata,
+                      currentNetworkInterface->sessionTable,
+                      currentNetworkInterface);
     }
     
     //
@@ -926,6 +970,41 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
 
 //==============================================================================
 //
+// Check if another instance of lltdDaemon is already running.
+// Uses an exclusive lock on a file to ensure single instance.
+// Returns the lock fd on success, -1 if another instance is running.
+//
+//==============================================================================
+static int acquireInstanceLock(void) {
+    const char *lockPath = "/tmp/lltdDaemon.lock";
+    int lockFd = open(lockPath, O_CREAT | O_RDWR, 0644);
+    if (lockFd < 0) {
+        fprintf(stderr, "Warning: Could not open lock file %s: %s\n", lockPath, strerror(errno));
+        return -1;
+    }
+
+    if (flock(lockFd, LOCK_EX | LOCK_NB) < 0) {
+        if (errno == EWOULDBLOCK) {
+            fprintf(stderr, "Error: Another instance of lltdDaemon is already running.\n");
+            fprintf(stderr, "Kill the existing process or wait for it to exit.\n");
+        } else {
+            fprintf(stderr, "Warning: Could not acquire lock: %s\n", strerror(errno));
+        }
+        close(lockFd);
+        return -1;
+    }
+
+    // Write our PID to the lock file for debugging
+    ftruncate(lockFd, 0);
+    char pidStr[32];
+    snprintf(pidStr, sizeof(pidStr), "%d\n", getpid());
+    write(lockFd, pidStr, strlen(pidStr));
+
+    return lockFd;
+}
+
+//==============================================================================
+//
 // main
 // TODO: Convert to a Launch Daemon
 //
@@ -936,7 +1015,16 @@ int main(int argc, const char *argv[]){
     mach_port_t           masterPort;
     CFRunLoopSourceRef    runLoopSource;
     io_iterator_t         newDevicesIterator;
-    
+    int                   lockFd;
+
+    //
+    // Check for existing instance before doing anything else
+    //
+    lockFd = acquireInstanceLock();
+    if (lockFd < 0) {
+        return EXIT_FAILURE;
+    }
+
     //
     // Create a new Apple System Log facility entry
     // of Daemon type with the LLTD name
