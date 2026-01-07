@@ -94,62 +94,55 @@ void parseQuery(void *inFrame, void *networkInterface){
     free(buffer);
 }
 
-void sendImage(void *networkInterface, uint16_t offset) {
+static void sendLargeTlvResponse(void *networkInterface, void *data, size_t dataSize, uint16_t dataOffset) {
     network_interface_t *currentNetworkInterface = networkInterface;
-    uint16_t maxSize = currentNetworkInterface->MTU - sizeof(lltd_demultiplex_header_t)
-                    - sizeof(qry_large_tlv_resp_t) + sizeof(ethernet_header_t); //TODO: check if this can be bigger
-    
-    // TODO: Figure out a way to store the icon on all threads, calculate the first time it's req and keep bytes in RAM
-    void *icon = NULL;
-    size_t size = 0;
-    if (globalInfo.smallIcon == NULL || globalInfo.smallIconSize == 0) {
-        if (globalInfo.smallIcon) {
-            free(globalInfo.smallIcon);
-            globalInfo.smallIcon=NULL;
-        }
-        getIconImage(&icon, &size);
-        globalInfo.smallIcon = icon;
-        globalInfo.smallIconSize = size;
-    } else {
-        icon = globalInfo.smallIcon;
-        size = globalInfo.smallIconSize;
-    }
-    
-    
-    void *buffer = malloc( maxSize );
-    memset(buffer, 0, maxSize);
-    
+    uint16_t maxPayload = currentNetworkInterface->MTU - sizeof(lltd_demultiplex_header_t)
+                        - sizeof(qry_large_tlv_resp_t);
+
+    size_t bufferSize = sizeof(lltd_demultiplex_header_t) + sizeof(qry_large_tlv_resp_t) + maxPayload;
+    void *buffer = malloc(bufferSize);
+    memset(buffer, 0, bufferSize);
+
     setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->macAddress),
-                           (ethernet_address_t *) &(currentNetworkInterface->MapperHwAddress),
-                           currentNetworkInterface->MapperSeqNumber, opcode_queryLargeTlvResp, tos_discovery);
-    
+                          (ethernet_address_t *) &(currentNetworkInterface->MapperHwAddress),
+                          currentNetworkInterface->MapperSeqNumber, opcode_queryLargeTlvResp, tos_discovery);
+
     qry_large_tlv_resp_t *header = buffer + sizeof(lltd_demultiplex_header_t);
-    
+
     uint16_t bytesToWrite = 0;
-    
-    if (size >= offset + maxSize) {
-        bytesToWrite     = maxSize;
-        header->length   = bytesToWrite;
-        // set "more to come" byte to 1
-        header->length  |=  0x8000;
+
+    if (data == NULL || dataSize == 0) {
+        // No data available - send empty response
+        header->length = 0;
+        log_crit("QueryLargeTLV: No data available, sending empty response");
+    } else if (dataSize > dataOffset + maxPayload) {
+        // More data to come
+        bytesToWrite = maxPayload;
+        header->length = bytesToWrite | 0x8000;  // Set "more" flag
+    } else if (dataSize > dataOffset) {
+        // Final chunk
+        bytesToWrite = dataSize - dataOffset;
+        header->length = bytesToWrite;
     } else {
-        bytesToWrite     = size - offset;
-        header->length   = bytesToWrite;
+        // Offset beyond data - empty response
+        header->length = 0;
     }
     header->length = htons(header->length);
-    
-    size_t packageSize = bytesToWrite + sizeof(qry_large_tlv_resp_t) + sizeof(lltd_demultiplex_header_t);
-    memcpy( buffer + (packageSize - bytesToWrite), icon + offset, bytesToWrite );
-    
+
+    size_t packageSize = sizeof(lltd_demultiplex_header_t) + sizeof(qry_large_tlv_resp_t) + bytesToWrite;
+    if (bytesToWrite > 0 && data != NULL) {
+        memcpy(buffer + sizeof(lltd_demultiplex_header_t) + sizeof(qry_large_tlv_resp_t),
+               (uint8_t *)data + dataOffset, bytesToWrite);
+    }
+
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
                            (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
         int err = errno;
-        log_crit("Socket write failed on sendImage: %s", strerror(err));
+        log_crit("Socket write failed on QueryLargeTLVResp: %s", strerror(err));
     }
-    //free(icon);
+    free(buffer);
 }
-
 
 void parseQueryLargeTlv(void *inFrame, void *networkInterface) {
     network_interface_t *currentNetworkInterface = networkInterface;
@@ -159,9 +152,63 @@ void parseQueryLargeTlv(void *inFrame, void *networkInterface) {
         return;
     }
     qry_large_tlv_t *header = inFrame + sizeof(lltd_demultiplex_header_t);
-    if (header->type == tlv_iconImage) {
-        log_crit("Image request, responding with QryLargeResp, offset=%d", ntohs( header->offset ) );
-        sendImage(networkInterface, ntohs(header->offset));
+    uint16_t offset = ntohs(header->offset);
+
+    void *data = NULL;
+    size_t dataSize = 0;
+
+    switch (header->type) {
+        case tlv_iconImage:
+            log_crit("QueryLargeTLV: Icon Image request, offset=%d", offset);
+            // Use cached icon if available
+            if (globalInfo.smallIcon == NULL || globalInfo.smallIconSize == 0) {
+                if (globalInfo.smallIcon) {
+                    free(globalInfo.smallIcon);
+                    globalInfo.smallIcon = NULL;
+                }
+                getIconImage(&data, &dataSize);
+                globalInfo.smallIcon = data;
+                globalInfo.smallIconSize = dataSize;
+            } else {
+                data = globalInfo.smallIcon;
+                dataSize = globalInfo.smallIconSize;
+            }
+            break;
+
+        case tlv_friendlyName:
+            log_crit("QueryLargeTLV: Friendly Name request, offset=%d", offset);
+            getFriendlyName((char **)&data, &dataSize);
+            break;
+
+        case tlv_hwIdProperty:
+            log_crit("QueryLargeTLV: Hardware ID request, offset=%d", offset);
+            // Hardware ID is max 64 bytes in UCS-2LE
+            data = malloc(64);
+            memset(data, 0, 64);
+            getHwId(data);
+            // Find actual length (look for null terminator in UCS-2LE)
+            dataSize = 64;
+            for (size_t i = 0; i < 64; i += 2) {
+                if (((uint8_t *)data)[i] == 0 && ((uint8_t *)data)[i+1] == 0) {
+                    dataSize = i;
+                    break;
+                }
+            }
+            break;
+
+        default:
+            log_crit("QueryLargeTLV: Unknown TLV type 0x%02x requested", header->type);
+            // Send empty response for unknown types
+            break;
+    }
+
+    sendLargeTlvResponse(networkInterface, data, dataSize, offset);
+
+    // Free non-cached data
+    if (header->type == tlv_friendlyName || header->type == tlv_hwIdProperty) {
+        if (data) {
+            free(data);
+        }
     }
 }
 
@@ -331,8 +378,6 @@ void answerHello(void *inFrame, void *networkInterface){
 
 }
 
-int helloSent = 0;
-
 //==============================================================================
 //
 // Here we validate the frame and make sure that the TOS/OpCode is a valid
@@ -343,12 +388,12 @@ int helloSent = 0;
 void parseFrame(void *frame, void *networkInterface){
     lltd_demultiplex_header_t *header = frame;
     network_interface_t *currentNetworkInterface = networkInterface;
-    
+
     log_debug("%s: ethertype:0x%4x, opcode:0x%x, tos:0x%x, version: 0x%x", currentNetworkInterface->deviceName, ntohs(header->frameHeader.ethertype) , header->opcode, header->tos, header->version);
-    
+
     // FIXME: set the seqNumber each frame we get (for now)
     currentNetworkInterface->MapperSeqNumber = header->seqNumber;
-    
+
     //
     // We validate the message demultiplex
     //
@@ -357,8 +402,8 @@ void parseFrame(void *frame, void *networkInterface){
             switch (header->opcode) {
                 case opcode_discover:
                     log_debug("%s Discover (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
-                    if (!helloSent) {
-                        helloSent = 1;
+                    if (!currentNetworkInterface->helloSent) {
+                        currentNetworkInterface->helloSent = 1;
                         usleep(150000);
                         answerHello(frame, currentNetworkInterface);
                     }
@@ -381,8 +426,8 @@ void parseFrame(void *frame, void *networkInterface){
                     break;
                 case opcode_reset:
                     log_debug("%s Reset (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
-                    helloSent = 0;
-                    
+                    currentNetworkInterface->helloSent = 0;
+
                     //Clean the linked list
                     if(currentNetworkInterface->seeList){
                         probe_t *currentProbe = currentNetworkInterface->seeList;

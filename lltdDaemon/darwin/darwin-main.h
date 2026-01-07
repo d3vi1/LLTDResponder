@@ -63,6 +63,7 @@ typedef struct {
     automata              *sessionAutomata;
     automata              *enumerationAutomata;
     session_table         *sessionTable;        // Session table for multi-mapper support
+    int                    helloSent;           // Per-interface flag for Hello suppression
 } network_interface_t;
 
 void deviceAppeared   (void *refCon, io_iterator_t iterator);

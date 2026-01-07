@@ -29,6 +29,7 @@ typedef struct {
     uint32_t    seeListCount;
     uint16_t    MapperSeqNumber;
     void       *recvBuffer;
+    int         helloSent;
 } network_interface_t;
 
 #define lltdEtherType 0x88D9
