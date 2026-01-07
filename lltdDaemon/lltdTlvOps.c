@@ -81,13 +81,14 @@ bool compareEthernetAddress(const ethernet_address_t *A, const ethernet_address_
 // Get the mess out of lltdBlock.c
 //
 size_t setHelloHeader (void *buffer, uint64_t offset, ethernet_address_t *apparentMapper, ethernet_address_t *currentMapper, uint16_t generation){
-    
+
     lltd_hello_upper_header_t *helloHeader = (lltd_hello_upper_header_t *) (buffer+offset);
 
     memcpy(&helloHeader->apparentMapper, apparentMapper, sizeof(ethernet_address_t));
     memcpy(&helloHeader->currentMapper, currentMapper, sizeof(ethernet_address_t));
-    helloHeader->generation = generation;
-    
+    /* generation is provided in host order; serialize in network order. */
+    helloHeader->generation = htons(generation);
+
     return sizeof(lltd_hello_upper_header_t);
 }
 

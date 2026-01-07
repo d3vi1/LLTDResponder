@@ -483,7 +483,7 @@ void answerHello(void *inFrame, void *networkInterface){
     offset += setHelloHeader(buffer, offset,
                              &inFrameHeader->frameHeader.source,   /* apparentMapper */
                              &inFrameHeader->realSource,           /* currentMapper (real) */
-                             discoverHeader->generation);
+                             ntohs(discoverHeader->generation));
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
     offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
     offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
@@ -635,7 +635,7 @@ void parseFrame(void *frame, void *networkInterface){
                            header->frameHeader.source.a,
                            sizeof(currentNetworkInterface->MapperApparentAddress));
                     currentNetworkInterface->MapperSeqNumber  = header->seqNumber;
-                    currentNetworkInterface->MapperGeneration = inHello->generation;
+                    currentNetworkInterface->MapperGeneration = ntohs(inHello->generation);
 
                     log_debug("%s Quick HELLO (%d) for TOS_Quick_Discovery: replying", currentNetworkInterface->deviceName, header->opcode);
                     sendHelloMessageEx(
@@ -644,7 +644,7 @@ void parseFrame(void *frame, void *networkInterface){
                         tos_quick_discovery,
                         &header->realSource,
                         &header->frameHeader.source,
-                        inHello->generation
+                        ntohs(inHello->generation)
                     );
                     break;
                 }

@@ -62,6 +62,9 @@ void sendHelloMessageEx(
         tos
     );
 
+    lltd_hello_upper_header_t *helloHeader =
+        (lltd_hello_upper_header_t *)(buffer + offset);
+
     // Set the Hello upper header
     offset += setHelloHeader(
         (void *)buffer,
@@ -70,6 +73,13 @@ void sendHelloMessageEx(
         (ethernet_address_t *)(uintptr_t)mapperRealAddress,
         generation
     );
+
+    log_debug("sendHelloMessageEx(): tos=%u opcode=0x%x seq=%u gen_host=0x%04x gen_wire=0x%04x",
+              tos,
+              opcode_hello,
+              ntohs(seqNumber),
+              generation,
+              helloHeader->generation);
 
     // Add Station TLVs
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
