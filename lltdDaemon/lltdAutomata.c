@@ -601,11 +601,16 @@ uint64_t band_choose_hello_time(band_state* band) {
     // Calculate next hello time based on Ni and FRAME_TIME
     // hello_interval = FRAME_TIME * TXC * (Ni / GAMMA)
     uint64_t now = lltd_monotonic_milliseconds();
-    uint64_t interval_ms = (uint64_t)(BAND_FRAME_TIME * BAND_TXC * band->Ni / BAND_GAMMA);
+    uint64_t numerator = (uint64_t)BAND_TXC * band->Ni * 20;
+    uint64_t denominator = (uint64_t)BAND_GAMMA * 3;
+    uint64_t interval_ms = numerator / denominator;
+    if (numerator % denominator != 0) {
+        interval_ms += 1; // round up to avoid 0-delay scheduling
+    }
 
     // Ensure minimum interval of one frame time
-    if (interval_ms < (uint64_t)BAND_FRAME_TIME) {
-        interval_ms = (uint64_t)BAND_FRAME_TIME;
+    if (interval_ms < (uint64_t)BAND_MUL_FRAME(1)) {
+        interval_ms = (uint64_t)BAND_MUL_FRAME(1);
     }
 
     band->hello_timeout_ts = now + interval_ms;

@@ -492,8 +492,6 @@ void answerHello(void *inFrame, void *networkInterface){
     currentNetworkInterface->MapperSeqNumber = ntohs(inFrameHeader->seqNumber);
     memcpy(currentNetworkInterface->MapperHwAddress, inFrameHeader->realSource.a, 6);
     memcpy(currentNetworkInterface->MapperApparentAddress, inFrameHeader->frameHeader.source.a, 6);
-    currentNetworkInterface->MapperGeneration = ntohs(discoverHeader->generation);
-
     // Hello upper header per LLTD spec:
     //   apparentMapper = Ethernet header source MAC (may be bridge/AP behind NAT)
     //   currentMapper  = LLTD Real_Source_Address (true mapper MAC)
@@ -503,12 +501,18 @@ void answerHello(void *inFrame, void *networkInterface){
                              &inFrameHeader->frameHeader.source,   /* apparentMapper */
                              &inFrameHeader->realSource,           /* currentMapper (real) */
                              currentNetworkInterface->MapperGeneration);
-    log_debug("sendHello(answerHello): %s tos=%u gen_raw=0x%02x%02x gen_host=0x%04x",
+    log_debug("sendHello(answerHello): %s tos=%u seq=%u seq_wire=0x%02x%02x gen_host=0x%04x gen_wire=0x%02x%02x curMapper="
+              ETHERNET_ADDR_FMT" appMapper="ETHERNET_ADDR_FMT,
               currentNetworkInterface->deviceName,
               inFrameHeader->tos,
+              ntohs(lltdHeader->seqNumber),
+              ((uint8_t *)&lltdHeader->seqNumber)[0],
+              ((uint8_t *)&lltdHeader->seqNumber)[1],
+              currentNetworkInterface->MapperGeneration,
               ((uint8_t *)&helloHeader->generation)[0],
               ((uint8_t *)&helloHeader->generation)[1],
-              currentNetworkInterface->MapperGeneration);
+              ETHERNET_ADDR(inFrameHeader->realSource.a),
+              ETHERNET_ADDR(inFrameHeader->frameHeader.source.a));
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
     offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
     offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
@@ -593,7 +597,23 @@ void parseFrame(void *frame, void *networkInterface){
                   generation_host,
                   stations);
         log_generation_warning_if_swapped(currentNetworkInterface, generation_host, header->tos, "Discover");
-        currentNetworkInterface->MapperGeneration = generation_host;
+        bool should_update_generation = false;
+        if (header->tos == tos_quick_discovery) {
+            should_update_generation = true;
+        } else if (currentNetworkInterface->MapperGeneration == 0) {
+            should_update_generation = true;
+        } else if (currentNetworkInterface->MapperGeneration != generation_host) {
+            should_update_generation = true;
+            log_debug("%s: Discover tos=%u generation changed: 0x%04x -> 0x%04x",
+                      currentNetworkInterface->deviceName,
+                      header->tos,
+                      currentNetworkInterface->MapperGeneration,
+                      generation_host);
+        }
+
+        if (should_update_generation) {
+            currentNetworkInterface->MapperGeneration = generation_host;
+        }
     } else if (header->opcode == opcode_hello) {
         lltd_hello_upper_header_t *hello_header =
             (lltd_hello_upper_header_t *)((uint8_t *)frame + sizeof(*header));

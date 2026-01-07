@@ -62,6 +62,8 @@ void sendHelloMessageEx(
         tos
     );
 
+    lltd_demultiplex_header_t *lltdHeader =
+        (lltd_demultiplex_header_t *)buffer;
     lltd_hello_upper_header_t *helloHeader =
         (lltd_hello_upper_header_t *)(buffer + offset);
 
@@ -74,14 +76,19 @@ void sendHelloMessageEx(
         generation
     );
 
-    log_debug("sendHelloMessageEx(): %s tos=%u opcode=0x%x seq=%u gen_raw=0x%02x%02x gen_host=0x%04x",
+    log_debug("sendHelloMessageEx(): %s tos=%u opcode=0x%x seq=%u seq_wire=0x%02x%02x gen_host=0x%04x gen_wire=0x%02x%02x curMapper="
+              ETHERNET_ADDR_FMT" appMapper="ETHERNET_ADDR_FMT,
               currentNetworkInterface->deviceName,
               tos,
               opcode_hello,
               seqNumber,
+              ((uint8_t *)&lltdHeader->seqNumber)[0],
+              ((uint8_t *)&lltdHeader->seqNumber)[1],
+              generation,
               ((uint8_t *)&helloHeader->generation)[0],
               ((uint8_t *)&helloHeader->generation)[1],
-              generation);
+              ETHERNET_ADDR(mapperRealAddress->a),
+              ETHERNET_ADDR(mapperApparentAddress->a));
 
     // Add Station TLVs
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
