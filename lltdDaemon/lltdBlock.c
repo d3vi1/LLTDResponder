@@ -313,7 +313,7 @@ void answerHello(void *inFrame, void *networkInterface){
     offset += setQosCharacteristicsTLV (buffer, offset);
     offset += setIconImageTLV          (buffer, offset);   // Length 0, data via QueryLargeTLV
     offset += setFriendlyNameTLV       (buffer, offset);   // Length 0, data via QueryLargeTLV
-    offset += setUuidTLV               (buffer, offset);
+    // Note: UUID (0x12) excluded - parsing issue to investigate later
     // Note: Hardware ID (0x13), Detailed Icon, and Component Table are
     // QueryLargeTLV-only and should not appear in Hello frames
     offset += setEndOfPropertyTLV      (buffer, offset);

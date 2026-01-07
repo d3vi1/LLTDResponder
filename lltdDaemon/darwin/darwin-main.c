@@ -51,22 +51,29 @@ void sendHelloMessage(void *networkInterface) {
                              (ethernet_address_t *)&(currentNetworkInterface->MapperHwAddress),
                              currentNetworkInterface->MapperGeneration);
 
-    // Add TLVs for Hello - include enough info for station identification
+    // Add TLVs for Hello - must match answerHello in lltdBlock.c
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
     offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
     offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
+    offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
+    offset += setIPv6TLV(buffer, offset, currentNetworkInterface);
+    offset += setPerfCounterTLV(buffer, offset);
+    offset += setLinkSpeedTLV(buffer, offset, currentNetworkInterface);
+    offset += setHostnameTLV(buffer, offset);
 
     // Add 802.11 specific TLVs if wireless interface
     if (currentNetworkInterface->interfaceType == NetworkInterfaceTypeIEEE80211) {
         offset += setWirelessTLV(buffer, offset, currentNetworkInterface);
         offset += setBSSIDTLV(buffer, offset, currentNetworkInterface);
         offset += setSSIDTLV(buffer, offset, currentNetworkInterface);
-        // Note: Physical Medium TLV already set above with correct IANA type (71 for 802.11)
+        offset += setWifiMaxRateTLV(buffer, offset, currentNetworkInterface);
+        offset += setWifiRssiTLV(buffer, offset, currentNetworkInterface);
     }
 
-    // Add icon and identification TLVs
-    offset += setIconImageTLV(buffer, offset);
-    offset += setFriendlyNameTLV(buffer, offset);
+    offset += setQosCharacteristicsTLV(buffer, offset);
+    offset += setIconImageTLV(buffer, offset);          // Length 0, data via QueryLargeTLV
+    offset += setFriendlyNameTLV(buffer, offset);       // Length 0, data via QueryLargeTLV
+    // Note: UUID (0x12) excluded - parsing issue to investigate later
     offset += setEndOfPropertyTLV(buffer, offset);
 
     ssize_t written = sendto(currentNetworkInterface->socket, buffer, offset, 0,
