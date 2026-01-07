@@ -101,7 +101,8 @@ void sendHelloMessageEx(
     uint8_t tos,
     const ethernet_address_t *mapperRealAddress,
     const ethernet_address_t *mapperApparentAddress,
-    uint16_t generation
+    uint16_t generation,
+    hello_tx_reason_t reason
 );
 
 #endif

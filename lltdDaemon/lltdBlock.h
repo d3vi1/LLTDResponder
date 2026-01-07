@@ -105,6 +105,14 @@ typedef struct {
     uint8_t     macAddress[6];
 }  bssid_tlv_t;
 
+#ifndef __hello_reason_constants__
+#define __hello_reason_constants__ 0x00
+typedef enum {
+    hello_reason_reply_to_discover = 0,
+    hello_reason_periodic_timeout = 1
+} hello_tx_reason_t;
+#endif
+
 #pragma pack ( pop )
 
 #define tos_discovery             0x00

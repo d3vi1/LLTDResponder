@@ -36,7 +36,8 @@ void sendHelloMessageEx(
     uint8_t tos,
     const ethernet_address_t *mapperRealAddress,
     const ethernet_address_t *mapperApparentAddress,
-    uint16_t generation
+    uint16_t generation,
+    hello_tx_reason_t reason
 ) {
     uint8_t *buffer = calloc(1, currentNetworkInterface->MTU);
     if (!buffer) {
@@ -77,7 +78,8 @@ void sendHelloMessageEx(
     );
 
     const char *gen_store = (tos == tos_quick_discovery) ? "quick" : "topology";
-    log_debug("sendHelloMessageEx(): %s mapper_id="ETHERNET_ADDR_FMT" tos=%u opcode=0x%x seq=%u seq_wire=0x%02x%02x gen_host=0x%04x gen_wire=0x%02x%02x gen_store=%s curMapper="
+    const char *reason_str = (reason == hello_reason_reply_to_discover) ? "reply_to_discover" : "hello_timeout";
+    log_debug("sendHelloMessageEx(): %s mapper_id="ETHERNET_ADDR_FMT" tos=%u opcode=0x%x seq=%u seq_wire=0x%02x%02x gen_host=0x%04x gen_wire=0x%02x%02x gen_store=%s reason=%s curMapper="
               ETHERNET_ADDR_FMT" appMapper="ETHERNET_ADDR_FMT,
               currentNetworkInterface->deviceName,
               ETHERNET_ADDR(mapperRealAddress->a),
@@ -90,8 +92,18 @@ void sendHelloMessageEx(
               ((uint8_t *)&helloHeader->generation)[0],
               ((uint8_t *)&helloHeader->generation)[1],
               gen_store,
+              reason_str,
               ETHERNET_ADDR(mapperRealAddress->a),
               ETHERNET_ADDR(mapperApparentAddress->a));
+    log_debug("t=%llu TX %s tos=%u op=%u xid=0x%04x gen=0x%04x seq=0x%04x reason=%s",
+              (unsigned long long)lltd_monotonic_milliseconds(),
+              currentNetworkInterface->deviceName,
+              tos,
+              opcode_hello,
+              0,
+              generation,
+              seqNumber,
+              reason_str);
 
     // Add Station TLVs
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
@@ -147,7 +159,8 @@ void sendHelloMessage(void *networkInterface) {
         tos_discovery,
         (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
         (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
-        currentNetworkInterface->MapperGenerationTopology
+        currentNetworkInterface->MapperGenerationTopology,
+        hello_reason_periodic_timeout
     );
 }
 
@@ -288,12 +301,22 @@ void lltdLoop (void *data){
                 (lltd_discover_upper_header_t*)(header + 1);
             uint16_t generation = ntohs(disc_header->generation);
 
-            log_debug("%s: mapper_id="ETHERNET_ADDR_FMT" ethSrc="ETHERNET_ADDR_FMT" tos=%u xid=%u",
-                      currentNetworkInterface->deviceName,
-                      ETHERNET_ADDR(header->realSource.a),
-                      ETHERNET_ADDR(header->frameHeader.source.a),
-                      header->tos,
-                      ntohs(header->seqNumber));
+            {
+                char mapper_id[18];
+                char eth_src[18];
+                snprintf(mapper_id, sizeof(mapper_id), "%02x:%02x:%02x:%02x:%02x:%02x",
+                         header->realSource.a[0], header->realSource.a[1], header->realSource.a[2],
+                         header->realSource.a[3], header->realSource.a[4], header->realSource.a[5]);
+                snprintf(eth_src, sizeof(eth_src), "%02x:%02x:%02x:%02x:%02x:%02x",
+                         header->frameHeader.source.a[0], header->frameHeader.source.a[1], header->frameHeader.source.a[2],
+                         header->frameHeader.source.a[3], header->frameHeader.source.a[4], header->frameHeader.source.a[5]);
+                log_debug("%s: mapper_id=%s ethSrc=%s tos=%u xid=%u",
+                          currentNetworkInterface->deviceName,
+                          mapper_id,
+                          eth_src,
+                          header->tos,
+                          ntohs(header->seqNumber));
+            }
             // Add/update session entry
             session_entry* entry = session_table_add(currentNetworkInterface->sessionTable,
                                                      header->realSource.a,

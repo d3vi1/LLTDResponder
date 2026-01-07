@@ -18,6 +18,39 @@ static uint64_t lltd_now_ms(void) {
     return lltd_monotonic_milliseconds();
 }
 
+static void format_mac_str(const uint8_t *mac, char *out, size_t out_len) {
+    if (!out || out_len < 18) {
+        return;
+    }
+    snprintf(out, out_len, "%02x:%02x:%02x:%02x:%02x:%02x",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+static void log_lltd_frame(const char *direction,
+                           const char *ifname,
+                           uint8_t tos,
+                           uint8_t opcode,
+                           uint16_t xid,
+                           uint16_t generation,
+                           uint16_t seq,
+                           const char *reason) {
+    if (!direction) {
+        direction = "UNK";
+    }
+    if (!ifname) {
+        ifname = "?";
+    }
+    if (reason) {
+        log_debug("t=%llu %s %s tos=%u op=%u xid=0x%04x gen=0x%04x seq=0x%04x reason=%s",
+                  (unsigned long long)lltd_now_ms(),
+                  direction, ifname, tos, opcode, xid, generation, seq, reason);
+    } else {
+        log_debug("t=%llu %s %s tos=%u op=%u xid=0x%04x gen=0x%04x seq=0x%04x",
+                  (unsigned long long)lltd_now_ms(),
+                  direction, ifname, tos, opcode, xid, generation, seq);
+    }
+}
+
 static void log_generation_warning_if_swapped(network_interface_t *iface,
                                               uint16_t generation_host,
                                               uint8_t tos,
@@ -98,9 +131,14 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
                     (const ethernet_address_t *)currentNetworkInterface->MapperHwAddress, /* realDest: mapper real */
                     0, code, tos_discovery);
 
-    log_debug("sendProbeMsg: type=%d seq=%d ethSrc="ETHERNET_ADDR_FMT" ethDst="ETHERNET_ADDR_FMT,
-              type, 0,
-              ETHERNET_ADDR(src.a), ETHERNET_ADDR(dst.a));
+    log_lltd_frame("TX",
+                   currentNetworkInterface->deviceName,
+                   tos_discovery,
+                   code,
+                   0,
+                   0,
+                   0,
+                   "probe_train");
 
     usleep(1000 * pause);
     ssize_t written = sendto(currentNetworkInterface->socket, probe, packageSize, 0,
@@ -127,6 +165,14 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
                         (const ethernet_address_t *)currentNetworkInterface->MapperHwAddress,
                         currentNetworkInterface->MapperSeqNumber, opcode_ack, tos_discovery);
 
+        log_lltd_frame("TX",
+                       currentNetworkInterface->deviceName,
+                       tos_discovery,
+                       opcode_ack,
+                       0,
+                       0,
+                       currentNetworkInterface->MapperSeqNumber,
+                       "probe_ack");
         written = sendto(currentNetworkInterface->socket, probe, packageSize, 0,
                          (struct sockaddr *)&currentNetworkInterface->socketAddr,
                          sizeof(currentNetworkInterface->socketAddr));
@@ -151,13 +197,14 @@ void parseQuery(void *inFrame, void *networkInterface){
     /*
      * Debug log for Query frame (task D requirement).
      */
-    log_debug("parseQuery: op=%d tos=%d seq=%d ethSrc="ETHERNET_ADDR_FMT" ethDst="ETHERNET_ADDR_FMT
-              " realSrc="ETHERNET_ADDR_FMT" realDst="ETHERNET_ADDR_FMT,
-              inHeader->opcode, inHeader->tos, ntohs(inHeader->seqNumber),
-              ETHERNET_ADDR(inHeader->frameHeader.source.a),
-              ETHERNET_ADDR(inHeader->frameHeader.destination.a),
-              ETHERNET_ADDR(inHeader->realSource.a),
-              ETHERNET_ADDR(inHeader->realDestination.a));
+    log_lltd_frame("RX",
+                   currentNetworkInterface->deviceName,
+                   inHeader->tos,
+                   inHeader->opcode,
+                   0,
+                   0,
+                   ntohs(inHeader->seqNumber),
+                   NULL);
 
     /*
      * Update mapper session info from Query frame.
@@ -237,6 +284,14 @@ void parseQuery(void *inFrame, void *networkInterface){
     currentNetworkInterface->seeListCount = 0;
     
     
+    log_lltd_frame("TX",
+                   currentNetworkInterface->deviceName,
+                   tos_discovery,
+                   opcode_queryResp,
+                   0,
+                   0,
+                   currentNetworkInterface->MapperSeqNumber,
+                   "query_resp");
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                           sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
@@ -301,6 +356,14 @@ static void sendLargeTlvResponse(void *networkInterface, void *inFrame, void *da
                (uint8_t *)data + dataOffset, bytesToWrite);
     }
 
+    log_lltd_frame("TX",
+                   currentNetworkInterface->deviceName,
+                   tos_discovery,
+                   opcode_queryLargeTlvResp,
+                   0,
+                   0,
+                   currentNetworkInterface->MapperSeqNumber,
+                   "query_large_tlv_resp");
     ssize_t write = sendto(currentNetworkInterface->socket, buffer, packageSize, 0,
                            (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
@@ -388,14 +451,15 @@ void parseProbe(void *inFrame, void *networkInterface) {
      */
     int forUs = compareEthernetAddress(&header->realDestination,
                                        (ethernet_address_t *)&currentNetworkInterface->macAddress);
-    log_debug("parseProbe: op=%d tos=%d seq=%d ethSrc="ETHERNET_ADDR_FMT" ethDst="ETHERNET_ADDR_FMT
-              " realSrc="ETHERNET_ADDR_FMT" realDst="ETHERNET_ADDR_FMT" forUs=%d",
-              header->opcode, header->tos, ntohs(header->seqNumber),
-              ETHERNET_ADDR(header->frameHeader.source.a),
-              ETHERNET_ADDR(header->frameHeader.destination.a),
-              ETHERNET_ADDR(header->realSource.a),
-              ETHERNET_ADDR(header->realDestination.a),
-              forUs);
+    log_lltd_frame("RX",
+                   currentNetworkInterface->deviceName,
+                   header->tos,
+                   header->opcode,
+                   0,
+                   0,
+                   ntohs(header->seqNumber),
+                   NULL);
+    log_debug("parseProbe: forUs=%d", forUs);
 
     /*
      * Accept frames where LLTD realDestination == our MAC (end-to-end identity).
@@ -460,14 +524,15 @@ void parseEmit(void *inFrame, void *networkInterface){
     /*
      * Debug log for Emit frame (task D requirement).
      */
-    log_debug("parseEmit: op=%d tos=%d seq=%d ethSrc="ETHERNET_ADDR_FMT" ethDst="ETHERNET_ADDR_FMT
-              " realSrc="ETHERNET_ADDR_FMT" realDst="ETHERNET_ADDR_FMT" numDescs=%d",
-              lltdHeader->opcode, lltdHeader->tos, ntohs(lltdHeader->seqNumber),
-              ETHERNET_ADDR(lltdHeader->frameHeader.source.a),
-              ETHERNET_ADDR(lltdHeader->frameHeader.destination.a),
-              ETHERNET_ADDR(lltdHeader->realSource.a),
-              ETHERNET_ADDR(lltdHeader->realDestination.a),
-              ntohs(emitHeader->numDescs));
+    log_lltd_frame("RX",
+                   currentNetworkInterface->deviceName,
+                   lltdHeader->tos,
+                   lltdHeader->opcode,
+                   0,
+                   0,
+                   ntohs(lltdHeader->seqNumber),
+                   NULL);
+    log_debug("parseEmit: numDescs=%d", ntohs(emitHeader->numDescs));
 
     /*
      * Update mapper session info from Emit frame.
@@ -535,8 +600,10 @@ void answerHello(void *inFrame, void *networkInterface){
     // MapperHwAddress = real (LLTD-level) mapper address (end-to-end identity)
     // MapperApparentAddress = Ethernet source (next-hop, may be bridge MAC)
     if (!mapper_matches(currentNetworkInterface, &inFrameHeader->realSource)) {
-        log_debug("answerHello: ignoring Discover from non-active mapper mapper_id="ETHERNET_ADDR_FMT,
-                  ETHERNET_ADDR(inFrameHeader->realSource.a));
+        char mapper_id[18];
+        format_mac_str(inFrameHeader->realSource.a, mapper_id, sizeof(mapper_id));
+        log_debug("answerHello: ignoring Discover from non-active mapper mapper_id=%s",
+                  mapper_id);
         return;
     }
     set_active_mapper(currentNetworkInterface, &inFrameHeader->realSource, &inFrameHeader->frameHeader.source);
@@ -548,19 +615,6 @@ void answerHello(void *inFrame, void *networkInterface){
     }
     warn_generation_store_mismatch(currentNetworkInterface, inFrameHeader->tos, "answerHello", generation_slot);
     uint64_t now_ms = lltd_now_ms();
-    if (currentNetworkInterface->LastHelloReplyMs > 0 &&
-        currentNetworkInterface->LastHelloReplyTos == inFrameHeader->tos &&
-        currentNetworkInterface->LastHelloReplyXid == ntohs(inFrameHeader->seqNumber) &&
-        currentNetworkInterface->LastHelloReplyGen == discover_generation &&
-        now_ms - currentNetworkInterface->LastHelloReplyMs < 100) {
-        log_debug("tx HELLO reply_to_discover suppressed t=%llu mapper_id="ETHERNET_ADDR_FMT" tos=%u xid=%u gen=0x%04x",
-                  (unsigned long long)now_ms,
-                  ETHERNET_ADDR(inFrameHeader->realSource.a),
-                  inFrameHeader->tos,
-                  ntohs(inFrameHeader->seqNumber),
-                  discover_generation);
-        return;
-    }
     // Hello upper header per LLTD spec:
     //   apparentMapper = Ethernet header source MAC (may be bridge/AP behind NAT)
     //   currentMapper  = LLTD Real_Source_Address (true mapper MAC)
@@ -575,21 +629,26 @@ void answerHello(void *inFrame, void *networkInterface){
         band_state *band = (band_state *)currentNetworkInterface->enumerationAutomata->extra;
         hello_deadline = band->hello_timeout_ts;
     }
-    log_debug("tx HELLO reply_to_discover t=%llu mapper_id="ETHERNET_ADDR_FMT" tos=%u seq=%u seq_wire=0x%02x%02x gen_host=0x%04x gen_wire=0x%02x%02x gen_store=%s deadline=%llu curMapper="
-              ETHERNET_ADDR_FMT" appMapper="ETHERNET_ADDR_FMT,
-              (unsigned long long)now_ms,
-              ETHERNET_ADDR(inFrameHeader->realSource.a),
-              inFrameHeader->tos,
-              ntohs(lltdHeader->seqNumber),
-              ((uint8_t *)&lltdHeader->seqNumber)[0],
-              ((uint8_t *)&lltdHeader->seqNumber)[1],
-              *generation_slot,
-              ((uint8_t *)&helloHeader->generation)[0],
-              ((uint8_t *)&helloHeader->generation)[1],
-              mapper_generation_label(inFrameHeader->tos),
-              (unsigned long long)hello_deadline,
-              ETHERNET_ADDR(inFrameHeader->realSource.a),
-              ETHERNET_ADDR(inFrameHeader->frameHeader.source.a));
+    {
+        char mapper_id[18];
+        char eth_src[18];
+        format_mac_str(inFrameHeader->realSource.a, mapper_id, sizeof(mapper_id));
+        format_mac_str(inFrameHeader->frameHeader.source.a, eth_src, sizeof(eth_src));
+        log_debug("tx HELLO reply_to_discover t=%llu mapper_id=%s tos=%u seq=%u seq_wire=0x%02x%02x gen_host=0x%04x gen_wire=0x%02x%02x gen_store=%s deadline=%llu curMapper=%s appMapper=%s",
+                  (unsigned long long)now_ms,
+                  mapper_id,
+                  inFrameHeader->tos,
+                  ntohs(lltdHeader->seqNumber),
+                  ((uint8_t *)&lltdHeader->seqNumber)[0],
+                  ((uint8_t *)&lltdHeader->seqNumber)[1],
+                  *generation_slot,
+                  ((uint8_t *)&helloHeader->generation)[0],
+                  ((uint8_t *)&helloHeader->generation)[1],
+                  mapper_generation_label(inFrameHeader->tos),
+                  (unsigned long long)hello_deadline,
+                  mapper_id,
+                  eth_src);
+    }
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
     offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
     offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
@@ -617,6 +676,14 @@ void answerHello(void *inFrame, void *networkInterface){
     // QueryLargeTLV-only and should not appear in Hello frames
     offset += setEndOfPropertyTLV      (buffer, offset);
 
+    log_lltd_frame("TX",
+                   currentNetworkInterface->deviceName,
+                   inFrameHeader->tos,
+                   opcode_hello,
+                   ntohs(inFrameHeader->seqNumber),
+                   *generation_slot,
+                   0,
+                   "reply_to_discover");
     size_t write = sendto(currentNetworkInterface->socket, buffer, offset, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
                             sizeof(currentNetworkInterface->socketAddr));
     if (write < 1) {
@@ -653,17 +720,24 @@ void parseFrame(void *frame, void *networkInterface){
 
     uint16_t seq_or_xid = ntohs(header->seqNumber);
     const char *seq_label = (header->opcode == opcode_discover || header->opcode == opcode_reset) ? "xid" : "seq";
-    log_debug("parseFrame(): t=%llu %s op=%u tos=%u ver=0x%02x ethSrc="ETHERNET_ADDR_FMT" ethDst="ETHERNET_ADDR_FMT
-              " realSrc="ETHERNET_ADDR_FMT" realDst="ETHERNET_ADDR_FMT" %s=%u",
+    char eth_src[18];
+    char eth_dst[18];
+    char real_src[18];
+    char real_dst[18];
+    format_mac_str(header->frameHeader.source.a, eth_src, sizeof(eth_src));
+    format_mac_str(header->frameHeader.destination.a, eth_dst, sizeof(eth_dst));
+    format_mac_str(header->realSource.a, real_src, sizeof(real_src));
+    format_mac_str(header->realDestination.a, real_dst, sizeof(real_dst));
+    log_debug("parseFrame(): t=%llu %s op=%u tos=%u ver=0x%02x ethSrc=%s ethDst=%s realSrc=%s realDst=%s %s=%u",
               (unsigned long long)lltd_now_ms(),
               currentNetworkInterface->deviceName,
               header->opcode,
               header->tos,
               header->version,
-              ETHERNET_ADDR(header->frameHeader.source.a),
-              ETHERNET_ADDR(header->frameHeader.destination.a),
-              ETHERNET_ADDR(header->realSource.a),
-              ETHERNET_ADDR(header->realDestination.a),
+              eth_src,
+              eth_dst,
+              real_src,
+              real_dst,
               seq_label,
               seq_or_xid);
 
@@ -672,19 +746,50 @@ void parseFrame(void *frame, void *networkInterface){
                   currentNetworkInterface->deviceName, header->tos, header->opcode);
     }
 
+    {
+        uint16_t xid = 0;
+        uint16_t gen = 0;
+        uint16_t seq = 0;
+        if (header->opcode == opcode_discover) {
+            lltd_discover_upper_header_t *disc_header =
+                (lltd_discover_upper_header_t *)((uint8_t *)frame + sizeof(*header));
+            xid = seq_or_xid;
+            gen = ntohs(disc_header->generation);
+        } else if (header->opcode == opcode_hello) {
+            lltd_hello_upper_header_t *hello_header =
+                (lltd_hello_upper_header_t *)((uint8_t *)frame + sizeof(*header));
+            seq = seq_or_xid;
+            gen = ntohs(hello_header->generation);
+        } else {
+            seq = seq_or_xid;
+        }
+        log_lltd_frame("RX",
+                       currentNetworkInterface->deviceName,
+                       header->tos,
+                       header->opcode,
+                       xid,
+                       gen,
+                       seq,
+                       NULL);
+    }
+
     if (header->opcode == opcode_discover) {
         lltd_discover_upper_header_t *disc_header =
             (lltd_discover_upper_header_t *)((uint8_t *)frame + sizeof(*header));
         uint16_t generation_host = ntohs(disc_header->generation);
         uint16_t stations = ntohs(disc_header->stationNumber);
-        log_debug("parseFrame(): t=%llu discover mapper_id="ETHERNET_ADDR_FMT" ethSrc="ETHERNET_ADDR_FMT" tos=%u xid=%u gen_host=0x%04x",
-                  (unsigned long long)lltd_now_ms(),
-                  currentNetworkInterface->deviceName,
-                  ETHERNET_ADDR(header->realSource.a),
-                  ETHERNET_ADDR(header->frameHeader.source.a),
-                  header->tos,
-                  seq_or_xid,
-                  generation_host);
+        char mapper_id[18];
+        char eth_src_mac[18];
+        format_mac_str(header->realSource.a, mapper_id, sizeof(mapper_id));
+        format_mac_str(header->frameHeader.source.a, eth_src_mac, sizeof(eth_src_mac));
+    log_debug("parseFrame(): t=%llu discover mapper_id=%s ethSrc=%s tos=%u xid=%u gen_host=0x%04x",
+              (unsigned long long)lltd_now_ms(),
+              currentNetworkInterface->deviceName,
+              mapper_id,
+              eth_src_mac,
+              header->tos,
+              seq_or_xid,
+              generation_host);
         log_debug("parseFrame(): %s tos=%u discover gen_raw=0x%02x%02x gen_host=0x%04x stations=%u",
                   currentNetworkInterface->deviceName,
                   header->tos,
@@ -694,8 +799,10 @@ void parseFrame(void *frame, void *networkInterface){
                   stations);
         log_generation_warning_if_swapped(currentNetworkInterface, generation_host, header->tos, "Discover");
         if (!mapper_matches(currentNetworkInterface, &header->realSource)) {
-            log_debug("parseFrame(): discover from non-active mapper ignored mapper_id="ETHERNET_ADDR_FMT,
-                      ETHERNET_ADDR(header->realSource.a));
+            char mapper_id[18];
+            format_mac_str(header->realSource.a, mapper_id, sizeof(mapper_id));
+            log_debug("parseFrame(): discover from non-active mapper ignored mapper_id=%s",
+                      mapper_id);
             return;
         }
         set_active_mapper(currentNetworkInterface, &header->realSource, &header->frameHeader.source);
@@ -713,24 +820,32 @@ void parseFrame(void *frame, void *networkInterface){
                       generation_host);
         }
 
-        if (should_update_generation) {
-            *generation_slot = generation_host;
-        }
+    if (should_update_generation) {
+        *generation_slot = generation_host;
+        log_debug("rx DISCOVER from mapper: set active_generation=0x%04x tos=%u mapper_id=%s",
+                  generation_host,
+                  header->tos,
+                  mapper_id);
+    }
     } else if (header->opcode == opcode_hello) {
         lltd_hello_upper_header_t *hello_header =
             (lltd_hello_upper_header_t *)((uint8_t *)frame + sizeof(*header));
         uint16_t generation_host = ntohs(hello_header->generation);
-        log_debug("parseFrame(): t=%llu %s tos=%u hello gen_raw=0x%02x%02x gen_host=0x%04x stations=n/a",
-                  (unsigned long long)lltd_now_ms(),
-                  currentNetworkInterface->deviceName,
-                  header->tos,
-                  ((uint8_t *)&hello_header->generation)[0],
-                  ((uint8_t *)&hello_header->generation)[1],
-                  generation_host);
+    log_debug("parseFrame(): t=%llu %s tos=%u hello gen_raw=0x%02x%02x gen_host=0x%04x stations=n/a",
+              (unsigned long long)lltd_now_ms(),
+              currentNetworkInterface->deviceName,
+              header->tos,
+              ((uint8_t *)&hello_header->generation)[0],
+              ((uint8_t *)&hello_header->generation)[1],
+              generation_host);
         log_generation_warning_if_swapped(currentNetworkInterface, generation_host, header->tos, "Hello");
-        log_debug("rx HELLO from non-mapper: ignored (no state change) src="ETHERNET_ADDR_FMT" gen=0x%04x",
-                  ETHERNET_ADDR(header->realSource.a),
+    {
+        char mapper_id[18];
+        format_mac_str(header->realSource.a, mapper_id, sizeof(mapper_id));
+        log_debug("rx HELLO from non-mapper: ignored (no state change) src=%s gen=0x%04x",
+                  mapper_id,
                   generation_host);
+    }
     }
 
     /*
@@ -753,11 +868,8 @@ void parseFrame(void *frame, void *networkInterface){
                                   ETHERNET_ADDR(header->realSource.a));
                         break;
                     }
-                    if (!currentNetworkInterface->helloSent) {
-                        currentNetworkInterface->helloSent = 1;
-                        usleep(10000);
-                        answerHello(frame, currentNetworkInterface);
-                    }
+                    usleep(10000);
+                    answerHello(frame, currentNetworkInterface);
                     break;
                 case opcode_emit:
                     log_debug("%s Emit (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
@@ -831,13 +943,17 @@ void parseFrame(void *frame, void *networkInterface){
                     lltd_hello_upper_header_t *hello_header =
                         (lltd_hello_upper_header_t *)((uint8_t *)frame + sizeof(lltd_demultiplex_header_t));
                     uint16_t generation_host = ntohs(hello_header->generation);
-                    log_debug("%s Quick HELLO (%d) for TOS_Quick_Discovery: ignored src="ETHERNET_ADDR_FMT" gen=0x%04x",
-                              currentNetworkInterface->deviceName,
-                              header->opcode,
-                              ETHERNET_ADDR(header->realSource.a),
-                              generation_host);
-                    break;
-                }
+        {
+            char mapper_id[18];
+            format_mac_str(header->realSource.a, mapper_id, sizeof(mapper_id));
+            log_debug("%s Quick HELLO (%d) for TOS_Quick_Discovery: ignored src=%s gen=0x%04x",
+                      currentNetworkInterface->deviceName,
+                      header->opcode,
+                      mapper_id,
+                      generation_host);
+        }
+        break;
+    }
 
                 case opcode_reset:
                     log_debug("%s Reset (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
