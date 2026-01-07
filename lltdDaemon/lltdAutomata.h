@@ -77,6 +77,8 @@
 #define BAND_TXC 4
 #define BAND_FRAME_TIME 6.667
 #define BAND_BLOCK_TIME 300
+// Minimum interval between Hello transmissions (milliseconds)
+#define HELLO_MIN_INTERVAL_MS 1000
 // Want 6.67 ms per frame. Equals 20/3.
 #define BAND_MUL_FRAME(_x) (((_x) * 20) / 3)
 
@@ -107,7 +109,36 @@ typedef struct band_state {
     uint32_t    Ni;
     uint32_t    r;
     bool        begun;
+    uint64_t    hello_timeout_ts;   // Next hello timeout timestamp (milliseconds)
+    uint64_t    block_timeout_ts;   // Next block timeout timestamp (milliseconds)
 } band_state;
+
+// Session table entry - keyed by mapper MAC + generation/seq
+#define SESSION_TABLE_MAX_ENTRIES 16
+
+typedef struct session_entry {
+    uint8_t     mapper_mac[6];      // Mapper hardware address
+    uint16_t    generation;         // Session generation number
+    uint16_t    seq_number;         // Sequence number
+    uint8_t     state;              // Current session state (sess_* constants)
+    bool        complete;           // Whether this session is complete
+    bool        valid;              // Whether this entry is in use
+    uint64_t    last_activity_ts;   // Last activity timestamp (seconds)
+    uint64_t    created_ts;         // Creation timestamp (seconds)
+} session_entry;
+
+typedef struct session_table {
+    session_entry entries[SESSION_TABLE_MAX_ENTRIES];
+    uint8_t       count;            // Number of valid entries
+    bool          all_complete;     // True if all sessions are complete
+} session_table;
+
+// Mapping engine extended state for tracking charge timeout
+typedef struct mapping_state {
+    uint8_t     ctc;                // Charge timeout counter
+    uint64_t    charge_timeout_ts;  // Charge timeout timestamp (seconds)
+    uint64_t    inactive_timeout_ts;// Inactive timeout timestamp (seconds)
+} mapping_state;
 
 
 automata* init_automata_mapping(void);
@@ -118,5 +149,41 @@ automata* switch_state_enumeration(automata*, int, char*);
 
 automata* init_automata_session(void);
 automata* switch_state_session(automata*, int, char*);
+
+// Session table management
+session_table* session_table_create(void);
+void session_table_destroy(session_table* table);
+session_entry* session_table_find(session_table* table, const uint8_t* mapper_mac, uint16_t generation, uint16_t seq);
+session_entry* session_table_add(session_table* table, const uint8_t* mapper_mac, uint16_t generation, uint16_t seq);
+void session_table_remove(session_table* table, const uint8_t* mapper_mac, uint16_t generation);
+void session_table_update_complete_status(session_table* table);
+bool session_table_is_empty(session_table* table);
+bool session_table_all_complete(session_table* table);
+void session_table_clear(session_table* table);
+
+// Session event derivation from received frames
+// Returns the appropriate sess_* event constant based on frame analysis
+int derive_session_event(const void* frame, session_table* table, const uint8_t* our_mac);
+
+// RepeatBand algorithm functions
+void band_init_stats(band_state* band);
+void band_update_stats(band_state* band);
+uint64_t band_choose_hello_time(band_state* band);
+void band_do_hello(band_state* band);
+void band_on_hello_received(band_state* band);
+
+// Mapping engine extended functions
+void mapping_reset_charge(mapping_state* mstate);
+void mapping_on_charge(mapping_state* mstate);
+bool mapping_check_charge_timeout(mapping_state* mstate);
+bool mapping_check_inactive_timeout(mapping_state* mstate);
+void mapping_reset_inactive_timeout(mapping_state* mstate);
+
+// Tick function - should be called periodically (every ~100ms) to handle timeouts
+void automata_tick(automata* mapping, automata* enumeration, session_table* sessions, void* network_interface);
+
+// Monotonic time helpers (exposed for testing)
+uint64_t lltd_monotonic_seconds(void);
+uint64_t lltd_monotonic_milliseconds(void);
 
 #endif /* defined(__LLTDd__automata__) */

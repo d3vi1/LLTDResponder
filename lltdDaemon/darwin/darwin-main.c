@@ -10,6 +10,10 @@
 
 
 #include "../lltdDaemon.h"
+#include <sys/file.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 
 void SignalHandler(int Signal) {
     log_debug("Interrupted by signal #%d", Signal);
@@ -24,6 +28,146 @@ static void free_automata(automata *autom) {
     free(autom->extra);
     free(autom);
 }
+
+//==============================================================================
+//
+// Send a Hello message on the given interface (used by RepeatBand algorithm)
+//
+//==============================================================================
+void sendHelloMessageEx(
+    network_interface_t *currentNetworkInterface,
+    uint16_t seqNumber,
+    uint8_t tos,
+    const ethernet_address_t *mapperRealAddress,
+    const ethernet_address_t *mapperApparentAddress,
+    uint16_t generation,
+    hello_tx_reason_t reason
+) {
+    uint8_t *buffer = calloc(1, currentNetworkInterface->MTU);
+    if (!buffer) {
+        log_err("calloc failed in sendHelloMessageEx");
+        return;
+    }
+
+    uint64_t offset = 0;
+
+    /*
+     * Per MS-LLTD 2.2.3.4 (Hello Frame):
+     * - Ethernet destination MUST be FF:FF:FF:FF:FF:FF (broadcast)
+     * - Base header Real Destination Address SHOULD be FF:FF:FF:FF:FF:FF
+     * - Hello header contains Apparent_Mapper_Address and Current_Mapper_Address
+     *   (set below in setHelloHeader)
+     */
+    offset = setLltdHeader(
+        (void *)buffer,
+        (ethernet_address_t *)&(currentNetworkInterface->macAddress),
+        (ethernet_address_t *)&EthernetBroadcast,
+        seqNumber,
+        opcode_hello,
+        tos
+    );
+
+    lltd_demultiplex_header_t *lltdHeader =
+        (lltd_demultiplex_header_t *)buffer;
+    lltd_hello_upper_header_t *helloHeader =
+        (lltd_hello_upper_header_t *)(buffer + offset);
+
+    // Set the Hello upper header
+    offset += setHelloHeader(
+        (void *)buffer,
+        offset,
+        (ethernet_address_t *)(uintptr_t)mapperApparentAddress,
+        (ethernet_address_t *)(uintptr_t)mapperRealAddress,
+        generation
+    );
+
+    const char *gen_store = (tos == tos_quick_discovery) ? "quick" : "topology";
+    const char *reason_str = (reason == hello_reason_reply_to_discover) ? "reply_to_discover" : "hello_timeout";
+    log_debug("sendHelloMessageEx(): %s mapper_id="ETHERNET_ADDR_FMT" tos=%u opcode=0x%x seq=%u seq_wire=0x%02x%02x gen_host=0x%04x gen_wire=0x%02x%02x gen_store=%s reason=%s curMapper="
+              ETHERNET_ADDR_FMT" appMapper="ETHERNET_ADDR_FMT,
+              currentNetworkInterface->deviceName,
+              ETHERNET_ADDR(mapperRealAddress->a),
+              tos,
+              opcode_hello,
+              seqNumber,
+              ((uint8_t *)&lltdHeader->seqNumber)[0],
+              ((uint8_t *)&lltdHeader->seqNumber)[1],
+              generation,
+              ((uint8_t *)&helloHeader->generation)[0],
+              ((uint8_t *)&helloHeader->generation)[1],
+              gen_store,
+              reason_str,
+              ETHERNET_ADDR(mapperRealAddress->a),
+              ETHERNET_ADDR(mapperApparentAddress->a));
+    log_debug("t=%llu TX %s tos=%u op=%u xid=0x%04x gen=0x%04x seq=0x%04x reason=%s",
+              (unsigned long long)lltd_monotonic_milliseconds(),
+              currentNetworkInterface->deviceName,
+              tos,
+              opcode_hello,
+              0,
+              generation,
+              seqNumber,
+              reason_str);
+
+    // Add Station TLVs
+    offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
+    offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
+    offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
+    offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
+    offset += setIPv6TLV(buffer, offset, currentNetworkInterface);
+    offset += setPerfCounterTLV(buffer, offset);
+    offset += setLinkSpeedTLV(buffer, offset, currentNetworkInterface);
+    offset += setHostnameTLV(buffer, offset);
+    if (currentNetworkInterface->interfaceType == NetworkInterfaceTypeIEEE80211) {
+        offset += setWirelessTLV(buffer, offset, currentNetworkInterface);
+        offset += setBSSIDTLV(buffer, offset, currentNetworkInterface);
+        offset += setSSIDTLV(buffer, offset, currentNetworkInterface);
+        offset += setWifiMaxRateTLV(buffer, offset, currentNetworkInterface);
+        offset += setWifiRssiTLV(buffer, offset, currentNetworkInterface);
+        // Note: Physical Medium TLV already set above with correct IANA type
+        offset += setAPAssociationTableTLV(buffer, offset, currentNetworkInterface);
+        offset += setRepeaterAPLineageTLV(buffer, offset, currentNetworkInterface);
+        offset += setRepeaterAPTableTLV(buffer, offset, currentNetworkInterface);
+    }
+    offset += setQosCharacteristicsTLV(buffer, offset);
+    offset += setIconImageTLV(buffer, offset);     // Length 0, data via QueryLargeTLV
+    offset += setFriendlyNameTLV(buffer, offset);  // Length 0, data via QueryLargeTLV
+
+    // Add ending TLV
+    offset += setEndOfPropertyTLV(buffer, offset);
+
+    // Send the LLTD response
+    if (sendto(
+            currentNetworkInterface->socket,
+            buffer,
+            offset,
+            0,
+            (struct sockaddr *)&currentNetworkInterface->socketAddr,
+            sizeof(currentNetworkInterface->socketAddr)
+        ) == -1) {
+        log_err("sendHelloMessageEx(): failed to send Hello on %s (%llu bytes): errno %d (%s)",
+                currentNetworkInterface->deviceName, (unsigned long long)offset, errno, strerror(errno));
+    } else {
+        log_debug("sendHelloMessageEx(): Hello (%llu bytes) sent on %s", (unsigned long long)offset, currentNetworkInterface->deviceName);
+    }
+
+    free(buffer);
+}
+
+void sendHelloMessage(void *networkInterface) {
+    network_interface_t *currentNetworkInterface = networkInterface;
+
+    sendHelloMessageEx(
+        currentNetworkInterface,
+        0,
+        tos_discovery,
+        (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
+        (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
+        currentNetworkInterface->MapperGenerationTopology,
+        hello_reason_periodic_timeout
+    );
+}
+
 
 //==============================================================================
 //
@@ -89,6 +233,16 @@ void lltdLoop (void *data){
     log_notice("Successfully binded to %s", currentNetworkInterface->deviceName);
 
     //
+    // Set receive timeout to avoid select() issues on AF_NDRV
+    //
+    struct timeval recvTimeout;
+    recvTimeout.tv_sec = 0;
+    recvTimeout.tv_usec = 100000; // 100ms tick interval
+    if (setsockopt(fileDescriptor, SOL_SOCKET, SO_RCVTIMEO, &recvTimeout, sizeof(recvTimeout)) != 0) {
+        log_err("Failed to set SO_RCVTIMEO on %s: %s", currentNetworkInterface->deviceName, strerror(errno));
+    }
+
+    //
     //Rename the thread to listener: $ifName
     //
     char *threadName = malloc(strlen(currentNetworkInterface->deviceName)+strlen("listener: ")+1);
@@ -100,29 +254,144 @@ void lltdLoop (void *data){
     }
     
     //
-    // Start the run loop
+    // Start the run loop with SO_RCVTIMEO-based tick mechanism
     //
-    unsigned int cyclNo = 0;
     currentNetworkInterface->recvBuffer = malloc(currentNetworkInterface->MTU);
-    
+
     if(currentNetworkInterface->recvBuffer == NULL) {
-        log_err("The receive buffer couldn't be allocated. We've failed misserably on interface %s", currentNetworkInterface->deviceName);
+        log_err("The receive buffer couldn't be allocated. We've failed miserably on interface %s", currentNetworkInterface->deviceName);
     } else for(;;){
-        recvfrom(fileDescriptor, currentNetworkInterface->recvBuffer, currentNetworkInterface->MTU, 0, NULL, NULL);
-        if(currentNetworkInterface->recvBuffer == NULL) {
-            log_err("For some reason the receive buffer has been free-ed by someone. HEEELP");
+        ssize_t recvLen = recvfrom(fileDescriptor, currentNetworkInterface->recvBuffer,
+                                   currentNetworkInterface->MTU, 0, NULL, NULL);
+        if (recvLen < 0) {
+            int err = errno;
+            if (err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+                log_err("recvfrom() failed on %s: %s", currentNetworkInterface->deviceName, strerror(err));
+            }
+            // Always run the automata tick, even on timeout
+            automata_tick(currentNetworkInterface->mappingAutomata,
+                          currentNetworkInterface->enumerationAutomata,
+                          currentNetworkInterface->sessionTable,
+                          currentNetworkInterface);
+            continue;
         }
+
+        if(currentNetworkInterface->recvBuffer == NULL) {
+            log_err("For some reason the receive buffer has been freed by someone. HELP");
+            break;
+        }
+
         lltd_demultiplex_header_t *header = currentNetworkInterface->recvBuffer;
+
+        // Derive session event from the received frame
+        int sess_event = derive_session_event(currentNetworkInterface->recvBuffer,
+                                              currentNetworkInterface->sessionTable,
+                                              currentNetworkInterface->macAddress);
+
+        // Update session table based on received frame
+        if (header->opcode == opcode_discover) {
+            lltd_discover_upper_header_t *disc_header =
+                (lltd_discover_upper_header_t*)(header + 1);
+            uint16_t generation = ntohs(disc_header->generation);
+
+            {
+                char mapper_id[18];
+                char eth_src[18];
+                snprintf(mapper_id, sizeof(mapper_id), "%02x:%02x:%02x:%02x:%02x:%02x",
+                         header->realSource.a[0], header->realSource.a[1], header->realSource.a[2],
+                         header->realSource.a[3], header->realSource.a[4], header->realSource.a[5]);
+                snprintf(eth_src, sizeof(eth_src), "%02x:%02x:%02x:%02x:%02x:%02x",
+                         header->frameHeader.source.a[0], header->frameHeader.source.a[1], header->frameHeader.source.a[2],
+                         header->frameHeader.source.a[3], header->frameHeader.source.a[4], header->frameHeader.source.a[5]);
+                log_debug("%s: mapper_id=%s ethSrc=%s tos=%u xid=%u",
+                          currentNetworkInterface->deviceName,
+                          mapper_id,
+                          eth_src,
+                          header->tos,
+                          ntohs(header->seqNumber));
+            }
+            // Add/update session entry
+            session_entry* entry = session_table_add(currentNetworkInterface->sessionTable,
+                                                     header->realSource.a,
+                                                     generation,
+                                                     ntohs(header->seqNumber));
+            if (entry) {
+                entry->state = (uint8_t)sess_event;
+                entry->last_activity_ts = lltd_monotonic_seconds();
+                if (sess_event == sess_discover_acking || sess_event == sess_discover_acking_chgd_xid) {
+                    entry->complete = true;
+                }
+                // Update interface-level mapper info
+                memcpy(currentNetworkInterface->MapperHwAddress, header->realSource.a, 6);
+                if (header->tos == tos_quick_discovery) {
+                    currentNetworkInterface->MapperGenerationQuick = generation;
+                } else {
+                    currentNetworkInterface->MapperGenerationTopology = generation;
+                }
+            }
+            session_table_update_complete_status(currentNetworkInterface->sessionTable);
+        } else if (header->opcode == opcode_reset) {
+            // Clear session table on reset
+            session_table_clear(currentNetworkInterface->sessionTable);
+        }
+
+        // Update mapping automaton with opcode
+        // Track previous state to detect Quiescent transition
+        uint8_t prev_mapping_state = currentNetworkInterface->mappingAutomata->current_state;
         switch_state_mapping(currentNetworkInterface->mappingAutomata, header->opcode, "rx");
-        switch_state_session(currentNetworkInterface->sessionAutomata, header->opcode, "rx");
+
+        // If Mapping just transitioned to Quiescent (timeout or otherwise), clear session table
+        // This ensures RepeatBand stops when the mapping session ends
+        if (prev_mapping_state != 0 && currentNetworkInterface->mappingAutomata->current_state == 0) {
+            log_debug("Mapping transitioned to Quiescent, clearing session table");
+            session_table_clear(currentNetworkInterface->sessionTable);
+        }
+
+        // Reset inactive timeout on any valid frame
+        if (currentNetworkInterface->mappingAutomata->extra) {
+            mapping_reset_inactive_timeout((mapping_state*)currentNetworkInterface->mappingAutomata->extra);
+        }
+
+        // Handle charge opcode specially for charge timeout counter
+        if (header->opcode == opcode_charge && currentNetworkInterface->mappingAutomata->extra) {
+            mapping_on_charge((mapping_state*)currentNetworkInterface->mappingAutomata->extra);
+        }
+
+        // Update session automaton with derived session event
+        if (sess_event >= 0) {
+            switch_state_session(currentNetworkInterface->sessionAutomata, sess_event, "rx");
+        }
+
+        // Update enumeration automaton based on frame type
         if (header->opcode == opcode_hello) {
+            // Received Hello from another station
+            if (currentNetworkInterface->enumerationAutomata->extra) {
+                band_on_hello_received((band_state*)currentNetworkInterface->enumerationAutomata->extra);
+            }
             switch_state_enumeration(currentNetworkInterface->enumerationAutomata, enum_hello, "rx");
         } else if (header->opcode == opcode_discover) {
+            // New session starting - initialize RepeatBand if needed
+            if (currentNetworkInterface->enumerationAutomata->current_state == 0) {
+                // In Quiescent, start enumeration
+                if (currentNetworkInterface->enumerationAutomata->extra) {
+                    band_init_stats((band_state*)currentNetworkInterface->enumerationAutomata->extra);
+                    band_choose_hello_time((band_state*)currentNetworkInterface->enumerationAutomata->extra);
+                }
+            } else if (currentNetworkInterface->enumerationAutomata->extra) {
+                // Already enumerating, mark begun
+                ((band_state*)currentNetworkInterface->enumerationAutomata->extra)->begun = true;
+            }
             switch_state_enumeration(currentNetworkInterface->enumerationAutomata, enum_new_session, "rx");
-        } else {
-            switch_state_enumeration(currentNetworkInterface->enumerationAutomata, enum_sess_complete, "rx");
         }
+
+        // Parse and handle the frame
         parseFrame(currentNetworkInterface->recvBuffer, currentNetworkInterface);
+
+        // Run periodic automata tick after handling frame
+        automata_tick(currentNetworkInterface->mappingAutomata,
+                      currentNetworkInterface->enumerationAutomata,
+                      currentNetworkInterface->sessionTable,
+                      currentNetworkInterface);
     }
     
     //
@@ -353,7 +622,32 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         log_debug("%s MediumType: 0x%llx (%s)", currentNetworkInterface->deviceName,
                   currentNetworkInterface->MediumType, isWireless ? "wireless" : "ethernet");
 
-        
+
+        //
+        // Get the MTU from the controller using kIOMaxPacketSize.
+        // This is more reliable on modern macOS with Skywalk.
+        //
+        CFTypeRef ioMaxPacketSize = IORegistryEntryCreateCFProperty(IONetworkController, CFSTR(kIOMaxPacketSize), kCFAllocatorDefault, 0);
+        if (ioMaxPacketSize) {
+            CFNumberGetValue((CFNumberRef)ioMaxPacketSize, kCFNumberLongType, &currentNetworkInterface->MTU);
+            CFRelease(ioMaxPacketSize);
+        } else {
+            // Fallback to interface's kIOMaxTransferUnit if controller doesn't have kIOMaxPacketSize
+            CFTypeRef ioInterfaceMTU = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOMaxTransferUnit), kCFAllocatorDefault, 0);
+            if (ioInterfaceMTU) {
+                CFNumberGetValue((CFNumberRef)ioInterfaceMTU, kCFNumberLongType, &currentNetworkInterface->MTU);
+                CFRelease(ioInterfaceMTU);
+            } else {
+                log_err("%s Could not read MTU from controller or interface", currentNetworkInterface->deviceName);
+                IOObjectRelease(IONetworkController);
+                IOObjectRelease(IONetworkInterface);
+                free((void*)currentNetworkInterface->deviceName);
+                free(currentNetworkInterface);
+                return;
+            }
+        }
+
+
     } else {
         log_err("%s Could not get the interface controller", currentNetworkInterface->deviceName);
         IOObjectRelease(IONetworkInterface);
@@ -361,24 +655,8 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
         free(currentNetworkInterface);
         return;
     }
-    
-    IOObjectRelease(IONetworkController);
 
-    
-    //
-    // Get the interface MTU.
-    //
-    CFTypeRef ioInterfaceMTU = IORegistryEntryCreateCFProperty(IONetworkInterface, CFSTR(kIOMaxTransferUnit), kCFAllocatorDefault, 0);
-    if (ioInterfaceMTU) {
-        CFNumberGetValue((CFNumberRef)ioInterfaceMTU, kCFNumberLongType, &currentNetworkInterface->MTU);
-        CFRelease(ioInterfaceMTU);
-    } else {
-        log_err("%s Could not read ifMaxTransferUnit", currentNetworkInterface->deviceName);
-        IOObjectRelease(IONetworkInterface);
-        free((void*)currentNetworkInterface->deviceName);
-        free(currentNetworkInterface);
-        return;
-    }
+    IOObjectRelease(IONetworkController);
 
 
     //
@@ -392,7 +670,7 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
 
         if( (!(currentNetworkInterface->flags & (IFF_UP | IFF_BROADCAST))) | (currentNetworkInterface->flags & IFF_LOOPBACK)){
             log_err("%s Failed the flags check", currentNetworkInterface->deviceName);
-            IOServiceAddInterestNotification(globalInfo.notificationPort, IONetworkController, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
+            // Note: IONetworkController was already released, so we only register on the interface
             IOServiceAddInterestNotification(globalInfo.notificationPort, IONetworkInterface, kIOGeneralInterest, deviceDisappeared, currentNetworkInterface, &(currentNetworkInterface->notification));
             IOObjectRelease(IONetworkInterface);
             CFRelease(CFFlags);
@@ -410,13 +688,17 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface) {
     // Get the Interface Type.
     // A WiFi always conforms to 802.11 and Ethernet, so we check the 802.11
     // class first. On macOS 26+, we also check for IO80211 properties as fallback.
+    // Also set ifType to the IANA interface type for the PhysicalMediumTLV.
     //
     if ( IsWirelessInterface(IONetworkInterface) ) {
         currentNetworkInterface->interfaceType=NetworkInterfaceTypeIEEE80211;
+        currentNetworkInterface->ifType = 71;  // IANA ieee80211
     } else if ( IOObjectConformsTo( IONetworkInterface, "IOEthernetInterface" ) ) {
         currentNetworkInterface->interfaceType=NetworkInterfaceTypeEthernet;
+        currentNetworkInterface->ifType = 6;   // IANA ethernetCsmacd
     } else {
         currentNetworkInterface->interfaceType=NetworkInterfaceTypeEthernet;
+        currentNetworkInterface->ifType = 6;   // IANA ethernetCsmacd (default)
     }
     
     //
@@ -561,6 +843,7 @@ void deviceDisappeared(void *refCon, io_service_t service, natural_t messageType
         free_automata(currentNetworkInterface->mappingAutomata);
         free_automata(currentNetworkInterface->sessionAutomata);
         free_automata(currentNetworkInterface->enumerationAutomata);
+        session_table_destroy(currentNetworkInterface->sessionTable);
         free(currentNetworkInterface);
     /*
      * Keep the struct, the notification and the deviceName.
@@ -656,6 +939,7 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
         currentNetworkInterface->mappingAutomata = init_automata_mapping();
         currentNetworkInterface->sessionAutomata = init_automata_session();
         currentNetworkInterface->enumerationAutomata = init_automata_enumeration();
+        currentNetworkInterface->sessionTable = session_table_create();
         
         //
         // Let's get the device name. If we don't have a BSD name, we are
@@ -686,6 +970,41 @@ void deviceAppeared(void *refCon, io_iterator_t iterator){
 
 //==============================================================================
 //
+// Check if another instance of lltdDaemon is already running.
+// Uses an exclusive lock on a file to ensure single instance.
+// Returns the lock fd on success, -1 if another instance is running.
+//
+//==============================================================================
+static int acquireInstanceLock(void) {
+    const char *lockPath = "/tmp/lltdDaemon.lock";
+    int lockFd = open(lockPath, O_CREAT | O_RDWR, 0644);
+    if (lockFd < 0) {
+        fprintf(stderr, "Warning: Could not open lock file %s: %s\n", lockPath, strerror(errno));
+        return -1;
+    }
+
+    if (flock(lockFd, LOCK_EX | LOCK_NB) < 0) {
+        if (errno == EWOULDBLOCK) {
+            fprintf(stderr, "Error: Another instance of lltdDaemon is already running.\n");
+            fprintf(stderr, "Kill the existing process or wait for it to exit.\n");
+        } else {
+            fprintf(stderr, "Warning: Could not acquire lock: %s\n", strerror(errno));
+        }
+        close(lockFd);
+        return -1;
+    }
+
+    // Write our PID to the lock file for debugging
+    ftruncate(lockFd, 0);
+    char pidStr[32];
+    snprintf(pidStr, sizeof(pidStr), "%d\n", getpid());
+    write(lockFd, pidStr, strlen(pidStr));
+
+    return lockFd;
+}
+
+//==============================================================================
+//
 // main
 // TODO: Convert to a Launch Daemon
 //
@@ -696,7 +1015,16 @@ int main(int argc, const char *argv[]){
     mach_port_t           masterPort;
     CFRunLoopSourceRef    runLoopSource;
     io_iterator_t         newDevicesIterator;
-    
+    int                   lockFd;
+
+    //
+    // Check for existing instance before doing anything else
+    //
+    lockFd = acquireInstanceLock();
+    if (lockFd < 0) {
+        return EXIT_FAILURE;
+    }
+
     //
     // Create a new Apple System Log facility entry
     // of Daemon type with the LLTD name

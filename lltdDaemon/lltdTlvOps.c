@@ -18,19 +18,55 @@
 #pragma mark Header generation
 
 size_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_address_t *destination, uint16_t seqNumber, uint8_t opcode, uint8_t tos){
-    
+
     lltd_demultiplex_header_t *lltdHeader = (lltd_demultiplex_header_t*) buffer;
-    
+
     lltdHeader->frameHeader.ethertype = htons(lltdEtherType);
     memcpy(&lltdHeader->frameHeader.source, source, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->frameHeader.destination, destination, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->realSource, source, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->realDestination, destination, sizeof(ethernet_address_t));
-    lltdHeader->seqNumber = seqNumber;
+    /* seqNumber is provided in host order; serialize in network order. */
+    lltdHeader->seqNumber = htons(seqNumber);
     lltdHeader->opcode = opcode;
     lltdHeader->tos = tos;
     lltdHeader->version = 1;
-    
+
+    return sizeof(lltd_demultiplex_header_t);
+}
+
+/*
+ * setLltdHeaderEx: Extended header setter for bridged networks.
+ *
+ * In bridged/AP topologies, the Ethernet-layer addresses (apparent, next-hop)
+ * may differ from the LLTD base-header addresses (real, end-to-end identity).
+ *
+ * Parameters:
+ *   ethSource  - Ethernet header source (our MAC)
+ *   ethDest    - Ethernet header destination (apparent mapper / next-hop)
+ *   realSource - LLTD base header Real Source (our MAC)
+ *   realDest   - LLTD base header Real Destination (true mapper MAC)
+ */
+size_t setLltdHeaderEx(void *buffer,
+                       const ethernet_address_t *ethSource,
+                       const ethernet_address_t *ethDest,
+                       const ethernet_address_t *realSource,
+                       const ethernet_address_t *realDest,
+                       uint16_t seqNumber, uint8_t opcode, uint8_t tos) {
+
+    lltd_demultiplex_header_t *lltdHeader = (lltd_demultiplex_header_t *)buffer;
+
+    lltdHeader->frameHeader.ethertype = htons(lltdEtherType);
+    memcpy(&lltdHeader->frameHeader.source, ethSource, sizeof(ethernet_address_t));
+    memcpy(&lltdHeader->frameHeader.destination, ethDest, sizeof(ethernet_address_t));
+    memcpy(&lltdHeader->realSource, realSource, sizeof(ethernet_address_t));
+    memcpy(&lltdHeader->realDestination, realDest, sizeof(ethernet_address_t));
+    /* seqNumber is provided in host order; serialize in network order. */
+    lltdHeader->seqNumber = htons(seqNumber);
+    lltdHeader->opcode = opcode;
+    lltdHeader->tos = tos;
+    lltdHeader->version = 1;
+
     return sizeof(lltd_demultiplex_header_t);
 }
 
@@ -47,13 +83,14 @@ bool compareEthernetAddress(const ethernet_address_t *A, const ethernet_address_
 // Get the mess out of lltdBlock.c
 //
 size_t setHelloHeader (void *buffer, uint64_t offset, ethernet_address_t *apparentMapper, ethernet_address_t *currentMapper, uint16_t generation){
-    
+
     lltd_hello_upper_header_t *helloHeader = (lltd_hello_upper_header_t *) (buffer+offset);
 
     memcpy(&helloHeader->apparentMapper, apparentMapper, sizeof(ethernet_address_t));
     memcpy(&helloHeader->currentMapper, currentMapper, sizeof(ethernet_address_t));
-    helloHeader->generation = generation;
-    
+    /* generation is provided in host order; serialize in network order. */
+    helloHeader->generation = htons(generation);
+
     return sizeof(lltd_hello_upper_header_t);
 }
 
@@ -87,28 +124,43 @@ size_t setHostIdTLV(void *buffer, uint64_t offset, void *networkInterface) {
 size_t setCharacteristicsTLV(void *buffer, uint64_t offset, void *networkInterface) {
     network_interface_t *currentNetworkInterface = networkInterface;
     generic_tlv_t *characteristicsTLV = (generic_tlv_t *) (buffer+offset);
-    uint16_t *characteristicsValue = (void *) (buffer + offset + sizeof(*characteristicsTLV));
+    uint32_t *characteristicsValue = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
     characteristicsTLV->TLVType = tlv_characterisics;
     characteristicsTLV->TLVLength = sizeof(*characteristicsValue);
-    
+
+    // Characteristics flags are in upper 16 bits of 32-bit value (network order)
+    uint32_t flags = 0;
     //Checking if we're full duplex
     if (currentNetworkInterface->MediumType & IFM_FDX){
-        *characteristicsValue = htons(Config_TLV_NetworkInterfaceDuplex_Value);
+        flags |= Config_TLV_NetworkInterfaceDuplex_Value;
     }
     //shouldn't be here EVER because we don't start on loopback interfaces
     if (currentNetworkInterface->flags & IFF_LOOPBACK){
-        *characteristicsValue = htons(Config_TLV_InterfaceIsLoopback_Value);
+        flags |= Config_TLV_InterfaceIsLoopback_Value;
     }
-    return (sizeof(*characteristicsTLV) + sizeof(*characteristicsValue));
+    // Shift flags to upper 16 bits and convert to network order
+    *characteristicsValue = htonl(flags << 16);
+    return (sizeof(generic_tlv_t) + sizeof(*characteristicsValue));
 }
 
 size_t setPerfCounterTLV(void *buffer, uint64_t offset){
     generic_tlv_t *perf = (generic_tlv_t *) (buffer+offset);
-    uint32_t *perfValue = (void *) (perf + sizeof(*perf));
     perf->TLVType       = tlv_perfCounterFrequency;
-    perf->TLVLength     = sizeof(*perfValue);
-   *perfValue           = htonl(1000000);
-    return sizeof(*perf)+sizeof(*perfValue);
+    perf->TLVLength     = sizeof(uint64_t);
+
+    // Write 64-bit value in big-endian (network) order
+    uint64_t freq = 1000000;  // 1 MHz performance counter frequency
+    uint8_t bytes[sizeof(uint64_t)];
+    bytes[0] = (freq >> 56) & 0xFF;
+    bytes[1] = (freq >> 48) & 0xFF;
+    bytes[2] = (freq >> 40) & 0xFF;
+    bytes[3] = (freq >> 32) & 0xFF;
+    bytes[4] = (freq >> 24) & 0xFF;
+    bytes[5] = (freq >> 16) & 0xFF;
+    bytes[6] = (freq >> 8) & 0xFF;
+    bytes[7] = freq & 0xFF;
+    memcpy(buffer + offset + sizeof(generic_tlv_t), bytes, sizeof(bytes));
+    return sizeof(generic_tlv_t) + sizeof(uint64_t);
 }
 
 size_t setIconImageTLV(void *buffer, uint64_t offset){
@@ -145,34 +197,98 @@ size_t setFriendlyNameTLV(void *buffer, uint64_t offset){
 size_t setUuidTLV(void *buffer, uint64_t offset){
     void *machineUUID = NULL;
     getUpnpUuid(&machineUUID);
+
     generic_tlv_t *upnpUuidTLV = (generic_tlv_t *) (buffer + offset);
     upnpUuidTLV->TLVType = tlv_uuid;
-    upnpUuidTLV->TLVLength = 16;
-    memcpy((void *)(buffer + offset + sizeof(generic_tlv_t)), upnpUuidTLV, 16);
-    free(machineUUID);
-    return (sizeof(generic_tlv_t) + 16);
+
+    // UUID is always 16 bytes
+    if (machineUUID != NULL) {
+        upnpUuidTLV->TLVLength = 16;
+        // Copy the UUID bytes from machineUUID, not from the TLV header
+        memcpy((void *)(buffer + offset + sizeof(generic_tlv_t)), machineUUID, 16);
+        free(machineUUID);
+        return (sizeof(generic_tlv_t) + 16);
+    } else {
+        // No UUID available - emit TLV with zero length
+        upnpUuidTLV->TLVLength = 0;
+        return sizeof(generic_tlv_t);
+    }
 }
 
-//TODO: Maybe... Need to look this up
+// Hardware ID TLV - sends the hardware identifier (platform UUID as UCS-2LE)
+// Returns size of TLV written, or 0 if no hardware ID available
 size_t setHardwareIdTLV(void *buffer, uint64_t offset){
+    // Get the platform UUID as hardware ID (platform-specific implementation)
+    uint8_t hwIdData[64];
+    memset(hwIdData, 0, sizeof(hwIdData));
+    getHwId(hwIdData);
+
+    // Check if we got any data (find last non-zero UCS-2LE char)
+    size_t dataLen = 0;
+    for (size_t i = 0; i < 64; i += 2) {
+        if (hwIdData[i] != 0 || hwIdData[i+1] != 0) {
+            dataLen = i + 2;
+        }
+    }
+
+    if (dataLen > 0) {
+        generic_tlv_t *hwIdTLV = (generic_tlv_t *)(buffer + offset);
+        hwIdTLV->TLVType = tlv_hwIdProperty;
+        hwIdTLV->TLVLength = (uint8_t)dataLen;
+        memcpy((void *)(buffer + offset + sizeof(generic_tlv_t)), hwIdData, dataLen);
+        return sizeof(generic_tlv_t) + dataLen;
+    }
+
+    // No hardware ID available - don't emit the TLV at all
     return 0;
 }
 
 //TODO: see if there really is support for Level2 Forwarding.. ? or just leave it hardcoded
 size_t setQosCharacteristicsTLV(void *buffer, uint64_t offset){
     generic_tlv_t *QosCharacteristicsTLV = (generic_tlv_t *) (buffer + offset);
-    uint16_t *qosCharacteristics         = (void *)(buffer + offset + sizeof(generic_tlv_t));
     QosCharacteristicsTLV->TLVType       = tlv_qos_characteristics;
-    QosCharacteristicsTLV->TLVLength     = sizeof(*qosCharacteristics);
-    *qosCharacteristics                  = htons(Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN);
-    return sizeof(generic_tlv_t) + sizeof(uint16_t);
+    QosCharacteristicsTLV->TLVLength     = sizeof(uint32_t);
+    // QoS flags are in upper 16 bits of 32-bit value
+    uint32_t qosCharacteristics = htonl((Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN) << 16);
+    memcpy(buffer + offset + sizeof(generic_tlv_t), &qosCharacteristics, sizeof(qosCharacteristics));
+    return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 
+// Detailed Icon TLV - sends the detailed icon image (multi-resolution ICO)
+// Only used with QueryLargeTLV. Returns raw icon data without TLV header.
 size_t setDetailedIconTLV(void *buffer, uint64_t offset){
+    void *iconData = NULL;
+    size_t iconSize = 0;
+    getDetailedIconImage(&iconData, &iconSize);
+
+    if (iconData != NULL && iconSize > 0) {
+        // For QueryLargeTLV response, we write raw data without TLV header
+        memcpy((void *)(buffer + offset), iconData, iconSize);
+        free(iconData);
+        return iconSize;
+    }
+    if (iconData) {
+        free(iconData);
+    }
     return 0;
 }
 
+// Component Table TLV - sends the component descriptor table
+// Only used with QueryLargeTLV. Returns raw component data without TLV header.
 size_t setComponentTableTLV(void *buffer, uint64_t offset){
+    void *tableData = NULL;
+    size_t tableSize = 0;
+    getComponentTable(&tableData, &tableSize);
+
+    if (tableData != NULL && tableSize > 0) {
+        // For QueryLargeTLV response, we write raw data without TLV header
+        memcpy((void *)(buffer + offset), tableData, tableSize);
+        free(tableData);
+        return tableSize;
+    }
+    if (tableData) {
+        free(tableData);
+    }
     return 0;
 }
 
@@ -298,12 +414,14 @@ size_t setBSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
     bssid_tlv_t *bssidTlv = (bssid_tlv_t *) (buffer + offset);
     bssidTlv->TLVType        = tlv_bssid;
     bssidTlv->TLVLength      = 6;
-    if(getBSSID((void *)&(bssidTlv->macAddress), networkInterface)){
+
+    void *bssidData = NULL;
+    if (getBSSID(&bssidData, networkInterface) && bssidData) {
+        memcpy(bssidTlv->macAddress, bssidData, 6);
+        free(bssidData);
         return sizeof(bssid_tlv_t);
-    } else {
-        return 0;
     }
-    
+    return 0;
 }
 
 size_t setSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
@@ -311,7 +429,6 @@ size_t setSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
     ssidTlv->TLVType = tlv_ssid;
     ssidTlv->TLVLength = 0;
 
-#ifdef __APPLE__
     char *ssid = NULL;
     size_t ssidSize = 0;
     if (getSSID(&ssid, &ssidSize, networkInterface) && ssid && ssidSize > 0) {
@@ -326,40 +443,38 @@ size_t setSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
     if (ssid) {
         free(ssid);
     }
-#endif
     return sizeof(generic_tlv_t);
 }
 
 size_t setWifiMaxRateTLV(void *buffer, uint64_t offset, void *networkInterface){
     generic_tlv_t *rateTlv = (generic_tlv_t *) (buffer + offset);
     rateTlv->TLVType = tlv_wifiMaxRate;
-    rateTlv->TLVLength = sizeof(uint32_t);
+    rateTlv->TLVLength = sizeof(uint16_t);
 
-    uint32_t *rate = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
+    uint16_t *rate = (uint16_t *)(buffer + offset + sizeof(generic_tlv_t));
     *rate = 0;
-#ifdef __APPLE__
+
+    // Get rate in Mbps and convert to 0.5 Mbps units for LLTD spec
     uint32_t rateMbps = 0;
     if (getWifiMaxRate(&rateMbps, networkInterface)) {
-        *rate = htonl(rateMbps);
+        *rate = htons((uint16_t)(rateMbps * 2));  // Convert Mbps to 0.5 Mbps units
     }
-#endif
-    return sizeof(generic_tlv_t) + sizeof(uint32_t);
+    return sizeof(generic_tlv_t) + sizeof(uint16_t);
 }
 
 size_t setWifiRssiTLV(void *buffer, uint64_t offset, void *networkInterface){
     generic_tlv_t *rssiTlv = (generic_tlv_t *) (buffer + offset);
     rssiTlv->TLVType = tlv_wifiRssi;
-    rssiTlv->TLVLength = sizeof(int8_t);
+    rssiTlv->TLVLength = sizeof(int32_t);
 
-    int8_t *rssi = (int8_t *)(buffer + offset + sizeof(generic_tlv_t));
+    int32_t *rssi = (int32_t *)(buffer + offset + sizeof(generic_tlv_t));
     *rssi = 0;
-#ifdef __APPLE__
+
     int8_t rssiValue = 0;
     if (getWifiRssi(&rssiValue, networkInterface)) {
-        *rssi = rssiValue;
+        *rssi = htonl((int32_t)rssiValue);
     }
-#endif
-    return sizeof(generic_tlv_t) + sizeof(int8_t);
+    return sizeof(generic_tlv_t) + sizeof(int32_t);
 }
 
 size_t set80211MediumTLV(void *buffer, uint64_t offset, void *networkInterface){
@@ -369,12 +484,11 @@ size_t set80211MediumTLV(void *buffer, uint64_t offset, void *networkInterface){
 
     uint32_t *medium = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
     *medium = 0;
-#ifdef __APPLE__
+
     uint32_t phyMedium = 0;
     if (getWifiPhyMedium(&phyMedium, networkInterface)) {
         *medium = htonl(phyMedium);
     }
-#endif
     return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 

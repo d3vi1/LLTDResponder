@@ -11,6 +11,14 @@
 #ifndef LLTDd_darwin_h
 #define LLTDd_darwin_h
 
+
+/*
+ * darwin-main.h references ethernet_address_t (LLTD wire-format MAC wrapper).
+ * Keep the definition centralized in lltdBlock.h.
+ */
+
+#include "../lltdBlock.h"
+
 #pragma mark -
 
 #pragma pack( push )
@@ -30,6 +38,7 @@ struct {
 } globalInfo;
 
 typedef struct automata automata;
+typedef struct session_table session_table;
 
 typedef struct {
     io_object_t            notification;
@@ -42,7 +51,7 @@ typedef struct {
 
     //We can get these by ioctls:
     //IFRTYPE_FAMILY_ETHERNET(IFRTYPE_SUBFAMILY_ANY,IFRTYPE_SUBFAMILY_USB,IFRTYPE_SUBFAMILY_BLUETOOTH,IFRTYPE_SUBFAMILY_WIFI,IFRTYPE_SUBFAMILY_THUNDERBOLT), IFRTYPE_FAMILY_VLAN, IFRTYPE_FAMILY_BOND, IFRTYPE_FAMILY_BRIDGE
-    
+
     int64_t                flags;               // kIOInterfaceFlags from the Interface
     uint64_t               linkStatus;          // kIOLinkStatus from the Controller
     uint32_t               MTU;                 // We'll set the buffer size to the MTU size
@@ -54,12 +63,23 @@ typedef struct {
     void                  *seeList;
     uint32_t               seeListCount;
     uint16_t               MapperSeqNumber;
-    uint8_t                macAddress      [ kIOEthernetAddressSize ];
-    uint8_t                MapperHwAddress [ kIOEthernetAddressSize ];
+    uint16_t               MapperGenerationTopology; // Mapper generation for topology discovery (host order)
+    uint16_t               MapperGenerationQuick;    // Mapper generation for quick discovery (host order)
+    uint8_t                macAddress             [ kIOEthernetAddressSize ];
+    uint8_t                MapperHwAddress        [ kIOEthernetAddressSize ];  // Real (LLTD) mapper address
+    uint8_t                MapperApparentAddress  [ kIOEthernetAddressSize ];  // Ethernet (bridge) mapper address
+    uint8_t                MapperKnown;
+    uint64_t               LastHelloTxMs;
+    uint64_t               LastHelloReplyMs;
+    uint16_t               LastHelloReplyXid;
+    uint16_t               LastHelloReplyGen;
+    uint8_t                LastHelloReplyTos;
     void                  *recvBuffer;          //We need to clear the receive Buffer when we kill the thread.
     automata              *mappingAutomata;
     automata              *sessionAutomata;
     automata              *enumerationAutomata;
+    session_table         *sessionTable;        // Session table for multi-mapper support
+    int                    helloSent;           // Per-interface flag for Hello suppression
 } network_interface_t;
 
 void deviceAppeared   (void *refCon, io_iterator_t iterator);
@@ -73,5 +93,16 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface);
 #define ETHERNET_ADDR(x)  x[0], x[1], x[2], x[3], x[4], x[5]
 #define lltdEtherType     0x88D9
 #define lltdOUI           0x000D3A
+
+
+void sendHelloMessageEx(
+    network_interface_t *iface,
+    uint16_t seqNumber,
+    uint8_t tos,
+    const ethernet_address_t *mapperRealAddress,
+    const ethernet_address_t *mapperApparentAddress,
+    uint16_t generation,
+    hello_tx_reason_t reason
+);
 
 #endif
