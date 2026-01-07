@@ -47,14 +47,16 @@ void sendHelloMessageEx(
     uint64_t offset = 0;
 
     /*
-     * IMPORTANT:
-     * setLltdHeader() are semnătura:
-     *   setLltdHeader(buffer, source, destination, seqNumber, opcode, tos)
+     * Per MS-LLTD 2.2.3.4 (Hello Frame):
+     * - Ethernet destination MUST be FF:FF:FF:FF:FF:FF (broadcast)
+     * - Base header Real Destination Address SHOULD be FF:FF:FF:FF:FF:FF
+     * - Hello header contains Apparent_Mapper_Address and Current_Mapper_Address
+     *   (set below in setHelloHeader)
      */
     offset = setLltdHeader(
         (void *)buffer,
         (ethernet_address_t *)&(currentNetworkInterface->macAddress),
-        (ethernet_address_t *)(uintptr_t)mapperApparentAddress,
+        (ethernet_address_t *)&EthernetBroadcast,
         seqNumber,
         opcode_hello,
         tos
@@ -105,7 +107,8 @@ void sendHelloMessageEx(
             NULL,
             0
         ) == -1) {
-        log_err("sendHelloMessageEx(): failed to send Hello on %s", currentNetworkInterface->deviceName);
+        log_err("sendHelloMessageEx(): failed to send Hello on %s (%llu bytes): errno %d (%s)",
+                currentNetworkInterface->deviceName, (unsigned long long)offset, errno, strerror(errno));
     } else {
         log_debug("sendHelloMessageEx(): Hello (%llu bytes) sent on %s", (unsigned long long)offset, currentNetworkInterface->deviceName);
     }

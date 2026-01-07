@@ -49,13 +49,28 @@ boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *net
 //TODO: validate Query
 void parseQuery(void *inFrame, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
+    lltd_demultiplex_header_t *inHeader = (lltd_demultiplex_header_t *)inFrame;
     size_t packageSize = currentNetworkInterface->MTU + sizeof(ethernet_header_t);
     size_t offset = 0;
     void *buffer = malloc( packageSize );
     memset(buffer, 0, packageSize);
-    
+
+    /*
+     * Per MS-LLTD 2.2.3.6 (QueryResp Frame):
+     * If Real Source Address != Ethernet source address (i.e., behind bridge/AP),
+     * QueryResp MUST be sent to broadcast; otherwise send to Real Source.
+     */
+    const ethernet_address_t *destAddr;
+    if (memcmp(inHeader->realSource.a, inHeader->frameHeader.source.a, kIOEthernetAddressSize) != 0) {
+        log_debug("parseQuery: mapper behind bridge (real=%02x:%02x:%02x:%02x:%02x:%02x vs eth=%02x:%02x:%02x:%02x:%02x:%02x), using broadcast",
+                  ETHERNET_ADDR(inHeader->realSource.a), ETHERNET_ADDR(inHeader->frameHeader.source.a));
+        destAddr = &EthernetBroadcast;
+    } else {
+        destAddr = &inHeader->realSource;
+    }
+
     offset = setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->macAddress),
-                                   (ethernet_address_t *) &(currentNetworkInterface->MapperHwAddress),
+                                   (ethernet_address_t *) destAddr,
                                     currentNetworkInterface->MapperSeqNumber, opcode_queryResp, tos_discovery);
     
     qry_resp_upper_header_t *respH  = buffer + sizeof(lltd_demultiplex_header_t);
@@ -116,17 +131,30 @@ void parseQuery(void *inFrame, void *networkInterface){
     free(buffer);
 }
 
-static void sendLargeTlvResponse(void *networkInterface, void *data, size_t dataSize, uint16_t dataOffset) {
+static void sendLargeTlvResponse(void *networkInterface, void *inFrame, void *data, size_t dataSize, uint16_t dataOffset) {
     network_interface_t *currentNetworkInterface = networkInterface;
+    lltd_demultiplex_header_t *inHeader = (lltd_demultiplex_header_t *)inFrame;
     uint16_t maxPayload = currentNetworkInterface->MTU - sizeof(lltd_demultiplex_header_t)
                         - sizeof(qry_large_tlv_resp_t);
+
+    /*
+     * Per MS-LLTD 2.2.3.8 (QueryLargeTlvResp Frame):
+     * If Real Source Address != Ethernet source address (i.e., behind bridge/AP),
+     * response MUST be sent to broadcast; otherwise send to Real Source.
+     */
+    const ethernet_address_t *destAddr;
+    if (memcmp(inHeader->realSource.a, inHeader->frameHeader.source.a, kIOEthernetAddressSize) != 0) {
+        destAddr = &EthernetBroadcast;
+    } else {
+        destAddr = &inHeader->realSource;
+    }
 
     size_t bufferSize = sizeof(lltd_demultiplex_header_t) + sizeof(qry_large_tlv_resp_t) + maxPayload;
     void *buffer = malloc(bufferSize);
     memset(buffer, 0, bufferSize);
 
     setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->macAddress),
-                          (ethernet_address_t *) &(currentNetworkInterface->MapperHwAddress),
+                          (ethernet_address_t *) destAddr,
                           currentNetworkInterface->MapperSeqNumber, opcode_queryLargeTlvResp, tos_discovery);
 
     qry_large_tlv_resp_t *header = buffer + sizeof(lltd_demultiplex_header_t);
@@ -224,7 +252,7 @@ void parseQueryLargeTlv(void *inFrame, void *networkInterface) {
             break;
     }
 
-    sendLargeTlvResponse(networkInterface, data, dataSize, offset);
+    sendLargeTlvResponse(networkInterface, inFrame, data, dataSize, offset);
 
     // Free non-cached data
     if (header->type == tlv_friendlyName || header->type == tlv_hwIdProperty) {
