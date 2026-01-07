@@ -146,13 +146,20 @@ size_t setCharacteristicsTLV(void *buffer, uint64_t offset, void *networkInterfa
 size_t setPerfCounterTLV(void *buffer, uint64_t offset){
     generic_tlv_t *perf = (generic_tlv_t *) (buffer+offset);
     perf->TLVType       = tlv_perfCounterFrequency;
-    perf->TLVLength     = sizeof(uint32_t);
+    perf->TLVLength     = sizeof(uint64_t);
 
-    // Write 32-bit value in big-endian (network) order
-    uint32_t freq = 1000000;  // 1 MHz performance counter frequency
-    uint32_t *value = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
-    *value = htonl(freq);
-    return sizeof(generic_tlv_t) + sizeof(uint32_t);
+    // Write 64-bit value in big-endian (network) order
+    uint64_t freq = 1000000;  // 1 MHz performance counter frequency
+    uint8_t *bytes = (uint8_t *)(buffer + offset + sizeof(generic_tlv_t));
+    bytes[0] = (freq >> 56) & 0xFF;
+    bytes[1] = (freq >> 48) & 0xFF;
+    bytes[2] = (freq >> 40) & 0xFF;
+    bytes[3] = (freq >> 32) & 0xFF;
+    bytes[4] = (freq >> 24) & 0xFF;
+    bytes[5] = (freq >> 16) & 0xFF;
+    bytes[6] = (freq >> 8) & 0xFF;
+    bytes[7] = freq & 0xFF;
+    return sizeof(generic_tlv_t) + sizeof(uint64_t);
 }
 
 size_t setIconImageTLV(void *buffer, uint64_t offset){
