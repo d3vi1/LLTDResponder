@@ -103,113 +103,121 @@ const char *lltd_wifi_phy_mode_name(int phy_mode) {
 }
 
 int lltd_darwin_wifi_get_metrics(const char *ifname, lltd_wifi_metrics_t *out) {
-    @autoreleasepool {
-        /* Validate arguments */
-        if (!ifname || !out) {
-            return -1;
+    /* Use old-style autorelease pool for compatibility with deployment target < 10.7 */
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    int result = 0;
+
+    /* Validate arguments */
+    if (!ifname || !out) {
+        [pool drain];
+        return -1;
+    }
+
+    /* Zero-initialize output */
+    memset(out, 0, sizeof(lltd_wifi_metrics_t));
+
+    /* Get the CWWiFiClient */
+    CWWiFiClient *client = [CWWiFiClient sharedWiFiClient];
+    if (!client) {
+        [pool drain];
+        return -2;
+    }
+
+    /* Get the interface by name */
+    NSString *ifnameStr = [NSString stringWithUTF8String:ifname];
+    CWInterface *iface = [client interfaceWithName:ifnameStr];
+    if (!iface) {
+        [pool drain];
+        return -2;
+    }
+
+    /* Check if we're associated to a network */
+    if (![iface ssid]) {
+        [pool drain];
+        return -3;
+    }
+
+    /* Get RSSI */
+    if ([iface respondsToSelector:@selector(rssiValue)]) {
+        out->rssi_dbm = (int)[iface rssiValue];
+        out->flags |= LLTD_WIFI_FLAG_VALID_RSSI;
+    }
+
+    /* Get Noise */
+    if ([iface respondsToSelector:@selector(noiseMeasurement)]) {
+        out->noise_dbm = (int)[iface noiseMeasurement];
+        out->flags |= LLTD_WIFI_FLAG_VALID_NOISE;
+    }
+
+    /* Get PHY mode */
+    CWPHYMode phyMode = kCWPHYModeNone;
+    if ([iface respondsToSelector:@selector(activePHYMode)]) {
+        phyMode = [iface activePHYMode];
+        out->phy_mode = phyModeToConstant(phyMode);
+        if (out->phy_mode != LLTD_WIFI_PHY_NONE) {
+            out->flags |= LLTD_WIFI_FLAG_VALID_PHY;
         }
+    }
 
-        /* Zero-initialize output */
-        memset(out, 0, sizeof(lltd_wifi_metrics_t));
-
-        /* Get the CWWiFiClient */
-        CWWiFiClient *client = [CWWiFiClient sharedWiFiClient];
-        if (!client) {
-            return -2;
+    /* Get channel width */
+    CWChannel *channel = [iface wlanChannel];
+    if (channel) {
+        out->chan_width_mhz = channelWidthToMHz([channel channelWidth]);
+        if (out->chan_width_mhz > 0) {
+            out->flags |= LLTD_WIFI_FLAG_VALID_WIDTH;
         }
+    }
 
-        /* Get the interface by name */
-        NSString *ifnameStr = [NSString stringWithUTF8String:ifname];
-        CWInterface *iface = [client interfaceWithName:ifnameStr];
-        if (!iface) {
-            return -2;
-        }
+    /* Get current link speed (transmit rate) */
+    double txRate = getTransmitRate(iface);
+    if (txRate > 0) {
+        out->link_mbps = (int)(txRate + 0.5); /* Round to nearest integer */
+        out->flags |= LLTD_WIFI_FLAG_VALID_LINK;
+    } else {
+        /* Cannot proceed without link rate */
+        [pool drain];
+        return -3;
+    }
 
-        /* Check if we're associated to a network */
-        if (![iface ssid]) {
-            return -3;
-        }
+    /* Now compute max link speed */
+    int phy_family = lltd_wifi_phy_family_from_cwmode(out->phy_mode);
+    int width = out->chan_width_mhz > 0 ? out->chan_width_mhz : 20;
 
-        /* Get RSSI */
-        if ([iface respondsToSelector:@selector(rssiValue)]) {
-            out->rssi_dbm = (int)[iface rssiValue];
-            out->flags |= LLTD_WIFI_FLAG_VALID_RSSI;
-        }
+    if (phy_family == WIFI_PHY_LEGACY_B) {
+        /* 802.11b max is 11 Mbps */
+        out->max_link_mbps = 11;
+        out->flags |= LLTD_WIFI_FLAG_VALID_MAX;
+    } else if (phy_family == WIFI_PHY_LEGACY_AG) {
+        /* 802.11a/g max is 54 Mbps */
+        out->max_link_mbps = 54;
+        out->flags |= LLTD_WIFI_FLAG_VALID_MAX;
+    } else if (phy_family != 0) {
+        /* HT/VHT/HE: try to infer NSS/MCS/GI from observed rate */
+        wifi_rate_params_t inferred;
+        int tolerance = 15; /* Allow 15 Mbps tolerance for rate matching */
 
-        /* Get Noise */
-        if ([iface respondsToSelector:@selector(noiseMeasurement)]) {
-            out->noise_dbm = (int)[iface noiseMeasurement];
-            out->flags |= LLTD_WIFI_FLAG_VALID_NOISE;
-        }
+        if (lltd_wifi_infer_params(phy_family, width, out->link_mbps, tolerance, &inferred) == 0) {
+            /* Successfully inferred parameters */
+            out->nss_inferred = inferred.nss;
+            out->mcs_inferred = inferred.mcs;
+            out->gi_ns_inferred = inferred.gi_ns;
+            out->flags |= LLTD_WIFI_FLAG_VALID_INFER;
 
-        /* Get PHY mode */
-        CWPHYMode phyMode = kCWPHYModeNone;
-        if ([iface respondsToSelector:@selector(activePHYMode)]) {
-            phyMode = [iface activePHYMode];
-            out->phy_mode = phyModeToConstant(phyMode);
-            if (out->phy_mode != LLTD_WIFI_PHY_NONE) {
-                out->flags |= LLTD_WIFI_FLAG_VALID_PHY;
-            }
-        }
-
-        /* Get channel width */
-        CWChannel *channel = [iface wlanChannel];
-        if (channel) {
-            out->chan_width_mhz = channelWidthToMHz([channel channelWidth]);
-            if (out->chan_width_mhz > 0) {
-                out->flags |= LLTD_WIFI_FLAG_VALID_WIDTH;
-            }
-        }
-
-        /* Get current link speed (transmit rate) */
-        double txRate = getTransmitRate(iface);
-        if (txRate > 0) {
-            out->link_mbps = (int)(txRate + 0.5); /* Round to nearest integer */
-            out->flags |= LLTD_WIFI_FLAG_VALID_LINK;
-        } else {
-            /* Cannot proceed without link rate */
-            return -3;
-        }
-
-        /* Now compute max link speed */
-        int phy_family = lltd_wifi_phy_family_from_cwmode(out->phy_mode);
-        int width = out->chan_width_mhz > 0 ? out->chan_width_mhz : 20;
-
-        if (phy_family == WIFI_PHY_LEGACY_B) {
-            /* 802.11b max is 11 Mbps */
-            out->max_link_mbps = 11;
+            /* Calculate max rate using inferred NSS */
+            out->max_link_mbps = lltd_wifi_calc_max_rate(phy_family, width, inferred.nss);
             out->flags |= LLTD_WIFI_FLAG_VALID_MAX;
-        } else if (phy_family == WIFI_PHY_LEGACY_AG) {
-            /* 802.11a/g max is 54 Mbps */
-            out->max_link_mbps = 54;
-            out->flags |= LLTD_WIFI_FLAG_VALID_MAX;
-        } else if (phy_family != 0) {
-            /* HT/VHT/HE: try to infer NSS/MCS/GI from observed rate */
-            wifi_rate_params_t inferred;
-            int tolerance = 15; /* Allow 15 Mbps tolerance for rate matching */
-
-            if (lltd_wifi_infer_params(phy_family, width, out->link_mbps, tolerance, &inferred) == 0) {
-                /* Successfully inferred parameters */
-                out->nss_inferred = inferred.nss;
-                out->mcs_inferred = inferred.mcs;
-                out->gi_ns_inferred = inferred.gi_ns;
-                out->flags |= LLTD_WIFI_FLAG_VALID_INFER;
-
-                /* Calculate max rate using inferred NSS */
-                out->max_link_mbps = lltd_wifi_calc_max_rate(phy_family, width, inferred.nss);
-                out->flags |= LLTD_WIFI_FLAG_VALID_MAX;
-            } else {
-                /* Could not infer, assume 1 SS and mark as approximate */
-                out->nss_inferred = 1;
-                out->max_link_mbps = lltd_wifi_calc_max_rate(phy_family, width, 1);
-                out->flags |= LLTD_WIFI_FLAG_VALID_MAX | LLTD_WIFI_FLAG_APPROX_MAX;
-            }
         } else {
-            /* Unknown PHY, use link rate as max */
-            out->max_link_mbps = out->link_mbps;
+            /* Could not infer, assume 1 SS and mark as approximate */
+            out->nss_inferred = 1;
+            out->max_link_mbps = lltd_wifi_calc_max_rate(phy_family, width, 1);
             out->flags |= LLTD_WIFI_FLAG_VALID_MAX | LLTD_WIFI_FLAG_APPROX_MAX;
         }
-
-        return 0;
+    } else {
+        /* Unknown PHY, use link rate as max */
+        out->max_link_mbps = out->link_mbps;
+        out->flags |= LLTD_WIFI_FLAG_VALID_MAX | LLTD_WIFI_FLAG_APPROX_MAX;
     }
+
+    [pool drain];
+    return result;
 }

@@ -782,7 +782,7 @@ void parseFrame(void *frame, void *networkInterface){
         char eth_src_mac[18];
         format_mac_str(header->realSource.a, mapper_id, sizeof(mapper_id));
         format_mac_str(header->frameHeader.source.a, eth_src_mac, sizeof(eth_src_mac));
-    log_debug("parseFrame(): t=%llu discover mapper_id=%s ethSrc=%s tos=%u xid=%u gen_host=0x%04x",
+    log_debug("parseFrame(): t=%llu %s discover mapper_id=%s ethSrc=%s tos=%u xid=%u gen_host=0x%04x",
               (unsigned long long)lltd_now_ms(),
               currentNetworkInterface->deviceName,
               mapper_id,
