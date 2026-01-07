@@ -340,30 +340,32 @@ void answerHello(void *inFrame, void *networkInterface){
     lltd_discover_upper_header_t *discoverHeader = (lltd_discover_upper_header_t *)((uint8_t *)inFrameHeader + sizeof(*inFrameHeader));
     
     //
-    //Validate that real mac address == src address
-    //If it's not, silently fail.
+    // Check if real MAC address != Ethernet src address.
+    // This mismatch is expected behind bridges/APs where the Ethernet source
+    // is rewritten. We log for diagnostics but continue processing.
     //
     if (!compareEthernetAddress(&inFrameHeader->realSource, &inFrameHeader->frameHeader.source)) {
-        log_debug("Discovery validation failed real mac is not equal to source.");
-        free(buffer);
-        return;
+        log_debug("Discover: Real_Source_Address ("ETHERNET_ADDR_FMT") != Ethernet src ("ETHERNET_ADDR_FMT") - behind bridge/AP",
+                  ETHERNET_ADDR(inFrameHeader->realSource.a),
+                  ETHERNET_ADDR(inFrameHeader->frameHeader.source.a));
     }
     
     // Hello frames are part of the same discovery session: preserve the mapper seqNumber.
     offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->macAddress), (ethernet_address_t *) &EthernetBroadcast,
                           inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
     
-    //offset = setLltdHeader(buffer, currentNetworkInterface->hwAddress, (ethernet_address_t *) &EthernetBroadcast, inFrameHeader->seqNumber, opcode_hello, tos_quick_discovery);
-    
+    // Store mapper info for later use (e.g., Query responses).
+    // MapperHwAddress stores the real (LLTD-level) mapper address.
     currentNetworkInterface->MapperSeqNumber = inFrameHeader->seqNumber;
-    currentNetworkInterface->MapperHwAddress[0] = inFrameHeader->realSource.a[0];
-    currentNetworkInterface->MapperHwAddress[1] = inFrameHeader->realSource.a[1];
-    currentNetworkInterface->MapperHwAddress[2] = inFrameHeader->realSource.a[2];
-    currentNetworkInterface->MapperHwAddress[3] = inFrameHeader->realSource.a[3];
-    currentNetworkInterface->MapperHwAddress[4] = inFrameHeader->realSource.a[4];
-    currentNetworkInterface->MapperHwAddress[5] = inFrameHeader->realSource.a[5];
-    
-    offset += setHelloHeader(buffer, offset, &inFrameHeader->frameHeader.source, &inFrameHeader->realSource, discoverHeader->generation );
+    memcpy(currentNetworkInterface->MapperHwAddress, inFrameHeader->realSource.a, 6);
+
+    // Hello upper header per LLTD spec:
+    //   apparentMapper = Ethernet header source MAC (may be bridge/AP behind NAT)
+    //   currentMapper  = LLTD Real_Source_Address (true mapper MAC)
+    offset += setHelloHeader(buffer, offset,
+                             &inFrameHeader->frameHeader.source,   /* apparentMapper */
+                             &inFrameHeader->realSource,           /* currentMapper (real) */
+                             discoverHeader->generation);
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
     offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
     offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
