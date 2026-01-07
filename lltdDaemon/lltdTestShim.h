@@ -53,6 +53,7 @@ typedef struct {
         unsigned char snd_family;
         char snd_name[12];
     } socketAddr;
+    int         helloSent;
 } network_interface_t;
 
 #define lltdEtherType 0x88D9

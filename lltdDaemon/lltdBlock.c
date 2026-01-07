@@ -664,10 +664,9 @@ void parseFrame(void *frame, void *networkInterface){
                   ((uint8_t *)&hello_header->generation)[1],
                   generation_host);
         log_generation_warning_if_swapped(currentNetworkInterface, generation_host, header->tos, "Hello");
-        uint16_t *generation_slot = mapper_generation_for_tos(currentNetworkInterface, header->tos);
-        if (*generation_slot == 0 && generation_host != 0) {
-            *generation_slot = generation_host;
-        }
+        log_debug("rx HELLO from non-mapper: ignored (no state change) src="ETHERNET_ADDR_FMT" gen=0x%04x",
+                  ETHERNET_ADDR(header->realSource.a),
+                  generation_host);
     }
 
     /*
@@ -752,29 +751,17 @@ void parseFrame(void *frame, void *networkInterface){
 
                 case opcode_hello: {
                     /*
-                     * Windows mappers use Quick Discovery to populate the Network Map.
-                     * Treat a Quick-Discovery HELLO as a solicitation and respond with our
-                     * station HELLO using the mapper's real and apparent addresses.
+                     * Quick-Discovery HELLOs from other responders are not solicitation
+                     * frames. We log and ignore without updating mapper state.
                      */
-                    memcpy(currentNetworkInterface->MapperHwAddress,
-                           header->realSource.a,
-                           sizeof(currentNetworkInterface->MapperHwAddress));
-                    memcpy(currentNetworkInterface->MapperApparentAddress,
-                           header->frameHeader.source.a,
-                           sizeof(currentNetworkInterface->MapperApparentAddress));
-                    currentNetworkInterface->MapperSeqNumber = ntohs(header->seqNumber);
-                    uint16_t *generation_slot = mapper_generation_for_tos(currentNetworkInterface, header->tos);
-                    warn_generation_store_mismatch(currentNetworkInterface, header->tos, "quickHello", generation_slot);
-
-                    log_debug("%s Quick HELLO (%d) for TOS_Quick_Discovery: replying", currentNetworkInterface->deviceName, header->opcode);
-                    sendHelloMessageEx(
-                        currentNetworkInterface,
-                        0,
-                        tos_quick_discovery,
-                        &header->realSource,
-                        &header->frameHeader.source,
-                        *generation_slot
-                    );
+                    lltd_hello_upper_header_t *hello_header =
+                        (lltd_hello_upper_header_t *)((uint8_t *)frame + sizeof(lltd_demultiplex_header_t));
+                    uint16_t generation_host = ntohs(hello_header->generation);
+                    log_debug("%s Quick HELLO (%d) for TOS_Quick_Discovery: ignored src="ETHERNET_ADDR_FMT" gen=0x%04x",
+                              currentNetworkInterface->deviceName,
+                              header->opcode,
+                              ETHERNET_ADDR(header->realSource.a),
+                              generation_host);
                     break;
                 }
 
