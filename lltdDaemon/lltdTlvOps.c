@@ -238,12 +238,12 @@ size_t setHardwareIdTLV(void *buffer, uint64_t offset){
 //TODO: see if there really is support for Level2 Forwarding.. ? or just leave it hardcoded
 size_t setQosCharacteristicsTLV(void *buffer, uint64_t offset){
     generic_tlv_t *QosCharacteristicsTLV = (generic_tlv_t *) (buffer + offset);
-    uint16_t *qosCharacteristics         = (uint16_t *)(buffer + offset + sizeof(generic_tlv_t));
+    uint32_t *qosCharacteristics         = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
     QosCharacteristicsTLV->TLVType       = tlv_qos_characteristics;
     QosCharacteristicsTLV->TLVLength     = sizeof(*qosCharacteristics);
-    // QoS flags are 16-bit values in network order
-    *qosCharacteristics                  = htons(Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN);
-    return sizeof(generic_tlv_t) + sizeof(uint16_t);
+    // QoS flags are in upper 16 bits of 32-bit value
+    *qosCharacteristics                  = htonl((Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN) << 16);
+    return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 
 // Detailed Icon TLV - sends the detailed icon image (multi-resolution ICO)
