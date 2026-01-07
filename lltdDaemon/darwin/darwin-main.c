@@ -30,66 +30,74 @@ static void free_automata(automata *autom) {
 // Send a Hello message on the given interface (used by RepeatBand algorithm)
 //
 //==============================================================================
-void sendHelloMessage(void *networkInterface) {
-    network_interface_t *currentNetworkInterface = networkInterface;
-    if (!currentNetworkInterface) return;
+void sendHelloMessageEx(
+    network_interface_t *currentNetworkInterface,
+    uint16_t seqNumber,
+    uint8_t tos,
+    const ethernet_address_t *mapperRealAddress,
+    const ethernet_address_t *mapperApparentAddress,
+    uint16_t generation
+) {
 
-    void *buffer = malloc(currentNetworkInterface->MTU);
-    if (!buffer) return;
+    size_t offset = 0;
 
-    memset(buffer, 0, currentNetworkInterface->MTU);
-    uint64_t offset = 0;
+    // Allocate memory for the LLTD response
+    uint8_t *buffer = (uint8_t *)calloc(currentNetworkInterface->MTU, sizeof(uint8_t));
 
-    // Hello frames are part of the current mapper session; use the mapper-provided seqNumber.
-    offset = setLltdHeader(buffer,
-                           (ethernet_address_t *)&(currentNetworkInterface->macAddress),
-                           (ethernet_address_t *)&EthernetBroadcast,
-                           currentNetworkInterface->MapperSeqNumber, opcode_hello, tos_discovery);
+    // Set the LLTD header
+    offset = setLltdHeader(
+        buffer,
+        currentNetworkInterface->MACAddress,
+        etherBroadcastAddress,
+        seqNumber,
+        opcode_hello,
+        tos
+    );
 
-    // Add Hello upper header with current mapper info
-    offset += setHelloHeader(buffer, offset,
-                             (ethernet_address_t *)&(currentNetworkInterface->MapperHwAddress),
-                             (ethernet_address_t *)&(currentNetworkInterface->MapperHwAddress),
-                             currentNetworkInterface->MapperGeneration);
+    // Set the Hello upper header
+    offset += setHelloHeader(
+        (uint8_t *)&buffer[offset],
+        (ethernet_address_t *)mapperApparentAddress,
+        (ethernet_address_t *)mapperRealAddress,
+        generation
+    );
 
-    // Add TLVs for Hello - must match answerHello in lltdBlock.c
-    offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
-    offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
-    offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
-    offset += setIPv4TLV(buffer, offset, currentNetworkInterface);
-    offset += setIPv6TLV(buffer, offset, currentNetworkInterface);
-    offset += setPerfCounterTLV(buffer, offset);
-    offset += setLinkSpeedTLV(buffer, offset, currentNetworkInterface);
-    offset += setHostnameTLV(buffer, offset);
+    // Add Station TLVs
+    offset += addStationTLVs((uint8_t *)&buffer[offset], currentNetworkInterface);
 
-    // Add 802.11 specific TLVs if wireless interface
-    if (currentNetworkInterface->interfaceType == NetworkInterfaceTypeIEEE80211) {
-        offset += setWirelessTLV(buffer, offset, currentNetworkInterface);
-        offset += setBSSIDTLV(buffer, offset, currentNetworkInterface);
-        offset += setSSIDTLV(buffer, offset, currentNetworkInterface);
-        offset += setWifiMaxRateTLV(buffer, offset, currentNetworkInterface);
-        offset += setWifiRssiTLV(buffer, offset, currentNetworkInterface);
-    }
+    // Add ending TLV
+    offset += addTlvEnd((uint8_t *)&buffer[offset]);
 
-    offset += setQosCharacteristicsTLV(buffer, offset);
-    offset += setIconImageTLV(buffer, offset);          // Length 0, data via QueryLargeTLV
-    offset += setFriendlyNameTLV(buffer, offset);       // Length 0, data via QueryLargeTLV
-    // Note: UUID (0x12) excluded - parsing issue to investigate later
-    offset += setEndOfPropertyTLV(buffer, offset);
-
-    ssize_t written = sendto(currentNetworkInterface->socket, buffer, offset, 0,
-                             (struct sockaddr *)&currentNetworkInterface->socketAddr,
-                             sizeof(currentNetworkInterface->socketAddr));
-    if (written < 0) {
-        int err = errno;
-        log_debug("sendHelloMessage: Socket write failed: %s", strerror(err));
+    // Send the LLTD response
+    if (sendto(
+            currentNetworkInterface->socket,
+            buffer,
+            offset,
+            0,
+            NULL,
+            0
+        ) == -1) {
+        log_err("sendHelloMessageEx(): failed to send Hello on %s", currentNetworkInterface->deviceName);
     } else {
-        log_debug("sendHelloMessage: Sent Hello on %s (%zd bytes)",
-                  currentNetworkInterface->deviceName, written);
+        log_debug("sendHelloMessageEx(): Hello (%zu bytes) sent on %s", offset, currentNetworkInterface->deviceName);
     }
 
     free(buffer);
 }
+
+void sendHelloMessage(void *networkInterface) {
+    network_interface_t *currentNetworkInterface = networkInterface;
+
+    sendHelloMessageEx(
+        currentNetworkInterface,
+        currentNetworkInterface->MapperSeqNumber,
+        tos_discovery,
+        &currentNetworkInterface->MapperHwAddress,
+        &currentNetworkInterface->MapperHwAddress,
+        currentNetworkInterface->MapperGeneration
+    );
+}
+
 
 //==============================================================================
 //

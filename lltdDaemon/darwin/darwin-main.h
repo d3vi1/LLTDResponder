@@ -78,4 +78,14 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface);
 #define lltdEtherType     0x88D9
 #define lltdOUI           0x000D3A
 
+
+void sendHelloMessageEx(
+    network_interface_t *iface,
+    uint16_t seqNumber,
+    uint8_t tos,
+    const ethernet_address_t *mapperRealAddress,
+    const ethernet_address_t *mapperApparentAddress,
+    uint16_t generation
+);
+
 #endif

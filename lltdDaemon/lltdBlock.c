@@ -493,10 +493,38 @@ void parseFrame(void *frame, void *networkInterface){
                     log_debug("%s Discover (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     answerHello(frame, currentNetworkInterface);
                     break;
-                case opcode_hello:
-                case opcode_reset:
-                    log_debug("%s Ignorable Hello|Reset (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
+
+                case opcode_hello: {
+                    /*
+                     * Windows mappers use Quick Discovery to populate the Network Map.
+                     * Treat a Quick-Discovery HELLO as a solicitation and respond with our
+                     * station HELLO using the mapper's real and apparent addresses.
+                     */
+                    lltd_hello_upper_header_t *inHello =
+                        (lltd_hello_upper_header_t *)((uint8_t *)frame + sizeof(lltd_demultiplex_header_t));
+
+                    currentNetworkInterface->MapperHwAddress  = header->realSource;
+                    currentNetworkInterface->MapperSeqNumber  = header->seqNumber;
+                    currentNetworkInterface->MapperGeneration = inHello->generation;
+
+                    log_debug("%s Quick HELLO (%d) for TOS_Quick_Discovery: replying", currentNetworkInterface->deviceName, header->opcode);
+                    sendHelloMessageEx(
+                        currentNetworkInterface,
+                        header->seqNumber,
+                        tos_quick_discovery,
+                        &header->realSource,
+                        &header->frameHeader.source,
+                        inHello->generation
+                    );
                     break;
+                }
+
+                case opcode_reset:
+                    log_debug("%s Reset (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
+                    /* Mapper aborted quick discovery; allow a new round. */
+                    currentNetworkInterface->helloSent = 0;
+                    break;
+
                 default:
                     log_alert("%s Invalid opcode (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     break;
