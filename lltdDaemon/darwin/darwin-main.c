@@ -104,8 +104,8 @@ void sendHelloMessageEx(
             buffer,
             offset,
             0,
-            NULL,
-            0
+            (struct sockaddr *)&currentNetworkInterface->socketAddr,
+            sizeof(currentNetworkInterface->socketAddr)
         ) == -1) {
         log_err("sendHelloMessageEx(): failed to send Hello on %s (%llu bytes): errno %d (%s)",
                 currentNetworkInterface->deviceName, (unsigned long long)offset, errno, strerror(errno));
