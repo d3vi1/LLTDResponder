@@ -12,47 +12,103 @@
 
 boolean_t sendProbeMsg(ethernet_address_t src, ethernet_address_t dst, void *networkInterface, int pause, uint8_t type, boolean_t ack) {
     network_interface_t *currentNetworkInterface = networkInterface;
-    // TODO: why, we'll see..
     size_t packageSize = sizeof(lltd_demultiplex_header_t);
-    lltd_demultiplex_header_t *probe = malloc( packageSize );
-   
-    // This one should be correct
-    uint8_t code = type == 0x01 ? opcode_probe : opcode_train;
-    // Probe/Train frames belong to the current mapping session; they must carry the mapper's seqNumber.
-    setLltdHeader(probe, (ethernet_address_t *) &src, (ethernet_address_t *) &dst,
-                  currentNetworkInterface->MapperSeqNumber, code, tos_discovery);
-
-
-    log_alert("Trying to send probe/train with seqNumber %d", ntohs(probe->seqNumber));
-    
-    usleep(1000 * pause);
-    ssize_t write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr, sizeof(currentNetworkInterface->socketAddr));
-    if (write < 0) {
-        int err = errno;
-        log_crit("Socket write failed on PROBE/TRAIN: %s", strerror(err));
+    lltd_demultiplex_header_t *probe = malloc(packageSize);
+    if (!probe) {
+        log_crit("sendProbeMsg: malloc failed");
         return false;
-    } else if (ack) {
-        // write an ACK too with the seq number, the algorithm will not conitnue without it
-        setLltdHeader(probe, (ethernet_address_t *) &(currentNetworkInterface->macAddress),
-                      (ethernet_address_t *) &(currentNetworkInterface->MapperHwAddress),
-                      currentNetworkInterface->MapperSeqNumber, opcode_ack, tos_discovery);
-         
-        write = sendto(currentNetworkInterface->socket, probe, packageSize, 0, (struct sockaddr *) &currentNetworkInterface->socketAddr,
-                              sizeof(currentNetworkInterface->socketAddr));
-        if (write < 0) {
+    }
+    memset(probe, 0, packageSize);
+
+    uint8_t code = (type == 0x01) ? opcode_probe : opcode_train;
+
+    /*
+     * Probe/Train frames per MS-LLTD:
+     * - Ethernet dest = emitee dest (apparent, next-hop)
+     * - Ethernet src  = emitee src (we're spoofing the sender)
+     * - LLTD realDest = mapper's real address (end-to-end)
+     * - LLTD realSrc  = our MAC (end-to-end identity)
+     * The emitee src/dst are what the mapper told us to use on the wire.
+     */
+    setLltdHeaderEx(probe,
+                    (const ethernet_address_t *)&src,                               /* ethSource: emitee src */
+                    (const ethernet_address_t *)&dst,                               /* ethDest: emitee dst */
+                    (const ethernet_address_t *)&currentNetworkInterface->macAddress,  /* realSource: our MAC */
+                    (const ethernet_address_t *)currentNetworkInterface->MapperHwAddress, /* realDest: mapper real */
+                    currentNetworkInterface->MapperSeqNumber, code, tos_discovery);
+
+    log_debug("sendProbeMsg: type=%d seq=%d ethSrc="ETHERNET_ADDR_FMT" ethDst="ETHERNET_ADDR_FMT,
+              type, ntohs(currentNetworkInterface->MapperSeqNumber),
+              ETHERNET_ADDR(src.a), ETHERNET_ADDR(dst.a));
+
+    usleep(1000 * pause);
+    ssize_t written = sendto(currentNetworkInterface->socket, probe, packageSize, 0,
+                             (struct sockaddr *)&currentNetworkInterface->socketAddr,
+                             sizeof(currentNetworkInterface->socketAddr));
+    if (written < 0) {
+        int err = errno;
+        log_crit("sendProbeMsg: sendto failed on %s (%zu bytes, opcode=%d): errno %d (%s)",
+                 currentNetworkInterface->deviceName, packageSize, code, err, strerror(err));
+        free(probe);
+        return false;
+    }
+
+    if (ack) {
+        /*
+         * ACK frame back to mapper:
+         * - Ethernet dest = apparent mapper address (next-hop through bridge)
+         * - LLTD realDest = real mapper address (end-to-end identity)
+         */
+        setLltdHeaderEx(probe,
+                        (const ethernet_address_t *)&currentNetworkInterface->macAddress,
+                        (const ethernet_address_t *)currentNetworkInterface->MapperApparentAddress,
+                        (const ethernet_address_t *)&currentNetworkInterface->macAddress,
+                        (const ethernet_address_t *)currentNetworkInterface->MapperHwAddress,
+                        currentNetworkInterface->MapperSeqNumber, opcode_ack, tos_discovery);
+
+        written = sendto(currentNetworkInterface->socket, probe, packageSize, 0,
+                         (struct sockaddr *)&currentNetworkInterface->socketAddr,
+                         sizeof(currentNetworkInterface->socketAddr));
+        if (written < 0) {
             int err = errno;
-            log_crit("Socket write failed on ACK: %s", strerror(err));
+            log_crit("sendProbeMsg: ACK sendto failed on %s: errno %d (%s)",
+                     currentNetworkInterface->deviceName, err, strerror(err));
+        } else {
+            log_debug("sendProbeMsg: ACK sent to mapper");
         }
     }
+
+    free(probe);
+    return true;
 }
 
 //TODO: validate Query
 void parseQuery(void *inFrame, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
     lltd_demultiplex_header_t *inHeader = (lltd_demultiplex_header_t *)inFrame;
+
+    /*
+     * Debug log for Query frame (task D requirement).
+     */
+    log_debug("parseQuery: op=%d tos=%d seq=%d ethSrc="ETHERNET_ADDR_FMT" ethDst="ETHERNET_ADDR_FMT
+              " realSrc="ETHERNET_ADDR_FMT" realDst="ETHERNET_ADDR_FMT,
+              inHeader->opcode, inHeader->tos, ntohs(inHeader->seqNumber),
+              ETHERNET_ADDR(inHeader->frameHeader.source.a),
+              ETHERNET_ADDR(inHeader->frameHeader.destination.a),
+              ETHERNET_ADDR(inHeader->realSource.a),
+              ETHERNET_ADDR(inHeader->realDestination.a));
+
+    /*
+     * Update mapper session info from Query frame.
+     * Query is a session-defining frame.
+     */
+    currentNetworkInterface->MapperSeqNumber = inHeader->seqNumber;
+    memcpy(currentNetworkInterface->MapperHwAddress, inHeader->realSource.a, 6);
+    memcpy(currentNetworkInterface->MapperApparentAddress, inHeader->frameHeader.source.a, 6);
+
     size_t packageSize = currentNetworkInterface->MTU + sizeof(ethernet_header_t);
     size_t offset = 0;
-    void *buffer = malloc( packageSize );
+    void *buffer = malloc(packageSize);
     memset(buffer, 0, packageSize);
 
     /*
@@ -62,16 +118,15 @@ void parseQuery(void *inFrame, void *networkInterface){
      */
     const ethernet_address_t *destAddr;
     if (memcmp(inHeader->realSource.a, inHeader->frameHeader.source.a, kIOEthernetAddressSize) != 0) {
-        log_debug("parseQuery: mapper behind bridge (real=%02x:%02x:%02x:%02x:%02x:%02x vs eth=%02x:%02x:%02x:%02x:%02x:%02x), using broadcast",
-                  ETHERNET_ADDR(inHeader->realSource.a), ETHERNET_ADDR(inHeader->frameHeader.source.a));
+        log_debug("parseQuery: mapper behind bridge, using broadcast for QueryResp");
         destAddr = &EthernetBroadcast;
     } else {
         destAddr = &inHeader->realSource;
     }
 
-    offset = setLltdHeader(buffer, (ethernet_address_t *) &(currentNetworkInterface->macAddress),
-                                   (ethernet_address_t *) destAddr,
-                                    currentNetworkInterface->MapperSeqNumber, opcode_queryResp, tos_discovery);
+    offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->macAddress),
+                           (ethernet_address_t *)destAddr,
+                           currentNetworkInterface->MapperSeqNumber, opcode_queryResp, tos_discovery);
     
     qry_resp_upper_header_t *respH  = buffer + sizeof(lltd_demultiplex_header_t);
     // HERE I AM
@@ -264,14 +319,29 @@ void parseQueryLargeTlv(void *inFrame, void *networkInterface) {
 
 void parseProbe(void *inFrame, void *networkInterface) {
     network_interface_t *currentNetworkInterface = networkInterface;
-    // if the probe is destined to us, we record it
-    lltd_demultiplex_header_t * header = inFrame;
-    
-    // Only record probes/train frames intended for us.
-    if (compareEthernetAddress(&(header->frameHeader.destination), (ethernet_address_t *)&currentNetworkInterface->macAddress)) {
+    lltd_demultiplex_header_t *header = inFrame;
 
-        // store it then, unless we have it already??
-        probe_t *probe          = malloc( sizeof(probe_t) );
+    /*
+     * Debug log for mapping frame reception (task D requirement).
+     * Log opcode, tos, seq, all addresses, and acceptance decision.
+     */
+    int forUs = compareEthernetAddress(&header->realDestination,
+                                       (ethernet_address_t *)&currentNetworkInterface->macAddress);
+    log_debug("parseProbe: op=%d tos=%d seq=%d ethSrc="ETHERNET_ADDR_FMT" ethDst="ETHERNET_ADDR_FMT
+              " realSrc="ETHERNET_ADDR_FMT" realDst="ETHERNET_ADDR_FMT" forUs=%d",
+              header->opcode, header->tos, ntohs(header->seqNumber),
+              ETHERNET_ADDR(header->frameHeader.source.a),
+              ETHERNET_ADDR(header->frameHeader.destination.a),
+              ETHERNET_ADDR(header->realSource.a),
+              ETHERNET_ADDR(header->realDestination.a),
+              forUs);
+
+    /*
+     * Accept frames where LLTD realDestination == our MAC (end-to-end identity).
+     * In bridged topologies, Ethernet destination may differ (rewritten by bridge/AP).
+     */
+    if (forUs) {
+        probe_t *probe = malloc(sizeof(probe_t));
         
         // initialize the probe, then search for it in our array
         probe->type             = htons((header->opcode == opcode_probe) ? 1 : 0);
@@ -322,28 +392,46 @@ void parseProbe(void *inFrame, void *networkInterface) {
 
 void parseEmit(void *inFrame, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
-    
+
     lltd_demultiplex_header_t *lltdHeader = inFrame;
-    
-    lltd_emit_upper_header_t *emitHeader = (void *) ( (void *)lltdHeader + sizeof(*lltdHeader) );
+    lltd_emit_upper_header_t *emitHeader = (void *)((void *)lltdHeader + sizeof(*lltdHeader));
+
+    /*
+     * Debug log for Emit frame (task D requirement).
+     */
+    log_debug("parseEmit: op=%d tos=%d seq=%d ethSrc="ETHERNET_ADDR_FMT" ethDst="ETHERNET_ADDR_FMT
+              " realSrc="ETHERNET_ADDR_FMT" realDst="ETHERNET_ADDR_FMT" numDescs=%d",
+              lltdHeader->opcode, lltdHeader->tos, ntohs(lltdHeader->seqNumber),
+              ETHERNET_ADDR(lltdHeader->frameHeader.source.a),
+              ETHERNET_ADDR(lltdHeader->frameHeader.destination.a),
+              ETHERNET_ADDR(lltdHeader->realSource.a),
+              ETHERNET_ADDR(lltdHeader->realDestination.a),
+              ntohs(emitHeader->numDescs));
+
+    /*
+     * Update mapper session info from Emit frame.
+     * Emit is a session-defining frame that advances the mapping process.
+     */
     currentNetworkInterface->MapperSeqNumber = lltdHeader->seqNumber;
-    
+    memcpy(currentNetworkInterface->MapperHwAddress, lltdHeader->realSource.a, 6);
+    memcpy(currentNetworkInterface->MapperApparentAddress, lltdHeader->frameHeader.source.a, 6);
+
     int numDescs = ntohs(emitHeader->numDescs);
     uint16_t offsetEmitee = 0;
-    log_alert("Emit parsed, number of descs: %x", ntohs(emitHeader->numDescs));
+
     for (int i = 0; i < numDescs; i++) {
-        boolean_t ack = i == numDescs -1 ? true : false;
-        emitee_descs *emitee = ( (void *)emitHeader + sizeof(*emitHeader) + offsetEmitee );
+        boolean_t ack = (i == numDescs - 1) ? true : false;
+        emitee_descs *emitee = (void *)emitHeader + sizeof(*emitHeader) + offsetEmitee;
         if (emitee->type == 1) {
-            // this probes
+            // Probe
             sendProbeMsg(emitee->sourceAddr, emitee->destAddr, networkInterface, emitee->pause, emitee->type, ack);
         } else if (emitee->type == 0) {
-            // send trains
+            // Train
             sendProbeMsg(emitee->sourceAddr, emitee->destAddr, networkInterface, emitee->pause, emitee->type, ack);
         } else {
-          log_alert("Unknown emitee type=%d !", emitee->type);
+            log_alert("parseEmit: Unknown emitee type=%d!", emitee->type);
         }
-       offsetEmitee += sizeof(emitee_descs);
+        offsetEmitee += sizeof(emitee_descs);
     }
 }
 
@@ -382,10 +470,12 @@ void answerHello(void *inFrame, void *networkInterface){
     offset = setLltdHeader(buffer, (ethernet_address_t *)&(currentNetworkInterface->macAddress), (ethernet_address_t *) &EthernetBroadcast,
                           inFrameHeader->seqNumber, opcode_hello, inFrameHeader->tos);
     
-    // Store mapper info for later use (e.g., Query responses).
-    // MapperHwAddress stores the real (LLTD-level) mapper address.
+    // Store mapper info for later use (e.g., Query responses, Emit ACKs).
+    // MapperHwAddress = real (LLTD-level) mapper address (end-to-end identity)
+    // MapperApparentAddress = Ethernet source (next-hop, may be bridge MAC)
     currentNetworkInterface->MapperSeqNumber = inFrameHeader->seqNumber;
     memcpy(currentNetworkInterface->MapperHwAddress, inFrameHeader->realSource.a, 6);
+    memcpy(currentNetworkInterface->MapperApparentAddress, inFrameHeader->frameHeader.source.a, 6);
 
     // Hello upper header per LLTD spec:
     //   apparentMapper = Ethernet header source MAC (may be bridge/AP behind NAT)
@@ -445,10 +535,15 @@ void parseFrame(void *frame, void *networkInterface){
     lltd_demultiplex_header_t *header = frame;
     network_interface_t *currentNetworkInterface = networkInterface;
 
-    log_debug("%s: ethertype:0x%4x, opcode:0x%x, tos:0x%x, version: 0x%x", currentNetworkInterface->deviceName, ntohs(header->frameHeader.ethertype) , header->opcode, header->tos, header->version);
+    log_debug("parseFrame(): %s: ethertype:0x%4x, opcode:0x%x, tos:0x%x, version: 0x%x",
+              currentNetworkInterface->deviceName, ntohs(header->frameHeader.ethertype),
+              header->opcode, header->tos, header->version);
 
-    // FIXME: set the seqNumber each frame we get (for now)
-    currentNetworkInterface->MapperSeqNumber = header->seqNumber;
+    /*
+     * NOTE: Do NOT update MapperSeqNumber here for every frame.
+     * Sequence number should only be updated on session-defining frames:
+     * Discover, Emit, Query (done in their respective handlers).
+     */
 
     //
     // We validate the message demultiplex
@@ -536,6 +631,9 @@ void parseFrame(void *frame, void *networkInterface){
                     memcpy(currentNetworkInterface->MapperHwAddress,
                            header->realSource.a,
                            sizeof(currentNetworkInterface->MapperHwAddress));
+                    memcpy(currentNetworkInterface->MapperApparentAddress,
+                           header->frameHeader.source.a,
+                           sizeof(currentNetworkInterface->MapperApparentAddress));
                     currentNetworkInterface->MapperSeqNumber  = header->seqNumber;
                     currentNetworkInterface->MapperGeneration = inHello->generation;
 

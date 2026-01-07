@@ -18,9 +18,9 @@
 #pragma mark Header generation
 
 size_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_address_t *destination, uint16_t seqNumber, uint8_t opcode, uint8_t tos){
-    
+
     lltd_demultiplex_header_t *lltdHeader = (lltd_demultiplex_header_t*) buffer;
-    
+
     lltdHeader->frameHeader.ethertype = htons(lltdEtherType);
     memcpy(&lltdHeader->frameHeader.source, source, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->frameHeader.destination, destination, sizeof(ethernet_address_t));
@@ -30,7 +30,41 @@ size_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_address
     lltdHeader->opcode = opcode;
     lltdHeader->tos = tos;
     lltdHeader->version = 1;
-    
+
+    return sizeof(lltd_demultiplex_header_t);
+}
+
+/*
+ * setLltdHeaderEx: Extended header setter for bridged networks.
+ *
+ * In bridged/AP topologies, the Ethernet-layer addresses (apparent, next-hop)
+ * may differ from the LLTD base-header addresses (real, end-to-end identity).
+ *
+ * Parameters:
+ *   ethSource  - Ethernet header source (our MAC)
+ *   ethDest    - Ethernet header destination (apparent mapper / next-hop)
+ *   realSource - LLTD base header Real Source (our MAC)
+ *   realDest   - LLTD base header Real Destination (true mapper MAC)
+ */
+size_t setLltdHeaderEx(void *buffer,
+                       const ethernet_address_t *ethSource,
+                       const ethernet_address_t *ethDest,
+                       const ethernet_address_t *realSource,
+                       const ethernet_address_t *realDest,
+                       uint16_t seqNumber, uint8_t opcode, uint8_t tos) {
+
+    lltd_demultiplex_header_t *lltdHeader = (lltd_demultiplex_header_t *)buffer;
+
+    lltdHeader->frameHeader.ethertype = htons(lltdEtherType);
+    memcpy(&lltdHeader->frameHeader.source, ethSource, sizeof(ethernet_address_t));
+    memcpy(&lltdHeader->frameHeader.destination, ethDest, sizeof(ethernet_address_t));
+    memcpy(&lltdHeader->realSource, realSource, sizeof(ethernet_address_t));
+    memcpy(&lltdHeader->realDestination, realDest, sizeof(ethernet_address_t));
+    lltdHeader->seqNumber = seqNumber;
+    lltdHeader->opcode = opcode;
+    lltdHeader->tos = tos;
+    lltdHeader->version = 1;
+
     return sizeof(lltd_demultiplex_header_t);
 }
 
