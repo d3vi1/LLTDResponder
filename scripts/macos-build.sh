@@ -74,8 +74,15 @@ function build_arch() {
   echo "DEBUG: product_name='$product_name'" >&2
   echo "DEBUG: executable_path='$executable_path'" >&2
 
-  if [[ -z "$build_dir" || -z "$product_name" ]]; then
-    echo "Failed to determine build output path" >&2
+  if [[ -z "$build_dir" ]]; then
+    echo "Failed to determine TARGET_BUILD_DIR from xcodebuild settings." >&2
+    echo "First 60 lines of captured settings:" >&2
+    printf '%s\n' "$settings" | head -60 >&2
+    exit 1
+  fi
+
+  if [[ -z "$product_name" ]]; then
+    echo "Failed to determine FULL_PRODUCT_NAME from xcodebuild settings." >&2
     exit 1
   fi
 
