@@ -146,20 +146,13 @@ size_t setCharacteristicsTLV(void *buffer, uint64_t offset, void *networkInterfa
 size_t setPerfCounterTLV(void *buffer, uint64_t offset){
     generic_tlv_t *perf = (generic_tlv_t *) (buffer+offset);
     perf->TLVType       = tlv_perfCounterFrequency;
-    perf->TLVLength     = sizeof(uint64_t);
+    perf->TLVLength     = sizeof(uint32_t);
 
-    // Write 64-bit value in big-endian (network) order
-    uint64_t freq = 1000000;  // 1 MHz performance counter frequency
-    uint8_t *bytes = (uint8_t *)(buffer + offset + sizeof(generic_tlv_t));
-    bytes[0] = (freq >> 56) & 0xFF;
-    bytes[1] = (freq >> 48) & 0xFF;
-    bytes[2] = (freq >> 40) & 0xFF;
-    bytes[3] = (freq >> 32) & 0xFF;
-    bytes[4] = (freq >> 24) & 0xFF;
-    bytes[5] = (freq >> 16) & 0xFF;
-    bytes[6] = (freq >> 8) & 0xFF;
-    bytes[7] = freq & 0xFF;
-    return sizeof(generic_tlv_t) + sizeof(uint64_t);
+    // Write 32-bit value in big-endian (network) order
+    uint32_t freq = 1000000;  // 1 MHz performance counter frequency
+    uint32_t *value = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
+    *value = htonl(freq);
+    return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 
 size_t setIconImageTLV(void *buffer, uint64_t offset){
@@ -245,12 +238,12 @@ size_t setHardwareIdTLV(void *buffer, uint64_t offset){
 //TODO: see if there really is support for Level2 Forwarding.. ? or just leave it hardcoded
 size_t setQosCharacteristicsTLV(void *buffer, uint64_t offset){
     generic_tlv_t *QosCharacteristicsTLV = (generic_tlv_t *) (buffer + offset);
-    uint32_t *qosCharacteristics         = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
+    uint16_t *qosCharacteristics         = (uint16_t *)(buffer + offset + sizeof(generic_tlv_t));
     QosCharacteristicsTLV->TLVType       = tlv_qos_characteristics;
     QosCharacteristicsTLV->TLVLength     = sizeof(*qosCharacteristics);
-    // QoS flags are in upper 16 bits of 32-bit value
-    *qosCharacteristics                  = htonl((Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN) << 16);
-    return sizeof(generic_tlv_t) + sizeof(uint32_t);
+    // QoS flags are 16-bit values in network order
+    *qosCharacteristics                  = htons(Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN);
+    return sizeof(generic_tlv_t) + sizeof(uint16_t);
 }
 
 // Detailed Icon TLV - sends the detailed icon image (multi-resolution ICO)
