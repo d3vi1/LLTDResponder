@@ -86,8 +86,8 @@ size_t setHelloHeader (void *buffer, uint64_t offset, ethernet_address_t *appare
 
     memcpy(&helloHeader->apparentMapper, apparentMapper, sizeof(ethernet_address_t));
     memcpy(&helloHeader->currentMapper, currentMapper, sizeof(ethernet_address_t));
-    /* generation is provided in host order; serialize in network order. */
-    helloHeader->generation = htons(generation);
+    /* generation is provided in network order. */
+    helloHeader->generation = generation;
 
     return sizeof(lltd_hello_upper_header_t);
 }

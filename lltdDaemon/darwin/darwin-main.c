@@ -78,7 +78,7 @@ void sendHelloMessageEx(
               tos,
               opcode_hello,
               ntohs(seqNumber),
-              generation,
+              ntohs(generation),
               helloHeader->generation);
 
     // Add Station TLVs
@@ -135,7 +135,7 @@ void sendHelloMessage(void *networkInterface) {
         tos_discovery,
         (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
         (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
-        currentNetworkInterface->MapperGeneration
+        htons(currentNetworkInterface->MapperGeneration)
     );
 }
 

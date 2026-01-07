@@ -483,7 +483,7 @@ void answerHello(void *inFrame, void *networkInterface){
     offset += setHelloHeader(buffer, offset,
                              &inFrameHeader->frameHeader.source,   /* apparentMapper */
                              &inFrameHeader->realSource,           /* currentMapper (real) */
-                             ntohs(discoverHeader->generation));
+                             discoverHeader->generation);
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
     offset += setCharacteristicsTLV(buffer, offset, currentNetworkInterface);
     offset += setPhysicalMediumTLV(buffer, offset, currentNetworkInterface);
@@ -644,7 +644,7 @@ void parseFrame(void *frame, void *networkInterface){
                         tos_quick_discovery,
                         &header->realSource,
                         &header->frameHeader.source,
-                        ntohs(inHello->generation)
+                        inHello->generation
                     );
                     break;
                 }
