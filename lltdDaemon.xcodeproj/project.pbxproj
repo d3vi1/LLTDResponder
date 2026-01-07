@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C1A0D7D618E01E0900863EA1 /* lltd_wifi_corewlan.m in Sources */ = {isa = PBXBuildFile; fileRef = C1A0D7D518E01E0900863EA1 /* lltd_wifi_corewlan.m */; };
+		C1A0D7D618E01E0900863EA1 /* lltd_wifi_corewlan.m in Sources */ = {isa = PBXBuildFile; fileRef = C1A0D7D518E01E0900863EA1 /* lltd_wifi_corewlan.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		C1A0D7D618E01E0900863EA2 /* lltd_wifi_rates.c in Sources */ = {isa = PBXBuildFile; fileRef = C1A0D7D518E01E0900863EA2 /* lltd_wifi_rates.c */; };
 		C1A0D7D618E01E0900863EA5 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1A0D7D518E01E0900863EA5 /* Foundation.framework */; };
 		E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */ = {isa = PBXBuildFile; fileRef = E500D7D518E01E0900863EAC /* darwin-ops.c */; };
