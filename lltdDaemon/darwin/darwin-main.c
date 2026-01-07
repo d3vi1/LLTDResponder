@@ -74,12 +74,14 @@ void sendHelloMessageEx(
         generation
     );
 
-    log_debug("sendHelloMessageEx(): tos=%u opcode=0x%x seq=%u gen_host=0x%04x gen_wire=0x%04x",
+    log_debug("sendHelloMessageEx(): %s tos=%u opcode=0x%x seq=%u gen_raw=0x%02x%02x gen_host=0x%04x",
+              currentNetworkInterface->deviceName,
               tos,
               opcode_hello,
-              ntohs(seqNumber),
-              ntohs(generation),
-              helloHeader->generation);
+              seqNumber,
+              ((uint8_t *)&helloHeader->generation)[0],
+              ((uint8_t *)&helloHeader->generation)[1],
+              generation);
 
     // Add Station TLVs
     offset += setHostIdTLV(buffer, offset, currentNetworkInterface);
@@ -131,11 +133,11 @@ void sendHelloMessage(void *networkInterface) {
 
     sendHelloMessageEx(
         currentNetworkInterface,
-        currentNetworkInterface->MapperSeqNumber,
+        0,
         tos_discovery,
         (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
         (const ethernet_address_t *)(const void *)&currentNetworkInterface->MapperHwAddress,
-        htons(currentNetworkInterface->MapperGeneration)
+        currentNetworkInterface->MapperGeneration
     );
 }
 

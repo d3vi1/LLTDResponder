@@ -26,7 +26,8 @@ size_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_address
     memcpy(&lltdHeader->frameHeader.destination, destination, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->realSource, source, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->realDestination, destination, sizeof(ethernet_address_t));
-    lltdHeader->seqNumber = seqNumber;
+    /* seqNumber is provided in host order; serialize in network order. */
+    lltdHeader->seqNumber = htons(seqNumber);
     lltdHeader->opcode = opcode;
     lltdHeader->tos = tos;
     lltdHeader->version = 1;
@@ -60,7 +61,8 @@ size_t setLltdHeaderEx(void *buffer,
     memcpy(&lltdHeader->frameHeader.destination, ethDest, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->realSource, realSource, sizeof(ethernet_address_t));
     memcpy(&lltdHeader->realDestination, realDest, sizeof(ethernet_address_t));
-    lltdHeader->seqNumber = seqNumber;
+    /* seqNumber is provided in host order; serialize in network order. */
+    lltdHeader->seqNumber = htons(seqNumber);
     lltdHeader->opcode = opcode;
     lltdHeader->tos = tos;
     lltdHeader->version = 1;
@@ -86,8 +88,8 @@ size_t setHelloHeader (void *buffer, uint64_t offset, ethernet_address_t *appare
 
     memcpy(&helloHeader->apparentMapper, apparentMapper, sizeof(ethernet_address_t));
     memcpy(&helloHeader->currentMapper, currentMapper, sizeof(ethernet_address_t));
-    /* generation is provided in network order. */
-    helloHeader->generation = generation;
+    /* generation is provided in host order; serialize in network order. */
+    helloHeader->generation = htons(generation);
 
     return sizeof(lltd_hello_upper_header_t);
 }

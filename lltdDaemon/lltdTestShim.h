@@ -35,6 +35,7 @@ typedef struct {
     uint64_t    LinkSpeed;
     uint8_t     macAddress[6];
     uint8_t     MapperHwAddress[6];
+    uint8_t     MapperApparentAddress[6];
     uint16_t    MapperSeqNumber;
     uint16_t    MapperGeneration;
     int         socket;

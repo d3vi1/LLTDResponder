@@ -25,9 +25,11 @@ typedef struct {
     uint32_t    MTU;
     uint8_t     macAddress[6];
     uint8_t     MapperHwAddress[6];
+    uint8_t     MapperApparentAddress[6];
     void       *seeList;
     uint32_t    seeListCount;
     uint16_t    MapperSeqNumber;
+    uint16_t    MapperGeneration;
     void       *recvBuffer;
     int         helloSent;
 } network_interface_t;
