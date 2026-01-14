@@ -14,6 +14,9 @@
 #include "lltdDaemon.h"
 #endif
 
+#include <stdlib.h>
+#include <string.h>
+
 #pragma mark -
 #pragma mark Header generation
 
