@@ -3,7 +3,7 @@
 CC     ?= gcc
 CFLAGS += -Wall -Wextra
 
-BIN_NAME ?= lltdResponder
+BIN_NAME ?= build/lltdResponder
 
 TEST_DIR := build/tests
 TEST_CFLAGS := $(CFLAGS) -IlltdDaemon -DLLTD_TESTING

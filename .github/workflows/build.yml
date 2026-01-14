@@ -292,11 +292,11 @@ jobs:
           BIN_NAME="${ARTIFACT_NAME}.raw"
           mkdir -p dist
           if [ "${{ runner.os }}" = "Linux" ]; then
-            if [ ! -f lltdResponder ]; then
+            if [ ! -f build/lltdResponder ]; then
               echo "Binary not found" >&2
               exit 1
             fi
-            cp lltdResponder "dist/${BIN_NAME}"
+            cp build/lltdResponder "dist/${BIN_NAME}"
           else
             BIN_PATH="build/Build/Products/${{ matrix.build_type }}/lltdDaemon"
             if [ ! -f "$BIN_PATH" ]; then
