@@ -1,6 +1,7 @@
 *xcuserdata/
 .DS_Store
 lltdDaemon.xcodeproj/project.xcworkspace/
+lltdResponder.xcodeproj/project.xcworkspace/
 LLMNRd.xcodeproj/project.xcworkspace/xcshareddata/
 LLMNRd.xcodeproj/project.xcworkspace/xcshareddata/LLMNRd.xccheckout
 build
