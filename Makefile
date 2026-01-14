@@ -86,6 +86,7 @@ endif
 all: $(BIN_NAME)
 
 $(BIN_NAME): $(LLTD_SRC_FILES)
+	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(LLTD_CFLAGS) -o $@ $(LLTD_SRC_FILES) $(LLTD_LDFLAGS)
 
 $(TEST_DIR):
