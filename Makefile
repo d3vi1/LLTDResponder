@@ -33,6 +33,7 @@ ifeq ($(UNAME_S),Linux)
 		LLTD_LDFLAGS += -lsystemd
 	else ifeq ($(PLATFORM),linux-embedded)
 		LLTD_SRC_FILES = lltdDaemon/linux/linux-embedded-main.c \
+			lltdDaemon/linux/linux-ops.c \
 			lltdDaemon/lltdBlock.c \
 			lltdDaemon/lltdTlvOps.c \
 			lltdDaemon/lltdAutomata.c

@@ -19,6 +19,15 @@
 struct automata;
 
 typedef struct {
+    void   *smallIcon;
+    size_t  smallIconSize;
+    void   *largeIcon;
+    size_t  largeIconSize;
+} lltd_global_info_t;
+
+extern lltd_global_info_t globalInfo;
+
+typedef struct {
     const char   *deviceName;
     uint32_t      ifType;
     enum { NetworkInterfaceTypeBond, NetworkInterfaceTypeBridge, NetworkInterfaceTypeEthernet, NetworkInterfaceTypeIEEE80211, NetworkInterfaceTypeVLAN} interfaceType;

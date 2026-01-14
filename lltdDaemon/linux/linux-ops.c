@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+lltd_global_info_t globalInfo = {0};
+
 static void lltd_dup_string(const char *value, char **out, size_t *out_size) {
     if (!out || !out_size) {
         return;
@@ -154,4 +156,3 @@ boolean_t getWifiPhyMedium(uint32_t *phyMedium, void *currentNetworkInterface) {
     }
     return false;
 }
-
