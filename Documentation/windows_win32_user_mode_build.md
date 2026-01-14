@@ -12,7 +12,7 @@ Windows SDK headers and libraries (no WDK/DDK).
 ## Build steps
 
 ```powershell
-cmake -S lltdDaemon/win32 -B build\win32 -G "Visual Studio 17 2022" -A x64
+cmake -S os/windows/win32-user -B build\win32 -G "Visual Studio 17 2022" -A x64
 cmake --build build\win32 --config Release
 ```
 

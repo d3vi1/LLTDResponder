@@ -9,7 +9,7 @@ New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 
-cmake -S "$root\lltdDaemon\win32" -B $buildDir -G "Visual Studio 17 2022" -A x64 `
+cmake -S "$root\os\windows\win32-user" -B $buildDir -G "Visual Studio 17 2022" -A x64 `
     "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=$outDir" `
     "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=$outDir"
 cmake --build $buildDir --config Release

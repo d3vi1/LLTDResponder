@@ -11,7 +11,7 @@ for tool in "${required_tools[@]}"; do
   fi
 done
 
-make -f "$ROOT_DIR/lltdDaemon/windows9x_vxd/Makefile.watcom" -C "$ROOT_DIR/lltdDaemon/windows9x_vxd"
+make -f "$ROOT_DIR/os/windows/win9x-vxd/Makefile.watcom" -C "$ROOT_DIR/os/windows/win9x-vxd"
 
 mkdir -p "$ROOT_DIR/dist/windows/win9x"
-cp "$ROOT_DIR/lltdDaemon/windows9x_vxd/lltd.vxd" "$ROOT_DIR/dist/windows/win9x/lltd.vxd"
+cp "$ROOT_DIR/os/windows/win9x-vxd/lltd.vxd" "$ROOT_DIR/dist/windows/win9x/lltd.vxd"

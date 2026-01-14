@@ -8,8 +8,8 @@
  *                                                                            *
  *   Build:                                                                   *
  *     clang -o lltd-wifi-metrics lltd-wifi-metrics.c                         *
- *           ../lltdDaemon/darwin/lltd_wifi_corewlan.m                        *
- *           ../lltdDaemon/darwin/lltd_wifi_rates.c                           *
+ *           ../os/darwin/daemon/lltd_wifi_corewlan.m                         *
+ *           ../os/darwin/daemon/lltd_wifi_rates.c                            *
  *           -framework Foundation -framework CoreWLAN                        *
  *                                                                            *
  *   Usage:                                                                   *
@@ -37,7 +37,7 @@
 #include <string.h>
 
 #ifdef __APPLE__
-#include "../lltdDaemon/darwin/lltd_wifi_corewlan.h"
+#include "../os/darwin/daemon/lltd_wifi_corewlan.h"
 #endif
 
 static void print_usage(const char *progname) {
