@@ -288,7 +288,7 @@ jobs:
           if [ "${{ matrix.build_type }}" = "Debug" ]; then
             DEBUG_SUFFIX="-debug"
           fi
-          ARTIFACT_NAME="lltdDaemon-${OS_NAME}-${ARCH}${DEBUG_SUFFIX}"
+          ARTIFACT_NAME="lltdDaemon-${OS_NAME}-${{ matrix.compiler }}-${ARCH}${DEBUG_SUFFIX}"
           BIN_NAME="${ARTIFACT_NAME}.raw"
           mkdir -p dist
           if [ "${{ runner.os }}" = "Linux" ]; then
