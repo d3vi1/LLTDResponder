@@ -1,7 +1,9 @@
 #!/usr/bin/make -f
 
-CC     := gcc
+CC     ?= gcc
 CFLAGS += -Wall -Wextra
+
+BIN_NAME ?= lltdDaemon
 
 TEST_DIR := build/tests
 TEST_CFLAGS := $(CFLAGS) -IlltdDaemon -DLLTD_TESTING
@@ -143,7 +145,7 @@ clean-tests:
 	-rm -f *.gcda *.gcno *.gcov lltdDaemon/*.gcda lltdDaemon/*.gcno lltdDaemon/*.gcov tests/*.gcda tests/*.gcno tests/*.gcov
 
 clean:
-	-rm -f lltdResponder
+	-rm -f $(BIN_NAME)
 	-rm -rf $(TEST_DIR)
 
 win9x-vxd:
