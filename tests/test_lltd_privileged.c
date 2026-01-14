@@ -1,5 +1,7 @@
 #include <errno.h>
 #include <stddef.h>
+#include <stdarg.h>
+#include <setjmp.h>
 
 #include <cmocka.h>
 

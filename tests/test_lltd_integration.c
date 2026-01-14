@@ -1,6 +1,8 @@
 #include <ifaddrs.h>
 #include <stddef.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <setjmp.h>
 #include <string.h>
 
 #include <cmocka.h>
