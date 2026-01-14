@@ -225,7 +225,7 @@ void parseQuery(void *inFrame, void *networkInterface){
      * QueryResp MUST be sent to broadcast; otherwise send to Real Source.
      */
     const ethernet_address_t *destAddr;
-    if (memcmp(inHeader->realSource.a, inHeader->frameHeader.source.a, kIOEthernetAddressSize) != 0) {
+    if (memcmp(inHeader->realSource.a, inHeader->frameHeader.source.a, sizeof(inHeader->realSource.a)) != 0) {
         log_debug("parseQuery: mapper behind bridge, using broadcast for QueryResp");
         destAddr = &EthernetBroadcast;
     } else {
@@ -264,8 +264,16 @@ void parseQuery(void *inFrame, void *networkInterface){
         wire.sourceAddr = node->sourceAddr;
         wire.destAddr = node->destAddr;
 
-        log_crit("\tType %d, Source: "ETHERNET_ADDR_FMT", Dest: "ETHERNET_ADDR_FMT", RealSource: "ETHERNET_ADDR_FMT,
-                 ntohs(wire.type), ETHERNET_ADDR(wire.sourceAddr.a), ETHERNET_ADDR(wire.destAddr.a), ETHERNET_ADDR(wire.realSourceAddr.a));
+        {
+            char src_str[18];
+            char dst_str[18];
+            char real_str[18];
+            format_mac_str(wire.sourceAddr.a, src_str, sizeof(src_str));
+            format_mac_str(wire.destAddr.a, dst_str, sizeof(dst_str));
+            format_mac_str(wire.realSourceAddr.a, real_str, sizeof(real_str));
+            log_crit("\tType %d, Source: %s, Dest: %s, RealSource: %s",
+                     ntohs(wire.type), src_str, dst_str, real_str);
+        }
 
         if (offset + sizeof(wire) > packageSize) {
             log_crit("QryResp buffer too small (%zu) for %zu bytes", packageSize, offset + sizeof(wire));
@@ -314,7 +322,7 @@ static void sendLargeTlvResponse(void *networkInterface, void *inFrame, void *da
      * response MUST be sent to broadcast; otherwise send to Real Source.
      */
     const ethernet_address_t *destAddr;
-    if (memcmp(inHeader->realSource.a, inHeader->frameHeader.source.a, kIOEthernetAddressSize) != 0) {
+    if (memcmp(inHeader->realSource.a, inHeader->frameHeader.source.a, sizeof(inHeader->realSource.a)) != 0) {
         destAddr = &EthernetBroadcast;
     } else {
         destAddr = &inHeader->realSource;
@@ -483,7 +491,18 @@ void parseProbe(void *inFrame, void *networkInterface) {
             
                 const probe_t *searchProbe = nextProbe;
                 // destination and type are already equal, we'll compare just the source addresses
-                log_crit("\tSource1: "ETHERNET_ADDR_FMT", Source2: "ETHERNET_ADDR_FMT" ,RealSource1: "ETHERNET_ADDR_FMT", RealSource2: "ETHERNET_ADDR_FMT, ETHERNET_ADDR(probe->sourceAddr.a), ETHERNET_ADDR(searchProbe->sourceAddr.a), ETHERNET_ADDR(probe->realSourceAddr.a), ETHERNET_ADDR(searchProbe->realSourceAddr.a) );
+                {
+                    char source1[18];
+                    char source2[18];
+                    char realSource1[18];
+                    char realSource2[18];
+                    format_mac_str(probe->sourceAddr.a, source1, sizeof(source1));
+                    format_mac_str(searchProbe->sourceAddr.a, source2, sizeof(source2));
+                    format_mac_str(probe->realSourceAddr.a, realSource1, sizeof(realSource1));
+                    format_mac_str(searchProbe->realSourceAddr.a, realSource2, sizeof(realSource2));
+                    log_crit("\tSource1: %s, Source2: %s, RealSource1: %s, RealSource2: %s",
+                             source1, source2, realSource1, realSource2);
+                }
                 if ( compareEthernetAddress( &(probe->sourceAddr),     &(searchProbe->sourceAddr    )) &&
                      compareEthernetAddress( &(probe->realSourceAddr), &(searchProbe->realSourceAddr)) ) {
                     found = true;
@@ -587,9 +606,12 @@ void answerHello(void *inFrame, void *networkInterface){
     // is rewritten. We log for diagnostics but continue processing.
     //
     if (!compareEthernetAddress(&inFrameHeader->realSource, &inFrameHeader->frameHeader.source)) {
-        log_debug("Discover: Real_Source_Address ("ETHERNET_ADDR_FMT") != Ethernet src ("ETHERNET_ADDR_FMT") - behind bridge/AP",
-                  ETHERNET_ADDR(inFrameHeader->realSource.a),
-                  ETHERNET_ADDR(inFrameHeader->frameHeader.source.a));
+        char real_src[18];
+        char eth_src[18];
+        format_mac_str(inFrameHeader->realSource.a, real_src, sizeof(real_src));
+        format_mac_str(inFrameHeader->frameHeader.source.a, eth_src, sizeof(eth_src));
+        log_debug("Discover: Real_Source_Address (%s) != Ethernet src (%s) - behind bridge/AP",
+                  real_src, eth_src);
     }
     
     // Hello frames are unacknowledged and must carry Sequence Number = 0.
@@ -863,9 +885,11 @@ void parseFrame(void *frame, void *networkInterface){
                 case opcode_discover:
                     log_debug("%s Discover (%d) for TOS_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     if (!mapper_matches(currentNetworkInterface, &header->realSource)) {
-                        log_debug("%s Discover ignored from non-active mapper mapper_id="ETHERNET_ADDR_FMT,
+                        char mapper_id[18];
+                        format_mac_str(header->realSource.a, mapper_id, sizeof(mapper_id));
+                        log_debug("%s Discover ignored from non-active mapper mapper_id=%s",
                                   currentNetworkInterface->deviceName,
-                                  ETHERNET_ADDR(header->realSource.a));
+                                  mapper_id);
                         break;
                     }
                     usleep(10000);
@@ -927,9 +951,11 @@ void parseFrame(void *frame, void *networkInterface){
                 case opcode_discover:
                     log_debug("%s Discover (%d) for TOS_Quick_Discovery", currentNetworkInterface->deviceName, header->opcode);
                     if (!mapper_matches(currentNetworkInterface, &header->realSource)) {
-                        log_debug("%s Quick Discover ignored from non-active mapper mapper_id="ETHERNET_ADDR_FMT,
+                        char mapper_id[18];
+                        format_mac_str(header->realSource.a, mapper_id, sizeof(mapper_id));
+                        log_debug("%s Quick Discover ignored from non-active mapper mapper_id=%s",
                                   currentNetworkInterface->deviceName,
-                                  ETHERNET_ADDR(header->realSource.a));
+                                  mapper_id);
                         break;
                     }
                     answerHello(frame, currentNetworkInterface);

@@ -16,6 +16,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+struct automata;
+
 struct {
     void   *smallIcon;
     size_t  smallIconSize;
@@ -49,6 +51,7 @@ typedef struct {
     uint16_t      LastHelloReplyGen;
     uint8_t       LastHelloReplyTos;
     void         *recvBuffer;
+    struct automata *enumerationAutomata;
     int           helloSent;
 } network_interface_t;
 

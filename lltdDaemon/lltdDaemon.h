@@ -73,6 +73,9 @@
     #include <stdarg.h>
     #include <stdio.h>
     #include <stdbool.h>
+    #include <arpa/inet.h>
+    #include <ifaddrs.h>
+    #include <netinet/in.h>
     #include <sys/socket.h>
     #include <linux/netlink.h>
     #include <linux/rtnetlink.h>
@@ -84,6 +87,12 @@
     #ifndef LLTD_BOOLEAN_T_DEFINED
         typedef bool boolean_t;
         #define LLTD_BOOLEAN_T_DEFINED 1
+    #endif
+    #ifndef KERN_SUCCESS
+        #define KERN_SUCCESS 0
+    #endif
+    #ifndef IFM_FDX
+        #define IFM_FDX 0x0010
     #endif
     #include "linux/linux-main.h"
     #include "linux/linux-ops.h"
