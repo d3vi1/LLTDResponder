@@ -19,13 +19,13 @@ uint64_t lltd_monotonic_milliseconds(void) {
 }
 
 automata *init_automata_mapping(void) {
-    automata *autom = malloc(sizeof(automata));
+    automata *autom = lltd_port_malloc(sizeof(automata));
     autom->states_no = 3;
     autom->transitions_no = 13;
     autom->last_ts = lltd_monotonic_seconds();
     autom->name = "Mapping";
 
-    mapping_state *mstate = malloc(sizeof(mapping_state));
+    mapping_state *mstate = lltd_port_malloc(sizeof(mapping_state));
     if (mstate) {
         mstate->ctc = 0;
         mstate->charge_timeout_ts = 0;
@@ -105,7 +105,7 @@ automata *switch_state_mapping(automata *autom, int input, char *debug) {
 }
 
 automata *init_automata_enumeration(void) {
-    automata *autom = malloc(sizeof(automata));
+    automata *autom = lltd_port_malloc(sizeof(automata));
     autom->states_no = 3;
     autom->transitions_no = 8;
     autom->last_ts = lltd_monotonic_seconds();
@@ -119,7 +119,7 @@ automata *init_automata_enumeration(void) {
     wait.name = "Wait";
     wait.timeout = 30;
 
-    autom->extra = malloc(sizeof(band_state));
+    autom->extra = lltd_port_malloc(sizeof(band_state));
     band_state *band = (band_state *)autom->extra;
     band->begun = false;
     band->Ni = BAND_ALPHA;
@@ -173,7 +173,7 @@ automata *switch_state_enumeration(automata *autom, int input, char *debug) {
 }
 
 automata *init_automata_session(void) {
-    automata *autom = malloc(sizeof(automata));
+    automata *autom = lltd_port_malloc(sizeof(automata));
     autom->states_no = 4;
     autom->transitions_no = 16;
     autom->last_ts = lltd_monotonic_seconds();
@@ -268,9 +268,9 @@ static void mac_copy(uint8_t *dst, const uint8_t *src) {
 }
 
 session_table *session_table_create(void) {
-    session_table *table = malloc(sizeof(session_table));
+    session_table *table = lltd_port_malloc(sizeof(session_table));
     if (table) {
-        memset(table, 0, sizeof(session_table));
+        lltd_port_memset(table, 0, sizeof(session_table));
         table->count = 0;
         table->all_complete = true;
     }
@@ -278,7 +278,10 @@ session_table *session_table_create(void) {
 }
 
 void session_table_destroy(session_table *table) {
-    free(table);
+    if (!table) {
+        return;
+    }
+    lltd_port_free(table);
 }
 
 session_entry *session_table_find(session_table *table,
@@ -394,7 +397,7 @@ void session_table_clear(session_table *table) {
     if (!table) {
         return;
     }
-    memset(table->entries, 0, sizeof(table->entries));
+    lltd_port_memset(table->entries, 0, sizeof(table->entries));
     table->count = 0;
     table->all_complete = true;
 }
