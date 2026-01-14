@@ -118,11 +118,11 @@ test-privileged: test-check $(TEST_DIR)
 
 test: test-unit test-integration
 
-integration-helper: test-check $(TEST_DIR)
-	$(CC) $(TEST_CFLAGS) $$(pkg-config --cflags cmocka) \
+integration-helper: $(TEST_DIR)
+	$(CC) $(TEST_CFLAGS) \
 		os/daemon/lltdTlvOps.c tests/test_shims.c \
 		tests/integration/lltd_integration_smoke.c \
-		$(TEST_LDFLAGS) $$(pkg-config --libs cmocka) -o $(TEST_DIR)/lltd_integration_smoke
+		$(TEST_LDFLAGS) -o $(TEST_DIR)/lltd_integration_smoke
 
 integration-test: integration-helper
 	./tests/integration/linux_veth.sh $(TEST_DIR)/lltd_integration_smoke ./$(BIN_NAME)
