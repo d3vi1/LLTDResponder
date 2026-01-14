@@ -18,13 +18,6 @@
 
 struct automata;
 
-struct {
-    void   *smallIcon;
-    size_t  smallIconSize;
-    void   *largeIcon;
-    size_t  largeIconSize;
-} globalInfo;
-
 typedef struct {
     const char   *deviceName;
     uint32_t      ifType;
