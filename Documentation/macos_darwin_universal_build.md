@@ -16,7 +16,7 @@ bash scripts/macos-build.sh
 Optional overrides:
 
 ```sh
-LLTD_SCHEME=lltdDaemon LLTD_CONFIGURATION=Release bash scripts/macos-build.sh
+LLTD_SCHEME=lltdResponder LLTD_CONFIGURATION=Release bash scripts/macos-build.sh
 ```
 
 ## Outputs

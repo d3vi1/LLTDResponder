@@ -297,7 +297,9 @@ jobs:
           else
             SRC_DIR="dist/macos/universal2"
             SRC_PATH=""
-            if [ -f "${SRC_DIR}/lltdDaemon" ]; then
+            if [ -f "${SRC_DIR}/lltdResponder" ]; then
+              SRC_PATH="${SRC_DIR}/lltdResponder"
+            elif [ -f "${SRC_DIR}/lltdDaemon" ]; then
               SRC_PATH="${SRC_DIR}/lltdDaemon"
             else
               APP_CANDIDATE=$(ls -1 "${SRC_DIR}"/*.app 2>/dev/null | head -n 1 || true)

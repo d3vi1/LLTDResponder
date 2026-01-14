@@ -75,7 +75,7 @@
 			E59A5324190BEBB500CF5329 /* lltdTlvOps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdTlvOps.c; path = os/daemon/lltdTlvOps.c; sourceTree = SOURCE_ROOT; };
 			E59A5326190BEBC600CF5329 /* lltdTlvOps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lltdTlvOps.h; path = os/daemon/lltdTlvOps.h; sourceTree = SOURCE_ROOT; };
 		E59ADBBD1C80982300895932 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
-		E59E8BF318CF4D250054B295 /* lltdDaemon */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lltdDaemon; sourceTree = BUILT_PRODUCTS_DIR; };
+		E59E8BF318CF4D250054B295 /* lltdDaemon */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lltdResponder; sourceTree = BUILT_PRODUCTS_DIR; };
 		E59E8BF418CF4D250054B295 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 			E59E8BF918CF4D250054B295 /* lltdDaemon.1 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.man; name = lltdDaemon.1; path = os/daemon/lltdDaemon.1; sourceTree = SOURCE_ROOT; };
 		E59E8BFE18CF4D4A0054B295 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
@@ -174,9 +174,9 @@
 				E53FA3A31C6A787F009E43DD /* linux-main.c */,
 				E53FA3A41C6A787F009E43DD /* linux-main.h */,
 			);
-			name = lltdDaemon;
-			sourceTree = "<group>";
-		};
+				name = lltdResponder;
+				sourceTree = "<group>";
+			};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -192,7 +192,7 @@
 			);
 			dependencies = (
 			);
-			name = lltdDaemon;
+			name = lltdResponder;
 			productReference = E59E8BF318CF4D250054B295 /* lltdDaemon */;
 			productType = "com.apple.product-type.tool";
 		};
