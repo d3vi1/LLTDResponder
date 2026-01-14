@@ -11,7 +11,7 @@
 #ifndef LLTDBlock_h
 #define LLTDBlock_h
 
-#include "../lltdResponder/lltd_protocol.h"
+#include "../lltdResponder/lltdProtocol.h"
 
 void lltdBlock(void *data);
 void parseFrame(void *frame, void *networkInterface);

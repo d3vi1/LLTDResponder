@@ -28,7 +28,8 @@ ifeq ($(UNAME_S),Linux)
 			lltdDaemon/linux/linux-ops.c \
 			lltdDaemon/lltdBlock.c \
 			lltdDaemon/lltdTlvOps.c \
-			lltdDaemon/lltdAutomata.c
+			lltdResponder/lltdAutomata.c \
+			os/linux/lltd_port.c
 		LLTD_CFLAGS += -DLLTD_BACKEND_SYSTEMD -DLLTD_USE_SYSTEMD
 		LLTD_LDFLAGS += -lsystemd
 	else ifeq ($(PLATFORM),linux-embedded)
@@ -36,7 +37,8 @@ ifeq ($(UNAME_S),Linux)
 			lltdDaemon/linux/linux-ops.c \
 			lltdDaemon/lltdBlock.c \
 			lltdDaemon/lltdTlvOps.c \
-			lltdDaemon/lltdAutomata.c
+			lltdResponder/lltdAutomata.c \
+			os/linux/lltd_port.c
 		LLTD_CFLAGS += -DLLTD_BACKEND_EMBEDDED -DLLTD_USE_CONSOLE
 	else
 		$(error Unsupported PLATFORM '$(PLATFORM)'; use linux-systemd or linux-embedded)

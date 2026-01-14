@@ -6,7 +6,6 @@
  * OS integration must not leak into `lltdResponder/` sources.
  */
 
-#include "../lltdResponder/lltd_automata.h"
+#include "../lltdResponder/lltdAutomata.h"
 
 #endif
-

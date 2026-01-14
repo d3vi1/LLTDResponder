@@ -10,7 +10,18 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include "lltdAutomata.c"
+
+#include "../lltdResponder/lltdAutomata.c"
+
+#if defined(__APPLE__)
+#include "../os/darwin/lltd_port.c"
+#elif defined(__linux__)
+#include "../os/linux/lltd_port.c"
+#elif defined(_WIN32)
+#include "../os/windows/lltd_port.c"
+#else
+#include "../os/posix/lltd_port.c"
+#endif
 
 
 int main(int argc, const char * argv[]) {

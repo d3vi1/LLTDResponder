@@ -6,7 +6,8 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 add_executable(lltd_win32
-    ../lltdAutomata.c
+    ../../lltdResponder/lltdAutomata.c
+    ../../os/windows/lltd_port.c
     ../windows/windows-backend-legacy.c
     ../windows/windows-backend-ndis.c
     ../windows/windows-main.c

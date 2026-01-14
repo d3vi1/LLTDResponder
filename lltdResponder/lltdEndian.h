@@ -1,5 +1,5 @@
-#ifndef LLTD_RESPONDER_ENDIAN_H
-#define LLTD_RESPONDER_ENDIAN_H
+#ifndef LLTD_RESPONDER_ENDIAN_UTIL_H
+#define LLTD_RESPONDER_ENDIAN_UTIL_H
 
 #include <stdint.h>
 
@@ -36,4 +36,3 @@ static inline uint32_t lltd_ntohl(uint32_t value) {
 }
 
 #endif
-

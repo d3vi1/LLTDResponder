@@ -6,7 +6,7 @@
 	objectVersion = 46;
 	objects = {
 
-/* Begin PBXBuildFile section */
+	/* Begin PBXBuildFile section */
 		C1A0D7D618E01E0900863EA1 /* lltd_wifi_iokit.c in Sources */ = {isa = PBXBuildFile; fileRef = C1A0D7D518E01E0900863EA1 /* lltd_wifi_iokit.c */; };
 		C1A0D7D618E01E0900863EA2 /* lltd_wifi_rates.c in Sources */ = {isa = PBXBuildFile; fileRef = C1A0D7D518E01E0900863EA2 /* lltd_wifi_rates.c */; };
 		E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */ = {isa = PBXBuildFile; fileRef = E500D7D518E01E0900863EAC /* darwin-ops.c */; };
@@ -21,7 +21,8 @@
 		E59E8C0318CF4D550054B295 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0218CF4D550054B295 /* CoreWLAN.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		E5A41A0E19082C0B00D5D2FD /* darwin-main.c in Sources */ = {isa = PBXBuildFile; fileRef = E5A41A0D19082C0B00D5D2FD /* darwin-main.c */; };
 		E5FD8AE0192A130900E4EA22 /* lltdTlvOps.c in Sources */ = {isa = PBXBuildFile; fileRef = E59A5324190BEBB500CF5329 /* lltdTlvOps.c */; };
-		FAD3A21C19EACF54000FB445 /* lltdAutomata.c in Sources */ = {isa = PBXBuildFile; fileRef = FAD3A21A19EACF54000FB445 /* lltdAutomata.c */; };
+			FAD3A21C19EACF54000FB445 /* lltdAutomata.c in Sources */ = {isa = PBXBuildFile; fileRef = FAD3A21A19EACF54000FB445 /* lltdAutomata.c */; };
+			DE4ED2E0A1B2C3D4E5F60709 /* lltd_port.c in Sources */ = {isa = PBXBuildFile; fileRef = DE4ED2E0A1B2C3D4E5F60708 /* lltd_port.c */; };
 		FAD3A22719EACFF8000FB445 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7E218E0427200863EAC /* CoreServices.framework */; };
 		FAD3A22819EACFF8000FB445 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7DC18E02F3900863EAC /* ImageIO.framework */; };
 		FAD3A22919EACFF8000FB445 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0218CF4D550054B295 /* CoreWLAN.framework */; };
@@ -54,7 +55,7 @@
 		};
 /* End PBXCopyFilesBuildPhase section */
 
-/* Begin PBXFileReference section */
+	/* Begin PBXFileReference section */
 		C1A0D7D518E01E0900863EA1 /* lltd_wifi_iokit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "lltd_wifi_iokit.c"; path = "lltdDaemon/darwin/lltd_wifi_iokit.c"; sourceTree = SOURCE_ROOT; };
 		C1A0D7D518E01E0900863EA2 /* lltd_wifi_rates.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "lltd_wifi_rates.c"; path = "lltdDaemon/darwin/lltd_wifi_rates.c"; sourceTree = SOURCE_ROOT; };
 		C1A0D7D518E01E0900863EA3 /* lltd_wifi_corewlan.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "lltd_wifi_corewlan.h"; path = "lltdDaemon/darwin/lltd_wifi_corewlan.h"; sourceTree = SOURCE_ROOT; };
@@ -81,8 +82,9 @@
 		E59E8C0218CF4D550054B295 /* CoreWLAN.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreWLAN.framework; path = System/Library/Frameworks/CoreWLAN.framework; sourceTree = SDKROOT; };
 		E5A41A0D19082C0B00D5D2FD /* darwin-main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "darwin-main.c"; path = "lltdDaemon/darwin/darwin-main.c"; sourceTree = SOURCE_ROOT; };
 		E5E475591C6B7E850054AC33 /* distribution.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = distribution.xml; sourceTree = "<group>"; };
-		FAD3A21A19EACF54000FB445 /* lltdAutomata.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdAutomata.c; path = lltdDaemon/lltdAutomata.c; sourceTree = SOURCE_ROOT; };
-		FAD3A21B19EACF54000FB445 /* lltdAutomata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lltdAutomata.h; path = lltdDaemon/lltdAutomata.h; sourceTree = SOURCE_ROOT; };
+			FAD3A21A19EACF54000FB445 /* lltdAutomata.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdAutomata.c; path = lltdResponder/lltdAutomata.c; sourceTree = SOURCE_ROOT; };
+			FAD3A21B19EACF54000FB445 /* lltdAutomata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lltdAutomata.h; path = lltdDaemon/lltdAutomata.h; sourceTree = SOURCE_ROOT; };
+			DE4ED2E0A1B2C3D4E5F60708 /* lltd_port.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltd_port.c; path = os/darwin/lltd_port.c; sourceTree = SOURCE_ROOT; };
 		FAD3A21E19EACF76000FB445 /* main_autom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main_autom.c; path = lltdDaemon/main_autom.c; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -146,9 +148,9 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		E59E8BF618CF4D250054B295 /* lltdDaemon */ = {
-			isa = PBXGroup;
-			children = (
+			E59E8BF618CF4D250054B295 /* lltdDaemon */ = {
+				isa = PBXGroup;
+				children = (
 				FAD3A21E19EACF76000FB445 /* main_autom.c */,
 				E59E8BF918CF4D250054B295 /* lltdDaemon.1 */,
 				E54C38B218F191EB00127645 /* lltdDaemon.plist */,
@@ -163,10 +165,11 @@
 				E53E69BE1908293B0033F651 /* lltdBlock.c */,
 				E53E69C0190829540033F651 /* lltdBlock.h */,
 				E55B08981C6A3C930020A136 /* lltdDaemon.h */,
-				FAD3A21A19EACF54000FB445 /* lltdAutomata.c */,
-				FAD3A21B19EACF54000FB445 /* lltdAutomata.h */,
-				E59A5324190BEBB500CF5329 /* lltdTlvOps.c */,
-				E59A5326190BEBC600CF5329 /* lltdTlvOps.h */,
+					FAD3A21A19EACF54000FB445 /* lltdAutomata.c */,
+					FAD3A21B19EACF54000FB445 /* lltdAutomata.h */,
+					DE4ED2E0A1B2C3D4E5F60708 /* lltd_port.c */,
+					E59A5324190BEBB500CF5329 /* lltdTlvOps.c */,
+					E59A5326190BEBC600CF5329 /* lltdTlvOps.h */,
 				E55B08991C6A4E8B0020A136 /* msIcoFormat.h */,
 				E53FA3A31C6A787F009E43DD /* linux-main.c */,
 				E53FA3A41C6A787F009E43DD /* linux-main.h */,
@@ -236,20 +239,21 @@
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
-		E59E8BEF18CF4D250054B295 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				E5A41A0E19082C0B00D5D2FD /* darwin-main.c in Sources */,
-				E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */,
-				C1A0D7D618E01E0900863EA1 /* lltd_wifi_iokit.c in Sources */,
-				C1A0D7D618E01E0900863EA2 /* lltd_wifi_rates.c in Sources */,
-				FAD3A21C19EACF54000FB445 /* lltdAutomata.c in Sources */,
-				E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */,
-				E5FD8AE0192A130900E4EA22 /* lltdTlvOps.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+			E59E8BEF18CF4D250054B295 /* Sources */ = {
+				isa = PBXSourcesBuildPhase;
+				buildActionMask = 2147483647;
+				files = (
+					E5A41A0E19082C0B00D5D2FD /* darwin-main.c in Sources */,
+					E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */,
+					C1A0D7D618E01E0900863EA1 /* lltd_wifi_iokit.c in Sources */,
+					C1A0D7D618E01E0900863EA2 /* lltd_wifi_rates.c in Sources */,
+					FAD3A21C19EACF54000FB445 /* lltdAutomata.c in Sources */,
+					DE4ED2E0A1B2C3D4E5F60709 /* lltd_port.c in Sources */,
+					E53E69BF1908293B0033F651 /* lltdBlock.c in Sources */,
+					E5FD8AE0192A130900E4EA22 /* lltdTlvOps.c in Sources */,
+				);
+				runOnlyForDeploymentPostprocessing = 0;
+			};
 		FAD3A22019EACFF8000FB445 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;

@@ -1,5 +1,5 @@
-#ifndef LLTD_RESPONDER_PORT_H
-#define LLTD_RESPONDER_PORT_H
+#ifndef LLTD_RESPONDER_PORT_API_H
+#define LLTD_RESPONDER_PORT_API_H
 
 #include <stdint.h>
 
@@ -10,4 +10,3 @@ void lltd_port_log_debug(const char *fmt, ...);
 void lltd_port_log_warning(const char *fmt, ...);
 
 #endif
-

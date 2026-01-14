@@ -5,10 +5,10 @@
  * and no OS headers. Platform integration is done via lltd_port.* symbols.
  */
 
-#include "lltd_automata.h"
+#include "lltdAutomata.h"
 
-#include "lltd_endian.h"
-#include "lltd_port.h"
+#include "lltdEndian.h"
+#include "lltdPort.h"
 
 uint64_t lltd_monotonic_seconds(void) {
     return lltd_port_monotonic_seconds();

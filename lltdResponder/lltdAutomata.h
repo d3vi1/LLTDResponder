@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "lltd_protocol.h"
+#include "lltdProtocol.h"
 
 #define MAX_STATES 5 // LLTD protocol only needs 4 maximum
 #define MAX_TRANSITIONS 128
@@ -146,4 +146,3 @@ uint64_t lltd_monotonic_seconds(void);
 uint64_t lltd_monotonic_milliseconds(void);
 
 #endif
-
