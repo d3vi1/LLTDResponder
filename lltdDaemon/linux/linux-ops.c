@@ -3,128 +3,155 @@
  *   linux-ops.c                                                              *
  *   lltdDaemon                                                               *
  *                                                                            *
- *   Created by Răzvan Corneliu C.R. VILT on 02.03.2014.                      *
- *   Copyright (c) 2014-2026 Răzvan Corneliu C.R. VILT. All rights reserved.  *
+ *   Linux platform hooks used by the protocol logic (TLVs, etc.).            *
  *                                                                            *
  ******************************************************************************/
 
 #include "../lltdDaemon.h"
 
-#pragma mark Functions that return machine information
-#pragma mark -
+#include <stdlib.h>
+#include <string.h>
 
+static void lltd_dup_string(const char *value, char **out, size_t *out_size) {
+    if (!out || !out_size) {
+        return;
+    }
+    if (!value) {
+        *out = NULL;
+        *out_size = 0;
+        return;
+    }
+    size_t len = strlen(value);
+    char *copy = malloc(len + 1);
+    if (!copy) {
+        *out = NULL;
+        *out_size = 0;
+        return;
+    }
+    memcpy(copy, value, len + 1);
+    *out = copy;
+    *out_size = len;
+}
 
-//==============================================================================
-//
-// Returned in UUID binary format
-//
-//==============================================================================
-void getUpnpUuid(void **pointer);
+void getMachineName(char **data, size_t *stringSize) {
+    lltd_dup_string("lltd-linux", data, stringSize);
+}
 
+void getFriendlyName(char **data, size_t *stringSize) {
+    lltd_dup_string("LLTD Responder", data, stringSize);
+}
 
+void getSupportInfo(void **data, size_t *stringSize) {
+    if (!data || !stringSize) {
+        return;
+    }
+    char *out = NULL;
+    size_t out_len = 0;
+    lltd_dup_string("https://example.invalid/support", &out, &out_len);
+    *data = out;
+    *stringSize = out_len;
+}
 
-//==============================================================================
-//
-// Returns a copy of the icon image in Microsoft ICO format.
-// Made from an image larger or equal to 48px in size.
-// The icon must be smaller than 32kb which we are not yet verifying.
-// Only with QueryLargetTLV
-//
-//==============================================================================
-void getIconImage(void **icon, size_t *iconsize);
+void getIconImage(void **icon, size_t *iconsize) {
+    if (icon) {
+        *icon = NULL;
+    }
+    if (iconsize) {
+        *iconsize = 0;
+    }
+}
 
+void getUpnpUuid(void **data) {
+    if (!data) {
+        return;
+    }
+    uint8_t *buffer = calloc(1, 16);
+    *data = buffer;
+}
 
+void getHwId(void *data) {
+    if (!data) {
+        return;
+    }
+    memset(data, 0, 64);
+}
 
-//==============================================================================
-//
-// Returned in UCS-2LE
-//
-//==============================================================================
-void getMachineName(char **pointer, size_t *stringSize);
+void getDetailedIconImage(void **data, size_t *iconsize) {
+    if (data) {
+        *data = NULL;
+    }
+    if (iconsize) {
+        *iconsize = 0;
+    }
+}
 
+void getHostCharacteristics(void *data) {
+    (void)data;
+}
 
+void getComponentTable(void **data, size_t *dataSize) {
+    if (data) {
+        *data = NULL;
+    }
+    if (dataSize) {
+        *dataSize = 0;
+    }
+}
 
-//==============================================================================
-//
-// Returned in UCS-2LE only with QueryLargeTLV
-//
-//==============================================================================
-void getFriendlyName(char **pointer, size_t *stringSize);
+void getPerformanceCounterFrequency(void *data) {
+    (void)data;
+}
 
+void setPromiscuous(void *currentNetworkInterface, boolean_t set) {
+    (void)currentNetworkInterface;
+    (void)set;
+}
 
+boolean_t getWifiMode(void *currentNetworkInterface) {
+    (void)currentNetworkInterface;
+    return false;
+}
 
-//==============================================================================
-//
-// Returned in UCS-2LE
-// Returns the following URL with the last 3 or 4 digits of the serial number
-// at the CC argument http://support-sp.apple.com/sp/index?page=psp&cc=XXX
-// Taken from:
-// /Applications/Utilities/System Profiler.app/Contents/Resources/SupportLinks.strings
-//
-//==============================================================================
-void getSupportInfo(void **data, size_t *stringSize);
+boolean_t getBSSID(void **data, void *currentNetworkInterface) {
+    (void)currentNetworkInterface;
+    if (data) {
+        *data = NULL;
+    }
+    return false;
+}
 
+boolean_t getSSID(char **ssid, size_t *size, void *currentNetworkInterface) {
+    (void)currentNetworkInterface;
+    if (ssid) {
+        *ssid = NULL;
+    }
+    if (size) {
+        *size = 0;
+    }
+    return false;
+}
 
+boolean_t getWifiMaxRate(uint32_t *rateMbps, void *currentNetworkInterface) {
+    (void)currentNetworkInterface;
+    if (rateMbps) {
+        *rateMbps = 0;
+    }
+    return false;
+}
 
-//==============================================================================
-//
-// Returns
-// TRUE  = Ad-Hoc or disconnected
-// FALSE = Infrastructure mode
-//
-//==============================================================================
-boolean_t getWifiMode(void *networkInterface);
+boolean_t getWifiRssi(int8_t *rssi, void *currentNetworkInterface) {
+    (void)currentNetworkInterface;
+    if (rssi) {
+        *rssi = 0;
+    }
+    return false;
+}
 
+boolean_t getWifiPhyMedium(uint32_t *phyMedium, void *currentNetworkInterface) {
+    (void)currentNetworkInterface;
+    if (phyMedium) {
+        *phyMedium = 0;
+    }
+    return false;
+}
 
-
-//==============================================================================
-//
-// Returns a copy of the 6 bytes comprising the BSSID.
-//
-//==============================================================================
-boolean_t getBSSID (void **data, void *networkInterface);
-
-
-
-//==============================================================================
-//
-// See 2.2.2.3 in UCS-2LE
-//
-//==============================================================================
-void getHwId(void *data);
-
-
-//==============================================================================
-//
-// Only with QueryLargeTLV
-// Returns a copy of the icon image in Microsoft ICO format
-// at the followin sizes: 16x16, 32x32, 64x64, 128x128, 256x256
-// and if available, 24x24 and 48x48
-//
-//==============================================================================
-void getDetailedIconImage (void **data, size_t *iconsize);
-
-
-//==============================================================================
-//
-// Hmm... This will take a bit of work
-// I know that we are a host that is
-// hub+switch
-//
-//==============================================================================
-void getHostCharacteristics (void *data);
-
-
-//==============================================================================
-//
-// Only with QueryLargeTLV
-//
-//==============================================================================
-void getComponentTable (void **data, size_t *dataSize);
-
-
-//==============================================================================
-//
-//
-//==============================================================================
-void setPromiscuous(void *networkInterface, boolean_t set);

@@ -72,6 +72,7 @@
     #include <asm/types.h>
     #include <stdarg.h>
     #include <stdio.h>
+    #include <stdbool.h>
     #include <sys/socket.h>
     #include <linux/netlink.h>
     #include <linux/rtnetlink.h>
@@ -80,8 +81,15 @@
     #include <signal.h>
     #include <syslog.h>
     #include <time.h>
+    #ifndef LLTD_BOOLEAN_T_DEFINED
+        typedef bool boolean_t;
+        #define LLTD_BOOLEAN_T_DEFINED 1
+    #endif
     #include "linux/linux-main.h"
     #include "linux/linux-ops.h"
+    #include "lltdBlock.h"
+    #include "lltdTlvOps.h"
+    #include "lltdAutomata.h"
     #define  MYPROTO NETLINK_ROUTE
     #define  MYMGRP RTMGRP_IPV4_ROUTE
     #if defined(LLTD_USE_SYSTEMD)
