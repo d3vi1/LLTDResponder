@@ -91,7 +91,9 @@ void validateInterface(void *refCon, io_service_t IONetworkInterface);
 #define PRINT_IP(x)       (x >> 24) & 0xFF, (x >> 16) & 0xFF, (x >> 8) & 0xFF, x & 0xFF
 #define ETHERNET_ADDR_FMT "%02x:%02x:%02x:%02x:%02x:%02x"
 #define ETHERNET_ADDR(x)  x[0], x[1], x[2], x[3], x[4], x[5]
+#ifndef lltdEtherType
 #define lltdEtherType     0x88D9
+#endif
 #define lltdOUI           0x000D3A
 
 

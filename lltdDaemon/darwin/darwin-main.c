@@ -269,10 +269,15 @@ void lltdLoop (void *data){
                 log_err("recvfrom() failed on %s: %s", currentNetworkInterface->deviceName, strerror(err));
             }
             // Always run the automata tick, even on timeout
+            lltd_automata_tick_port tick_port = {
+                .network_interface = currentNetworkInterface,
+                .last_hello_tx_ms = &currentNetworkInterface->LastHelloTxMs,
+                .send_hello = sendHelloMessage,
+            };
             automata_tick(currentNetworkInterface->mappingAutomata,
                           currentNetworkInterface->enumerationAutomata,
                           currentNetworkInterface->sessionTable,
-                          currentNetworkInterface);
+                          &tick_port);
             continue;
         }
 
@@ -388,10 +393,15 @@ void lltdLoop (void *data){
         parseFrame(currentNetworkInterface->recvBuffer, currentNetworkInterface);
 
         // Run periodic automata tick after handling frame
+        lltd_automata_tick_port tick_port = {
+            .network_interface = currentNetworkInterface,
+            .last_hello_tx_ms = &currentNetworkInterface->LastHelloTxMs,
+            .send_hello = sendHelloMessage,
+        };
         automata_tick(currentNetworkInterface->mappingAutomata,
                       currentNetworkInterface->enumerationAutomata,
                       currentNetworkInterface->sessionTable,
-                      currentNetworkInterface);
+                      &tick_port);
     }
     
     //

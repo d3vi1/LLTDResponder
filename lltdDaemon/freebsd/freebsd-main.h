@@ -46,6 +46,8 @@ typedef struct {
     int           helloSent;
 } network_interface_t;
 
+#ifndef lltdEtherType
 #define lltdEtherType 0x88D9
+#endif
 
 #endif /* LLTDD_FREEBSD_MAIN_H */

@@ -62,7 +62,9 @@ typedef struct {
     int         helloSent;
 } network_interface_t;
 
+#ifndef lltdEtherType
 #define lltdEtherType 0x88D9
+#endif
 
 // Host information functions
 void getMachineName(char **name, size_t *size);
