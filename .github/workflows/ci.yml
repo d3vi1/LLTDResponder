@@ -12,7 +12,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Guardrails: core must be OS-agnostic
+      - name: "Guardrails: core must be OS-agnostic"
         run: bash scripts/lint_core_no_os_conditionals.sh
 
   openwatcom:
