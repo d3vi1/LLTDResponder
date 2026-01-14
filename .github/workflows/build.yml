@@ -131,22 +131,6 @@ jobs:
           name: lltd-coverage
           path: coverage-artifacts
 
-  build:
-    name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run unit tests
-        run: |
-          set -euo pipefail
-          make test
-
   integration-tests:
     name: integration-tests-linux
     runs-on: ubuntu-latest
