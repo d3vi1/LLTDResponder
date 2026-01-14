@@ -1,5 +1,8 @@
 #include <arpa/inet.h>
 #include <errno.h>
+#ifdef __linux__
+#include <linux/if_ether.h>
+#endif
 #include <net/if.h>
 #include <netpacket/packet.h>
 #include <poll.h>
@@ -13,6 +16,10 @@
 
 #include "lltdTestShim.h"
 #include "lltdTlvOps.h"
+
+#ifndef ETH_ALEN
+#define ETH_ALEN 6
+#endif
 
 static int open_bound_socket(const char *ifname, struct sockaddr_ll *addr) {
     int fd = socket(AF_PACKET, SOCK_RAW, htons(lltdEtherType));

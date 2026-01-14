@@ -10,6 +10,10 @@
 
 #include "lltdDaemon.h"
 
+#if !defined(_WIN32)
+#include <unistd.h>
+#endif
+
 static uint16_t lltd_bswap16(uint16_t value) {
     return (uint16_t)((value << 8) | (value >> 8));
 }
