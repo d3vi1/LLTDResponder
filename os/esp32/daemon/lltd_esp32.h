@@ -14,7 +14,7 @@
 #include <stdint.h>
 
 #include "../../../lltdResponder/lltdAutomata.h"
-#include "../../daemon/lltdBlock.h"
+#include "../../../lltdResponder/lltdBlock.h"
 
 typedef struct {
     automata *mapping;

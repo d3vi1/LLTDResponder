@@ -1,6 +1,6 @@
 /******************************************************************************
  *                                                                            *
- *   lltdBlock.c                                                              *
+ *   lltdBlock.h                                                              *
  *   lltdDaemon                                                               *
  *                                                                            *
  *   Created by Răzvan Corneliu C.R. VILT on 23.03.2014.                      *
@@ -8,11 +8,11 @@
  *                                                                            *
  ******************************************************************************/
 
-#ifndef LLTDBlock_h
-#define LLTDBlock_h
+#ifndef LLTD_RESPONDER_BLOCK_H
+#define LLTD_RESPONDER_BLOCK_H
 
-#include "../../lltdResponder/lltdProtocol.h"
+#include "lltdProtocol.h"
 
-void parseFrame(void *frame, void *networkInterface);
+void parseFrame(void *frame, void *iface_ctx);
 
-#endif /* defined(LLTDBlock_h) */
+#endif

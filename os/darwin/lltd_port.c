@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <time.h>
 
 void *lltd_port_memcpy(void *destination, const void *source, size_t num) {
@@ -25,10 +26,49 @@ void lltd_port_sleep_ms(uint32_t milliseconds) {
 }
 
 int lltd_port_send_frame(void *iface_ctx, const void *frame, size_t frame_len) {
-    (void)iface_ctx;
-    (void)frame;
-    (void)frame_len;
-    return -1;
+    if (!iface_ctx || !frame || frame_len == 0) {
+        return -1;
+    }
+    const network_interface_t *iface = (const network_interface_t *)iface_ctx;
+    if (iface->socket < 0) {
+        return -1;
+    }
+    ssize_t written = sendto(iface->socket,
+                             frame,
+                             frame_len,
+                             0,
+                             (const struct sockaddr *)&iface->socketAddr,
+                             sizeof(iface->socketAddr));
+    return (written == (ssize_t)frame_len) ? 0 : -1;
+}
+
+int lltd_port_get_mtu(void *iface_ctx, size_t *out_mtu) {
+    if (!iface_ctx || !out_mtu) {
+        return -1;
+    }
+    const network_interface_t *iface = (const network_interface_t *)iface_ctx;
+    *out_mtu = (size_t)iface->MTU;
+    return 0;
+}
+
+int lltd_port_get_icon_image(void **out_data, size_t *out_size) {
+    if (!out_data || !out_size) {
+        return -1;
+    }
+    *out_data = NULL;
+    *out_size = 0;
+    getIconImage(out_data, out_size);
+    return (*out_data && *out_size) ? 0 : -1;
+}
+
+int lltd_port_get_friendly_name(void **out_data, size_t *out_size) {
+    if (!out_data || !out_size) {
+        return -1;
+    }
+    *out_data = NULL;
+    *out_size = 0;
+    getFriendlyName((char **)out_data, out_size);
+    return (*out_data && *out_size) ? 0 : -1;
 }
 
 static void lltd_vlog(FILE *out, const char *prefix, const char *fmt, va_list args) {

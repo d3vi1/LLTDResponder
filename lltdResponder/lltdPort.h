@@ -19,6 +19,10 @@ void lltd_port_sleep_ms(uint32_t milliseconds);
 
 int lltd_port_send_frame(void *iface_ctx, const void *frame, size_t frame_len);
 
+int lltd_port_get_mtu(void *iface_ctx, size_t *out_mtu);
+int lltd_port_get_icon_image(void **out_data, size_t *out_size);
+int lltd_port_get_friendly_name(void **out_data, size_t *out_size);
+
 size_t lltd_port_get_hostname(void *dst, size_t dst_len);
 size_t lltd_port_get_support_url(void *dst, size_t dst_len);
 int lltd_port_get_upnp_uuid(uint8_t out_uuid[16]);

@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -27,10 +28,58 @@ void lltd_port_sleep_ms(uint32_t milliseconds) {
 }
 
 int lltd_port_send_frame(void *iface_ctx, const void *frame, size_t frame_len) {
-    (void)iface_ctx;
-    (void)frame;
-    (void)frame_len;
+    if (!iface_ctx || !frame || frame_len == 0) {
+        return -1;
+    }
+    const network_interface_t *iface = (const network_interface_t *)iface_ctx;
+    if (iface->socket < 0) {
+        return -1;
+    }
+    ssize_t written = sendto(iface->socket,
+                             frame,
+                             frame_len,
+                             0,
+                             (const struct sockaddr *)&iface->socketAddr,
+                             sizeof(iface->socketAddr));
+    return (written == (ssize_t)frame_len) ? 0 : -1;
+}
+
+int lltd_port_get_mtu(void *iface_ctx, size_t *out_mtu) {
+    if (!iface_ctx || !out_mtu) {
+        return -1;
+    }
+    const network_interface_t *iface = (const network_interface_t *)iface_ctx;
+    *out_mtu = (size_t)iface->MTU;
+    return 0;
+}
+
+int lltd_port_get_icon_image(void **out_data, size_t *out_size) {
+    if (out_data) {
+        *out_data = NULL;
+    }
+    if (out_size) {
+        *out_size = 0;
+    }
     return -1;
+}
+
+int lltd_port_get_friendly_name(void **out_data, size_t *out_size) {
+    if (!out_data || !out_size) {
+        return -1;
+    }
+
+    static const char name[] = "LLTD Responder";
+    size_t len = sizeof(name) - 1;
+    char *buf = (char *)lltd_port_malloc(len + 1);
+    if (!buf) {
+        *out_data = NULL;
+        *out_size = 0;
+        return -1;
+    }
+    memcpy(buf, name, len + 1);
+    *out_data = buf;
+    *out_size = len;
+    return 0;
 }
 
 static void lltd_vlog(FILE *out, const char *prefix, const char *fmt, va_list args) {

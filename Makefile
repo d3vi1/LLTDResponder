@@ -26,7 +26,7 @@ ifeq ($(UNAME_S),Linux)
     ifeq ($(PLATFORM),linux-systemd)
         LLTD_SRC_FILES = os/linux/daemon/linux-main.c \
             os/linux/daemon/linux-ops.c \
-            os/daemon/lltdBlock.c \
+            lltdResponder/lltdBlock.c \
             lltdResponder/lltdTlvOps.c \
             lltdResponder/lltdAutomata.c \
             lltdResponder/lltdWire.c \
@@ -36,7 +36,7 @@ ifeq ($(UNAME_S),Linux)
     else ifeq ($(PLATFORM),linux-embedded)
         LLTD_SRC_FILES = os/linux/daemon/linux-embedded-main.c \
             os/linux/daemon/linux-ops.c \
-            os/daemon/lltdBlock.c \
+            lltdResponder/lltdBlock.c \
             lltdResponder/lltdTlvOps.c \
             lltdResponder/lltdAutomata.c \
             lltdResponder/lltdWire.c \
