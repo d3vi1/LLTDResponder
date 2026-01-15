@@ -13,7 +13,6 @@
 
 #include "../../lltdResponder/lltdProtocol.h"
 
-void lltdBlock(void *data);
 void parseFrame(void *frame, void *networkInterface);
 
 #endif /* defined(LLTDBlock_h) */
