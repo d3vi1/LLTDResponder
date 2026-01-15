@@ -49,7 +49,7 @@ void sendHelloMessageEx(
         return;
     }
 
-    uint64_t offset = 0;
+    size_t offset = 0;
 
     /*
      * Per MS-LLTD 2.2.3.4 (Hello Frame):

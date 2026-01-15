@@ -610,7 +610,7 @@ void answerHello(void *inFrame, void *networkInterface){
 
     network_interface_t *currentNetworkInterface = networkInterface;
     void                *buffer = malloc(currentNetworkInterface->MTU);
-    uint64_t             offset = 0;
+    size_t               offset = 0;
 
     memset(buffer, 0, currentNetworkInterface->MTU);
     

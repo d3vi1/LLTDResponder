@@ -21,7 +21,7 @@
 
 #pragma mark -
 #pragma mark Host specific TLVs
-size_t setHostnameTLV(void *buffer, uint64_t offset){
+size_t setHostnameTLV(void *buffer, size_t offset){
     void *hostname = NULL;
     size_t sizeOfHostname = 0;
     getMachineName((char **)&hostname, &sizeOfHostname);
@@ -36,7 +36,7 @@ size_t setHostnameTLV(void *buffer, uint64_t offset){
     return (sizeof(generic_tlv_t) + sizeOfHostname);
 }
 
-size_t setHostIdTLV(void *buffer, uint64_t offset, void *networkInterface) {
+size_t setHostIdTLV(void *buffer, size_t offset, void *networkInterface) {
     generic_tlv_t * host_id = (generic_tlv_t *) (buffer + offset);
     
     network_interface_t *currentNetworkInterface = networkInterface;
@@ -46,7 +46,7 @@ size_t setHostIdTLV(void *buffer, uint64_t offset, void *networkInterface) {
     return (sizeof(*host_id) + sizeof(currentNetworkInterface->macAddress));
 }
 
-size_t setCharacteristicsTLV(void *buffer, uint64_t offset, void *networkInterface) {
+size_t setCharacteristicsTLV(void *buffer, size_t offset, void *networkInterface) {
     network_interface_t *currentNetworkInterface = networkInterface;
     generic_tlv_t *characteristicsTLV = (generic_tlv_t *) (buffer+offset);
     uint32_t *characteristicsValue = (uint32_t *)(buffer + offset + sizeof(generic_tlv_t));
@@ -68,7 +68,7 @@ size_t setCharacteristicsTLV(void *buffer, uint64_t offset, void *networkInterfa
     return (sizeof(generic_tlv_t) + sizeof(*characteristicsValue));
 }
 
-size_t setPerfCounterTLV(void *buffer, uint64_t offset){
+size_t setPerfCounterTLV(void *buffer, size_t offset){
     generic_tlv_t *perf = (generic_tlv_t *) (buffer+offset);
     perf->TLVType       = tlv_perfCounterFrequency;
     perf->TLVLength     = sizeof(uint64_t);
@@ -88,14 +88,14 @@ size_t setPerfCounterTLV(void *buffer, uint64_t offset){
     return sizeof(generic_tlv_t) + sizeof(uint64_t);
 }
 
-size_t setIconImageTLV(void *buffer, uint64_t offset){
+size_t setIconImageTLV(void *buffer, size_t offset){
     generic_tlv_t *icon = (generic_tlv_t *) (buffer+offset);
     icon->TLVType       = tlv_iconImage;
     icon->TLVLength     = 0x00;
     return sizeof(*icon);
 }
 
-size_t setSupportInfoTLV(void *buffer, uint64_t offset){
+size_t setSupportInfoTLV(void *buffer, size_t offset){
     void  *supportInfoURL = NULL;
     size_t sizeOfURL      = 0;
     getSupportInfo(&supportInfoURL, &sizeOfURL);
@@ -112,14 +112,14 @@ size_t setSupportInfoTLV(void *buffer, uint64_t offset){
     return (sizeof(generic_tlv_t) + sizeOfURL);
 }
 
-size_t setFriendlyNameTLV(void *buffer, uint64_t offset){
+size_t setFriendlyNameTLV(void *buffer, size_t offset){
     generic_tlv_t *friendly = (generic_tlv_t *) (buffer+offset);
     friendly->TLVType       = tlv_friendlyName;
     friendly->TLVLength     = 0x00;
     return sizeof(*friendly);
 }
 
-size_t setUuidTLV(void *buffer, uint64_t offset){
+size_t setUuidTLV(void *buffer, size_t offset){
     void *machineUUID = NULL;
     getUpnpUuid(&machineUUID);
 
@@ -142,7 +142,7 @@ size_t setUuidTLV(void *buffer, uint64_t offset){
 
 // Hardware ID TLV - sends the hardware identifier (platform UUID as UCS-2LE)
 // Returns size of TLV written, or 0 if no hardware ID available
-size_t setHardwareIdTLV(void *buffer, uint64_t offset){
+size_t setHardwareIdTLV(void *buffer, size_t offset){
     // Get the platform UUID as hardware ID (platform-specific implementation)
     uint8_t hwIdData[64];
     memset(hwIdData, 0, sizeof(hwIdData));
@@ -169,7 +169,7 @@ size_t setHardwareIdTLV(void *buffer, uint64_t offset){
 }
 
 //TODO: see if there really is support for Level2 Forwarding.. ? or just leave it hardcoded
-size_t setQosCharacteristicsTLV(void *buffer, uint64_t offset){
+size_t setQosCharacteristicsTLV(void *buffer, size_t offset){
     generic_tlv_t *QosCharacteristicsTLV = (generic_tlv_t *) (buffer + offset);
     QosCharacteristicsTLV->TLVType       = tlv_qos_characteristics;
     QosCharacteristicsTLV->TLVLength     = sizeof(uint32_t);
@@ -181,7 +181,7 @@ size_t setQosCharacteristicsTLV(void *buffer, uint64_t offset){
 
 // Detailed Icon TLV - sends the detailed icon image (multi-resolution ICO)
 // Only used with QueryLargeTLV. Returns raw icon data without TLV header.
-size_t setDetailedIconTLV(void *buffer, uint64_t offset){
+size_t setDetailedIconTLV(void *buffer, size_t offset){
     void *iconData = NULL;
     size_t iconSize = 0;
     getDetailedIconImage(&iconData, &iconSize);
@@ -200,7 +200,7 @@ size_t setDetailedIconTLV(void *buffer, uint64_t offset){
 
 // Component Table TLV - sends the component descriptor table
 // Only used with QueryLargeTLV. Returns raw component data without TLV header.
-size_t setComponentTableTLV(void *buffer, uint64_t offset){
+size_t setComponentTableTLV(void *buffer, size_t offset){
     void *tableData = NULL;
     size_t tableSize = 0;
     getComponentTable(&tableData, &tableSize);
@@ -217,7 +217,7 @@ size_t setComponentTableTLV(void *buffer, uint64_t offset){
     return 0;
 }
 
-size_t setEndOfPropertyTLV(void *buffer, uint64_t offset){
+size_t setEndOfPropertyTLV(void *buffer, size_t offset){
     uint8_t *eop  = (uint8_t *) (buffer + offset);
     *eop = eofpropmarker;
     return sizeof (*eop);
@@ -225,7 +225,7 @@ size_t setEndOfPropertyTLV(void *buffer, uint64_t offset){
 
 #pragma mark -
 #pragma mark Interface Specific TLVs
-size_t setPhysicalMediumTLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t setPhysicalMediumTLV(void *buffer, size_t offset, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
     generic_tlv_t *hdr = (generic_tlv_t *) (buffer + offset);
 
@@ -237,7 +237,7 @@ size_t setPhysicalMediumTLV(void *buffer, uint64_t offset, void *networkInterfac
     return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 
-size_t setIPv4TLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t setIPv4TLV(void *buffer, size_t offset, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
     generic_tlv_t *hdr = (generic_tlv_t *) (buffer + offset);
     hdr->TLVType = tlv_ipv4;
@@ -271,7 +271,7 @@ size_t setIPv4TLV(void *buffer, uint64_t offset, void *networkInterface){
     return sizeof (*hdr) + sizeof(uint32_t);
 }
 
-size_t setIPv6TLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t setIPv6TLV(void *buffer, size_t offset, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
     generic_tlv_t *hdr = (generic_tlv_t *) (buffer + offset);
     
@@ -304,7 +304,7 @@ size_t setIPv6TLV(void *buffer, uint64_t offset, void *networkInterface){
     return sizeof (*hdr) + hdr->TLVLength;
 }
 
-size_t setLinkSpeedTLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t setLinkSpeedTLV(void *buffer, size_t offset, void *networkInterface){
     network_interface_t *currentNetworkInterface = networkInterface;
     uint32_t *linkSpeedValue = (buffer + offset + sizeof(generic_tlv_t));
     generic_tlv_t *linkSpeedTL = (generic_tlv_t *) (buffer + offset);
@@ -316,13 +316,13 @@ size_t setLinkSpeedTLV(void *buffer, uint64_t offset, void *networkInterface){
     return (sizeof(*linkSpeedTL) + sizeof(*linkSpeedValue));
 }
 
-size_t setSeeslistWorkingSetTLV(void *buffer, uint64_t offset){
+size_t setSeeslistWorkingSetTLV(void *buffer, size_t offset){
     
 }
 
 #pragma mark -
 #pragma mark 802.11 Interface Specific TLVs
-size_t setWirelessTLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t setWirelessTLV(void *buffer, size_t offset, void *networkInterface){
     wireless_tlv_t *wifiTlv = (wireless_tlv_t *) (buffer + offset);
     wifiTlv->TLVType        = tlv_wifimode;
     wifiTlv->TLVLength      = 1;
@@ -331,11 +331,11 @@ size_t setWirelessTLV(void *buffer, uint64_t offset, void *networkInterface){
     return sizeof(wireless_tlv_t);
 }
 
-size_t setComponentTable(void *buffer, uint64_t offset){
+size_t setComponentTable(void *buffer, size_t offset){
     return 0;
 }
 
-size_t setBSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t setBSSIDTLV(void *buffer, size_t offset, void *networkInterface){
     bssid_tlv_t *bssidTlv = (bssid_tlv_t *) (buffer + offset);
     bssidTlv->TLVType        = tlv_bssid;
     bssidTlv->TLVLength      = 6;
@@ -349,7 +349,7 @@ size_t setBSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
     return 0;
 }
 
-size_t setSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t setSSIDTLV(void *buffer, size_t offset, void *networkInterface){
     generic_tlv_t *ssidTlv = (generic_tlv_t *) (buffer + offset);
     ssidTlv->TLVType = tlv_ssid;
     ssidTlv->TLVLength = 0;
@@ -371,7 +371,7 @@ size_t setSSIDTLV(void *buffer, uint64_t offset, void *networkInterface){
     return sizeof(generic_tlv_t);
 }
 
-size_t setWifiMaxRateTLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t setWifiMaxRateTLV(void *buffer, size_t offset, void *networkInterface){
     generic_tlv_t *rateTlv = (generic_tlv_t *) (buffer + offset);
     rateTlv->TLVType = tlv_wifiMaxRate;
     rateTlv->TLVLength = sizeof(uint16_t);
@@ -387,7 +387,7 @@ size_t setWifiMaxRateTLV(void *buffer, uint64_t offset, void *networkInterface){
     return sizeof(generic_tlv_t) + sizeof(uint16_t);
 }
 
-size_t setWifiRssiTLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t setWifiRssiTLV(void *buffer, size_t offset, void *networkInterface){
     generic_tlv_t *rssiTlv = (generic_tlv_t *) (buffer + offset);
     rssiTlv->TLVType = tlv_wifiRssi;
     rssiTlv->TLVLength = sizeof(int32_t);
@@ -402,7 +402,7 @@ size_t setWifiRssiTLV(void *buffer, uint64_t offset, void *networkInterface){
     return sizeof(generic_tlv_t) + sizeof(int32_t);
 }
 
-size_t set80211MediumTLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t set80211MediumTLV(void *buffer, size_t offset, void *networkInterface){
     generic_tlv_t *mediumTlv = (generic_tlv_t *) (buffer + offset);
     mediumTlv->TLVType = tlv_ifType;
     mediumTlv->TLVLength = sizeof(uint32_t);
@@ -417,14 +417,14 @@ size_t set80211MediumTLV(void *buffer, uint64_t offset, void *networkInterface){
     return sizeof(generic_tlv_t) + sizeof(uint32_t);
 }
 
-size_t setAPAssociationTableTLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t setAPAssociationTableTLV(void *buffer, size_t offset, void *networkInterface){
     return 0;
 }
 
-size_t setRepeaterAPLineageTLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t setRepeaterAPLineageTLV(void *buffer, size_t offset, void *networkInterface){
     return 0;
 }
 
-size_t setRepeaterAPTableTLV(void *buffer, uint64_t offset, void *networkInterface){
+size_t setRepeaterAPTableTLV(void *buffer, size_t offset, void *networkInterface){
     return 0;
 }
