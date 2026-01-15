@@ -25,12 +25,24 @@ static uint64_t lltd_now_ms(void) {
     return lltd_monotonic_milliseconds();
 }
 
+static char lltd_hex_digit(uint8_t value) {
+    value &= 0x0Fu;
+    return (value < 10u) ? (char)('0' + value) : (char)('a' + (value - 10u));
+}
+
 static void format_mac_str(const uint8_t *mac, char *out, size_t out_len) {
-    if (!out || out_len < 18) {
+    if (!mac || !out || out_len < 18) {
         return;
     }
-    snprintf(out, out_len, "%02x:%02x:%02x:%02x:%02x:%02x",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    size_t pos = 0;
+    for (size_t i = 0; i < 6; i++) {
+        out[pos++] = lltd_hex_digit((uint8_t)(mac[i] >> 4));
+        out[pos++] = lltd_hex_digit(mac[i]);
+        if (i != 5) {
+            out[pos++] = ':';
+        }
+    }
+    out[pos] = '\0';
 }
 
 static void log_lltd_frame(const char *direction,
