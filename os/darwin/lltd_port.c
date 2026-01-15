@@ -1,5 +1,7 @@
 #include "../../lltdResponder/lltdPort.h"
 
+#include "../daemon/lltdDaemon.h"
+
 #include <mach/mach_time.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -82,4 +84,242 @@ uint64_t lltd_port_monotonic_seconds(void) {
 
 uint64_t lltd_port_monotonic_milliseconds(void) {
     return lltd_mach_now_ns() / 1000000ULL;
+}
+
+size_t lltd_port_get_hostname(void *dst, size_t dst_len) {
+    if (!dst || dst_len == 0) {
+        return 0;
+    }
+
+    char *hostname = NULL;
+    size_t hostname_len = 0;
+    getMachineName(&hostname, &hostname_len);
+
+    if (!hostname || hostname_len == 0) {
+        free(hostname);
+        return 0;
+    }
+
+    if (hostname_len > dst_len) {
+        hostname_len = dst_len;
+    }
+    memcpy(dst, hostname, hostname_len);
+    free(hostname);
+    return hostname_len;
+}
+
+size_t lltd_port_get_support_url(void *dst, size_t dst_len) {
+    if (!dst || dst_len == 0) {
+        return 0;
+    }
+
+    void *url = NULL;
+    size_t url_len = 0;
+    getSupportInfo(&url, &url_len);
+
+    if (!url || url_len == 0) {
+        free(url);
+        return 0;
+    }
+
+    if (url_len > dst_len) {
+        url_len = dst_len;
+    }
+    memcpy(dst, url, url_len);
+    free(url);
+    return url_len;
+}
+
+int lltd_port_get_upnp_uuid(uint8_t out_uuid[16]) {
+    if (!out_uuid) {
+        return -1;
+    }
+
+    void *uuid = NULL;
+    getUpnpUuid(&uuid);
+    if (!uuid) {
+        return -1;
+    }
+
+    memcpy(out_uuid, uuid, 16);
+    free(uuid);
+    return 0;
+}
+
+size_t lltd_port_get_hw_id(void *dst, size_t dst_len) {
+    if (!dst || dst_len == 0) {
+        return 0;
+    }
+
+    uint8_t hwid[64];
+    memset(hwid, 0, sizeof(hwid));
+    getHwId(hwid);
+
+    size_t len = 0;
+    for (size_t i = 0; i + 1 < sizeof(hwid); i += 2) {
+        if (hwid[i] != 0 || hwid[i + 1] != 0) {
+            len = i + 2;
+        }
+    }
+
+    if (len > dst_len) {
+        len = dst_len;
+    }
+    memcpy(dst, hwid, len);
+    return len;
+}
+
+int lltd_port_get_mac_address(void *iface_ctx, ethernet_address_t *out_mac) {
+    if (!iface_ctx || !out_mac) {
+        return -1;
+    }
+    const network_interface_t *iface = (const network_interface_t *)iface_ctx;
+    memcpy(out_mac->a, iface->macAddress, sizeof(out_mac->a));
+    return 0;
+}
+
+uint32_t lltd_port_get_characteristics_flags(void *iface_ctx) {
+    uint16_t flags = 0;
+    if (getIfCharacteristics(&flags, iface_ctx)) {
+        return flags;
+    }
+    return 0;
+}
+
+int lltd_port_get_if_type(void *iface_ctx, uint32_t *out_if_type) {
+    if (!out_if_type) {
+        return -1;
+    }
+    uint32_t ifType = 0;
+    if (!getIfIANAType(&ifType, iface_ctx)) {
+        *out_if_type = 0;
+        return -1;
+    }
+    *out_if_type = ifType;
+    return 0;
+}
+
+int lltd_port_get_ipv4_address(void *iface_ctx, uint32_t *out_ipv4_be) {
+    if (!out_ipv4_be) {
+        return -1;
+    }
+    uint32_t ipv4 = 0;
+    if (!getIfIPv4info(&ipv4, iface_ctx)) {
+        *out_ipv4_be = 0;
+        return -1;
+    }
+    *out_ipv4_be = ipv4;
+    return 0;
+}
+
+int lltd_port_get_ipv6_address(void *iface_ctx, uint8_t out_ipv6[16]) {
+    if (!out_ipv6) {
+        return -1;
+    }
+    struct in6_addr ipv6;
+    memset(&ipv6, 0, sizeof(ipv6));
+    if (!getIfIPv6info(&ipv6, iface_ctx)) {
+        memset(out_ipv6, 0, 16);
+        return -1;
+    }
+    memcpy(out_ipv6, &ipv6, 16);
+    return 0;
+}
+
+int lltd_port_get_link_speed_100bps(void *iface_ctx, uint32_t *out_speed_100bps) {
+    if (!iface_ctx || !out_speed_100bps) {
+        return -1;
+    }
+    const network_interface_t *iface = (const network_interface_t *)iface_ctx;
+    *out_speed_100bps = (uint32_t)(iface->LinkSpeed / 100ULL);
+    return 0;
+}
+
+int lltd_port_get_wifi_mode(void *iface_ctx, uint8_t *out_mode) {
+    if (!out_mode) {
+        return -1;
+    }
+    uint8_t mode = 0;
+    if (!WgetWirelessMode(&mode, iface_ctx)) {
+        *out_mode = 0;
+        return -1;
+    }
+    *out_mode = mode;
+    return 0;
+}
+
+int lltd_port_get_bssid(void *iface_ctx, uint8_t out_bssid[6]) {
+    if (!out_bssid) {
+        return -1;
+    }
+    void *bssid = NULL;
+    if (!WgetIfBSSID(&bssid, iface_ctx) || !bssid) {
+        memset(out_bssid, 0, 6);
+        free(bssid);
+        return -1;
+    }
+    memcpy(out_bssid, bssid, 6);
+    free(bssid);
+    return 0;
+}
+
+size_t lltd_port_get_ssid(void *iface_ctx, void *dst, size_t dst_len) {
+    if (!dst || dst_len == 0) {
+        return 0;
+    }
+
+    char *ssid = NULL;
+    size_t ssid_len = 0;
+    if (!WgetIfSSID(&ssid, &ssid_len, iface_ctx) || !ssid || ssid_len == 0) {
+        free(ssid);
+        return 0;
+    }
+
+    if (ssid_len > dst_len) {
+        ssid_len = dst_len;
+    }
+    memcpy(dst, ssid, ssid_len);
+    free(ssid);
+    return ssid_len;
+}
+
+int lltd_port_get_wifi_max_rate_0_5mbps(void *iface_ctx, uint16_t *out_units_0_5mbps) {
+    if (!out_units_0_5mbps) {
+        return -1;
+    }
+    uint32_t rateMbps = 0;
+    if (!WgetIfMaxRate(&rateMbps, iface_ctx)) {
+        *out_units_0_5mbps = 0;
+        return -1;
+    }
+    uint32_t units = rateMbps * 2U;
+    if (units > 0xFFFFu) {
+        units = 0xFFFFu;
+    }
+    *out_units_0_5mbps = (uint16_t)units;
+    return 0;
+}
+
+int lltd_port_get_wifi_rssi_dbm(void *iface_ctx, int8_t *out_rssi_dbm) {
+    if (!out_rssi_dbm) {
+        return -1;
+    }
+    if (!WgetIfRSSI(out_rssi_dbm, iface_ctx)) {
+        *out_rssi_dbm = 0;
+        return -1;
+    }
+    return 0;
+}
+
+int lltd_port_get_wifi_phy_medium(void *iface_ctx, uint32_t *out_phy_medium) {
+    if (!out_phy_medium) {
+        return -1;
+    }
+    uint32_t medium = 0;
+    if (!WgetIfPhyMedium(&medium, iface_ctx)) {
+        *out_phy_medium = 0;
+        return -1;
+    }
+    *out_phy_medium = medium;
+    return 0;
 }

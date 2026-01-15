@@ -8,15 +8,16 @@
  *                                                                            *
  ******************************************************************************/
 
-#ifndef LLTDd_tlv_ops_h
-#define LLTDd_tlv_ops_h
+#ifndef LLTD_RESPONDER_TLV_OPS_H
+#define LLTD_RESPONDER_TLV_OPS_H
 
-#include "../../lltdResponder/lltdWire.h"
+#include <stddef.h>
+
+#include "lltdProtocol.h"
 
 size_t setHostnameTLV            (void *buffer, size_t offset);
 size_t setPerfCounterTLV         (void *buffer, size_t offset);
 size_t setIconImageTLV           (void *buffer, size_t offset);
-size_t setMachineNameTLV         (void *buffer, size_t offset);
 size_t setSupportInfoTLV         (void *buffer, size_t offset);
 size_t setFriendlyNameTLV        (void *buffer, size_t offset);
 size_t setUuidTLV                (void *buffer, size_t offset);
@@ -25,21 +26,21 @@ size_t setQosCharacteristicsTLV  (void *buffer, size_t offset);
 size_t setDetailedIconTLV        (void *buffer, size_t offset);
 size_t setComponentTableTLV      (void *buffer, size_t offset);
 size_t setEndOfPropertyTLV       (void *buffer, size_t offset);
-size_t setWirelessTLV            (void *buffer, size_t offset, void *networkInterface);
+size_t setWirelessTLV            (void *buffer, size_t offset, void *iface_ctx);
 size_t setComponentTable         (void *buffer, size_t offset);
-size_t setBSSIDTLV               (void *buffer, size_t offset, void *networkInterface);
-size_t setSSIDTLV                (void *buffer, size_t offset, void *networkInterface);
-size_t setWifiMaxRateTLV         (void *buffer, size_t offset, void *networkInterface);
-size_t setWifiRssiTLV            (void *buffer, size_t offset, void *networkInterface);
-size_t set80211MediumTLV         (void *buffer, size_t offset, void *networkInterface);
-size_t setAPAssociationTableTLV  (void *buffer, size_t offset, void *networkInterface);
-size_t setRepeaterAPLineageTLV   (void *buffer, size_t offset, void *networkInterface);
-size_t setRepeaterAPTableTLV     (void *buffer, size_t offset, void *networkInterface);
-size_t setHostIdTLV              (void *buffer, size_t offset, void *networkInterface);
-size_t setCharacteristicsTLV     (void *buffer, size_t offset, void *networkInterface);
-size_t setPhysicalMediumTLV      (void *buffer, size_t offset, void *networkInterface);
-size_t setIPv4TLV                (void *buffer, size_t offset, void *networkInterface);
-size_t setIPv6TLV                (void *buffer, size_t offset, void *networkInterface);
-size_t setLinkSpeedTLV           (void *buffer, size_t offset, void *networkInterface);
+size_t setBSSIDTLV               (void *buffer, size_t offset, void *iface_ctx);
+size_t setSSIDTLV                (void *buffer, size_t offset, void *iface_ctx);
+size_t setWifiMaxRateTLV         (void *buffer, size_t offset, void *iface_ctx);
+size_t setWifiRssiTLV            (void *buffer, size_t offset, void *iface_ctx);
+size_t set80211MediumTLV         (void *buffer, size_t offset, void *iface_ctx);
+size_t setAPAssociationTableTLV  (void *buffer, size_t offset, void *iface_ctx);
+size_t setRepeaterAPLineageTLV   (void *buffer, size_t offset, void *iface_ctx);
+size_t setRepeaterAPTableTLV     (void *buffer, size_t offset, void *iface_ctx);
+size_t setHostIdTLV              (void *buffer, size_t offset, void *iface_ctx);
+size_t setCharacteristicsTLV     (void *buffer, size_t offset, void *iface_ctx);
+size_t setPhysicalMediumTLV      (void *buffer, size_t offset, void *iface_ctx);
+size_t setIPv4TLV                (void *buffer, size_t offset, void *iface_ctx);
+size_t setIPv6TLV                (void *buffer, size_t offset, void *iface_ctx);
+size_t setLinkSpeedTLV           (void *buffer, size_t offset, void *iface_ctx);
 
 #endif

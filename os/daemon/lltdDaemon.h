@@ -50,7 +50,7 @@
     #include "../darwin/daemon/darwin-ops.h"
     #include "../../lltdResponder/msIcoFormat.h"
     #include "lltdBlock.h"
-    #include "lltdTlvOps.h"
+    #include "../../lltdResponder/lltdTlvOps.h"
     #include "../../lltdResponder/lltdAutomata.h"
     #define log_debug(x, ...)   asl_log(globalInfo.asl, globalInfo.log_msg, ASL_LEVEL_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
     #define log_info(x, ...)    asl_log(globalInfo.asl, globalInfo.log_msg, ASL_LEVEL_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
@@ -97,7 +97,7 @@
     #include "../linux/daemon/linux-main.h"
     #include "../linux/daemon/linux-ops.h"
     #include "lltdBlock.h"
-    #include "lltdTlvOps.h"
+    #include "../../lltdResponder/lltdTlvOps.h"
     #include "../../lltdResponder/lltdAutomata.h"
     #define  MYPROTO NETLINK_ROUTE
     #define  MYMGRP RTMGRP_IPV4_ROUTE
@@ -162,7 +162,7 @@
     #include "../freebsd/daemon/freebsd-main.h"
     #include "../freebsd/daemon/freebsd-ops.h"
     #include "lltdBlock.h"
-    #include "lltdTlvOps.h"
+    #include "../../lltdResponder/lltdTlvOps.h"
     #include "../../lltdResponder/lltdAutomata.h"
     #define log_debug(x, ...)   syslog(LOG_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
     #define log_info(x, ...)    syslog(LOG_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
@@ -188,7 +188,7 @@
     #include "../esxi/daemon/esxi-main.h"
     #include "../esxi/daemon/esxi-ops.h"
     #include "lltdBlock.h"
-    #include "lltdTlvOps.h"
+    #include "../../lltdResponder/lltdTlvOps.h"
     #include "../../lltdResponder/lltdAutomata.h"
     #define log_debug(x, ...)   syslog(LOG_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
     #define log_info(x, ...)    syslog(LOG_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
@@ -216,7 +216,7 @@
     #include "../sunos/daemon/sunos-main.h"
     #include "../sunos/daemon/sunos-ops.h"
     #include "lltdBlock.h"
-    #include "lltdTlvOps.h"
+    #include "../../lltdResponder/lltdTlvOps.h"
     #include "../../lltdResponder/lltdAutomata.h"
     #define log_debug(x, ...)   syslog(LOG_DEBUG,   "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
     #define log_info(x, ...)    syslog(LOG_INFO,    "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
@@ -236,7 +236,7 @@
     #include "../beos/daemon/beos-main.h"
     #include "../beos/daemon/beos-ops.h"
     #include "lltdBlock.h"
-    #include "lltdTlvOps.h"
+    #include "../../lltdResponder/lltdTlvOps.h"
     #include "../../lltdResponder/lltdAutomata.h"
     #define log_debug(x, ...)   fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
     #define log_info(x, ...)    fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
@@ -259,7 +259,7 @@
     #include "../windows/win32-user/windows-main.h"
     #include "../windows/win32-user/windows-ops.h"
     #include "lltdBlock.h"
-    #include "lltdTlvOps.h"
+    #include "../../lltdResponder/lltdTlvOps.h"
     #include "../../lltdResponder/lltdAutomata.h"
     #define log_debug(x, ...)   fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)
     #define log_info(x, ...)    fprintf(stderr, "%s(): " x "\n", __FUNCTION__, ##__VA_ARGS__)

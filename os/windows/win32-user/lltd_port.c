@@ -70,3 +70,124 @@ uint64_t lltd_port_monotonic_seconds(void) {
 uint64_t lltd_port_monotonic_milliseconds(void) {
     return (uint64_t)GetTickCount64();
 }
+
+size_t lltd_port_get_hostname(void *dst, size_t dst_len) {
+    if (!dst || dst_len == 0) {
+        return 0;
+    }
+    DWORD len = (DWORD)dst_len;
+    if (!GetComputerNameA((LPSTR)dst, &len)) {
+        return 0;
+    }
+    return (size_t)len;
+}
+
+size_t lltd_port_get_support_url(void *dst, size_t dst_len) {
+    static const char url[] = "https://example.invalid/support";
+    if (!dst || dst_len == 0) {
+        return 0;
+    }
+    size_t len = sizeof(url) - 1;
+    if (len > dst_len) {
+        len = dst_len;
+    }
+    memcpy(dst, url, len);
+    return len;
+}
+
+int lltd_port_get_upnp_uuid(uint8_t out_uuid[16]) {
+    (void)out_uuid;
+    return -1;
+}
+
+size_t lltd_port_get_hw_id(void *dst, size_t dst_len) {
+    (void)dst;
+    (void)dst_len;
+    return 0;
+}
+
+int lltd_port_get_mac_address(void *iface_ctx, ethernet_address_t *out_mac) {
+    (void)iface_ctx;
+    (void)out_mac;
+    return -1;
+}
+
+uint32_t lltd_port_get_characteristics_flags(void *iface_ctx) {
+    (void)iface_ctx;
+    return 0;
+}
+
+int lltd_port_get_if_type(void *iface_ctx, uint32_t *out_if_type) {
+    (void)iface_ctx;
+    if (out_if_type) {
+        *out_if_type = 0;
+    }
+    return -1;
+}
+
+int lltd_port_get_ipv4_address(void *iface_ctx, uint32_t *out_ipv4_be) {
+    (void)iface_ctx;
+    if (out_ipv4_be) {
+        *out_ipv4_be = 0;
+    }
+    return -1;
+}
+
+int lltd_port_get_ipv6_address(void *iface_ctx, uint8_t out_ipv6[16]) {
+    (void)iface_ctx;
+    if (out_ipv6) {
+        memset(out_ipv6, 0, 16);
+    }
+    return -1;
+}
+
+int lltd_port_get_link_speed_100bps(void *iface_ctx, uint32_t *out_speed_100bps) {
+    (void)iface_ctx;
+    if (out_speed_100bps) {
+        *out_speed_100bps = 0;
+    }
+    return -1;
+}
+
+int lltd_port_get_wifi_mode(void *iface_ctx, uint8_t *out_mode) {
+    (void)iface_ctx;
+    (void)out_mode;
+    return -1;
+}
+
+int lltd_port_get_bssid(void *iface_ctx, uint8_t out_bssid[6]) {
+    (void)iface_ctx;
+    (void)out_bssid;
+    return -1;
+}
+
+size_t lltd_port_get_ssid(void *iface_ctx, void *dst, size_t dst_len) {
+    (void)iface_ctx;
+    (void)dst;
+    (void)dst_len;
+    return 0;
+}
+
+int lltd_port_get_wifi_max_rate_0_5mbps(void *iface_ctx, uint16_t *out_units_0_5mbps) {
+    (void)iface_ctx;
+    if (out_units_0_5mbps) {
+        *out_units_0_5mbps = 0;
+    }
+    return -1;
+}
+
+int lltd_port_get_wifi_rssi_dbm(void *iface_ctx, int8_t *out_rssi_dbm) {
+    (void)iface_ctx;
+    if (out_rssi_dbm) {
+        *out_rssi_dbm = 0;
+    }
+    return -1;
+}
+
+int lltd_port_get_wifi_phy_medium(void *iface_ctx, uint32_t *out_phy_medium) {
+    (void)iface_ctx;
+    if (out_phy_medium) {
+        *out_phy_medium = 0;
+    }
+    return -1;
+}
