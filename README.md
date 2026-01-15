@@ -12,12 +12,6 @@ It does not yet implement the WiFi elements since linking to CoreWLAN is a bit m
 
 On Linux there are two paths: a systemd/NetworkManager-backed daemon (journald logging, NetworkManager interface discovery), and a minimal embedded UAPI path that uses classic sockets and /dev/console logging.
 
-The LLTD codebase is now organized by platform under `lltdDaemon/`:
-* `darwin/` – macOS implementation and LaunchD plist
-* `linux/` – systemd/NetworkManager daemon and embedded Linux main
-* `freebsd/` – BPF-based draft implementation
-* `sunos/` – draft implementation (backend TODO)
-* `beos/` – draft implementation (backend TODO)
-* `esp32/` – reusable ESP32 library with build-time icon data
-* `esxi/` – ESXi userworld draft based on Linux flow
-* `windows/` – Windows draft shared across Win16/Win9x/WinNT/2000
+The LLTD codebase is organized as:
+* `lltdResponder/` – OS-agnostic protocol core (guardrailed by CI)
+* `os/` – OS-specific integrations (daemons, ports, and Windows variants)

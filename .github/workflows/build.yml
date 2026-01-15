@@ -22,6 +22,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint-core:
+    name: lint-core
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Guardrails: core must be OS-agnostic"
+        run: bash scripts/lint_core_no_os_conditionals.sh
+
   test:
     name: test-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -107,7 +117,7 @@ jobs:
         run: |
           set -euo pipefail
           make coverage
-          gcov -o . lltdDaemon/lltdTlvOps.c
+          gcov -o . os/daemon/lltdTlvOps.c
 
       - name: Collect coverage artifacts
         run: |
@@ -120,22 +130,6 @@ jobs:
         with:
           name: lltd-coverage
           path: coverage-artifacts
-
-  build:
-    name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run unit tests
-        run: |
-          set -euo pipefail
-          make test
 
   integration-tests:
     name: integration-tests-linux
@@ -265,15 +259,9 @@ jobs:
 
       - name: Build (macOS)
         if: runner.os == 'macOS'
-        env:
-          CC: ccache clang
-          CXX: ccache clang++
         run: |
           set -euo pipefail
-          xcodebuild -project lltdDaemon.xcodeproj \
-            -target lltdDaemon \
-            -configuration ${{ matrix.build_type }} \
-            -derivedDataPath build
+          LLTD_CONFIGURATION=${{ matrix.build_type }} bash scripts/macos-build.sh
 
       - name: Package artifact
         run: |
@@ -284,6 +272,9 @@ jobs:
             aarch64|arm64) ARCH=arm64 ;;
             *) ARCH=$ARCH_RAW ;;
           esac
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            ARCH=universal2
+          fi
           case "${{ matrix.backend }}" in
             linux-systemd) OS_NAME=linux-systemd ;;
             linux-embedded) OS_NAME=linux-embedded ;;
@@ -294,22 +285,43 @@ jobs:
           if [ "${{ matrix.build_type }}" = "Debug" ]; then
             DEBUG_SUFFIX="-debug"
           fi
-          ARTIFACT_NAME="lltdDaemon-${OS_NAME}-${ARCH}${DEBUG_SUFFIX}"
+          ARTIFACT_NAME="lltdResponder-${OS_NAME}-${{ matrix.compiler }}-${ARCH}${DEBUG_SUFFIX}"
           BIN_NAME="${ARTIFACT_NAME}.raw"
           mkdir -p dist
           if [ "${{ runner.os }}" = "Linux" ]; then
-            if [ ! -f lltdDaemon ]; then
+            if [ ! -f build/lltdResponder ]; then
               echo "Binary not found" >&2
               exit 1
             fi
-            cp lltdDaemon "dist/${BIN_NAME}"
+            cp build/lltdResponder "dist/${BIN_NAME}"
           else
-            BIN_PATH="build/Build/Products/${{ matrix.build_type }}/lltdDaemon"
-            if [ ! -f "$BIN_PATH" ]; then
-              echo "Binary not found at $BIN_PATH" >&2
+            SRC_DIR="dist/macos/universal2"
+            SRC_PATH=""
+            if [ -f "${SRC_DIR}/lltdResponder" ]; then
+              SRC_PATH="${SRC_DIR}/lltdResponder"
+            elif [ -f "${SRC_DIR}/lltdDaemon" ]; then
+              SRC_PATH="${SRC_DIR}/lltdDaemon"
+            else
+              APP_CANDIDATE=$(ls -1 "${SRC_DIR}"/*.app 2>/dev/null | head -n 1 || true)
+              if [ -n "${APP_CANDIDATE}" ]; then
+                SRC_PATH="${APP_CANDIDATE}"
+              else
+                FIRST_ENTRY=$(ls -1 "${SRC_DIR}" 2>/dev/null | head -n 1 || true)
+                if [ -n "${FIRST_ENTRY}" ]; then
+                  SRC_PATH="${SRC_DIR}/${FIRST_ENTRY}"
+                fi
+              fi
+            fi
+            if [ -z "${SRC_PATH}" ] || [ ! -e "${SRC_PATH}" ]; then
+              echo "macOS build output not found in ${SRC_DIR}" >&2
+              ls -la "${SRC_DIR}" || true
               exit 1
             fi
-            cp "$BIN_PATH" "dist/${BIN_NAME}"
+            if [ -d "${SRC_PATH}" ]; then
+              cp -R "${SRC_PATH}" "dist/${BIN_NAME}"
+            else
+              cp "${SRC_PATH}" "dist/${BIN_NAME}"
+            fi
           fi
           tar -czf "dist/${ARTIFACT_NAME}.tar.gz" -C dist "${BIN_NAME}"
           echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> "$GITHUB_ENV"

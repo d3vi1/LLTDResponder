@@ -2,9 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PROJECT="$ROOT_DIR/lltdDaemon.xcodeproj"
+PROJECT="$ROOT_DIR/lltdResponder.xcodeproj"
 SCHEME="${LLTD_SCHEME:-}"
-TARGET="${LLTD_TARGET:-lltdDaemon}"
+TARGET="${LLTD_TARGET:-lltdResponder}"
 CONFIGURATION="${LLTD_CONFIGURATION:-Release}"
 
 function build_flags() {

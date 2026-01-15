@@ -2,9 +2,20 @@ name: ci
 
 on:
   push:
+    branches: [main, master]
   pull_request:
 
 jobs:
+  lint-core:
+    name: lint-core
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Guardrails: core must be OS-agnostic"
+        run: bash scripts/lint_core_no_os_conditionals.sh
+
   openwatcom:
     name: openwatcom-win16-win9x
     runs-on: ubuntu-24.04

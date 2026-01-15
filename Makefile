@@ -1,10 +1,12 @@
 #!/usr/bin/make -f
 
-CC     := gcc
+CC     ?= gcc
 CFLAGS += -Wall -Wextra
 
+BIN_NAME ?= build/lltdResponder
+
 TEST_DIR := build/tests
-TEST_CFLAGS := $(CFLAGS) -IlltdDaemon -DLLTD_TESTING
+TEST_CFLAGS := $(CFLAGS) -Itests -Ios/daemon -DLLTD_TESTING
 TEST_LDFLAGS :=
 
 ifneq ($(SANITIZE),)
@@ -19,25 +21,30 @@ endif
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
-	CFLAGS += -D LINUX
-	PLATFORM ?= linux-systemd
-	ifeq ($(PLATFORM),linux-systemd)
-		LLTD_SRC_FILES = lltdDaemon/linux/linux-main.c \
-			lltdDaemon/linux/linux-ops.c \
-			lltdDaemon/lltdBlock.c \
-			lltdDaemon/lltdTlvOps.c \
-			lltdDaemon/lltdAutomata.c
-		LLTD_CFLAGS += -DLLTD_BACKEND_SYSTEMD -DLLTD_USE_SYSTEMD
-		LLTD_LDFLAGS += -lsystemd
-	else ifeq ($(PLATFORM),linux-embedded)
-		LLTD_SRC_FILES = lltdDaemon/linux/linux-embedded-main.c \
-			lltdDaemon/lltdBlock.c \
-			lltdDaemon/lltdTlvOps.c \
-			lltdDaemon/lltdAutomata.c
-		LLTD_CFLAGS += -DLLTD_BACKEND_EMBEDDED -DLLTD_USE_CONSOLE
-	else
-		$(error Unsupported PLATFORM '$(PLATFORM)'; use linux-systemd or linux-embedded)
-	endif
+    CFLAGS += -D LINUX
+    PLATFORM ?= linux-systemd
+    ifeq ($(PLATFORM),linux-systemd)
+        LLTD_SRC_FILES = os/linux/daemon/linux-main.c \
+            os/linux/daemon/linux-ops.c \
+            os/daemon/lltdBlock.c \
+            os/daemon/lltdTlvOps.c \
+            lltdResponder/lltdAutomata.c \
+            lltdResponder/lltdWire.c \
+            os/linux/lltd_port.c
+        LLTD_CFLAGS += -DLLTD_BACKEND_SYSTEMD -DLLTD_USE_SYSTEMD
+        LLTD_LDFLAGS += -lsystemd
+    else ifeq ($(PLATFORM),linux-embedded)
+        LLTD_SRC_FILES = os/linux/daemon/linux-embedded-main.c \
+            os/linux/daemon/linux-ops.c \
+            os/daemon/lltdBlock.c \
+            os/daemon/lltdTlvOps.c \
+            lltdResponder/lltdAutomata.c \
+            lltdResponder/lltdWire.c \
+            os/linux/lltd_port.c
+        LLTD_CFLAGS += -DLLTD_BACKEND_EMBEDDED -DLLTD_USE_CONSOLE
+    else
+        $(error Unsupported PLATFORM '$(PLATFORM)'; use linux-systemd or linux-embedded)
+    endif
 endif
 ifeq ($(UNAME_S),Darwin)
 	CFLAGS += -D OSX
@@ -84,30 +91,8 @@ endif
 all: $(BIN_NAME)
 
 $(BIN_NAME): $(LLTD_SRC_FILES)
+	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(LLTD_CFLAGS) -o $@ $(LLTD_SRC_FILES) $(LLTD_LDFLAGS)
-
-$(TEST_DIR):
-	mkdir -p $(TEST_DIR)
-
-TEST_SOURCES = lltdDaemon/lltdTlvOps.c tests/test_shims.c tests/test_lltd_tlv_ops.c
-
-test-unit: $(TEST_DIR)
-	$(CC) $(TEST_CFLAGS) $(TEST_SOURCES) \
-		$(TEST_LDFLAGS) -o $(TEST_DIR)/unit_tests
-	$(TEST_DIR)/unit_tests
-
-test: test-unit
-
-integration-helper: $(TEST_DIR)
-	$(CC) $(TEST_CFLAGS) lltdDaemon/lltdTlvOps.c tests/test_shims.c \
-		tests/integration/lltd_integration_smoke.c \
-		$(TEST_LDFLAGS) -o $(TEST_DIR)/lltd_integration_smoke
-
-integration-test: integration-helper
-	./tests/integration/linux_veth.sh $(TEST_DIR)/lltd_integration_smoke ./$(BIN_NAME)
-
-coverage: COVERAGE=1
-coverage: test
 
 test-check:
 	@pkg-config --exists cmocka || (echo "cmocka not found (pkg-config cmocka). Install cmocka to run tests." >&2; exit 1)
@@ -117,13 +102,13 @@ $(TEST_DIR):
 
 test-unit: test-check $(TEST_DIR)
 	$(CC) $(TEST_CFLAGS) $$(pkg-config --cflags cmocka) \
-		lltdDaemon/lltdTlvOps.c tests/test_shims.c tests/test_lltd_tlv_ops.c \
+		lltdResponder/lltdWire.c os/daemon/lltdTlvOps.c tests/test_shims.c tests/test_lltd_tlv_ops.c \
 		$(TEST_LDFLAGS) $$(pkg-config --libs cmocka) -o $(TEST_DIR)/unit_tests
 	$(TEST_DIR)/unit_tests
 
 test-integration: test-check $(TEST_DIR)
 	$(CC) $(TEST_CFLAGS) $$(pkg-config --cflags cmocka) \
-		lltdDaemon/lltdTlvOps.c tests/test_shims.c tests/test_lltd_integration.c \
+		lltdResponder/lltdWire.c os/daemon/lltdTlvOps.c tests/test_shims.c tests/test_lltd_integration.c \
 		$(TEST_LDFLAGS) $$(pkg-config --libs cmocka) -o $(TEST_DIR)/integration_tests
 	$(TEST_DIR)/integration_tests
 
@@ -135,15 +120,24 @@ test-privileged: test-check $(TEST_DIR)
 
 test: test-unit test-integration
 
+integration-helper: $(TEST_DIR)
+	$(CC) $(TEST_CFLAGS) \
+		lltdResponder/lltdWire.c os/daemon/lltdTlvOps.c tests/test_shims.c \
+		tests/integration/lltd_integration_smoke.c \
+		$(TEST_LDFLAGS) -o $(TEST_DIR)/lltd_integration_smoke
+
+integration-test: integration-helper
+	./tests/integration/linux_veth.sh $(TEST_DIR)/lltd_integration_smoke ./$(BIN_NAME)
+
 coverage: COVERAGE=1
 coverage: test
 
 clean-tests:
 	-rm -rf $(TEST_DIR)
-	-rm -f *.gcda *.gcno *.gcov lltdDaemon/*.gcda lltdDaemon/*.gcno lltdDaemon/*.gcov tests/*.gcda tests/*.gcno tests/*.gcov
+	-rm -f *.gcda *.gcno *.gcov os/daemon/*.gcda os/daemon/*.gcno os/daemon/*.gcov tests/*.gcda tests/*.gcno tests/*.gcov
 
 clean:
-	-rm -f lltdResponder
+	-rm -f $(BIN_NAME)
 	-rm -rf $(TEST_DIR)
 
 win9x-vxd:

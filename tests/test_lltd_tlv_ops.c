@@ -1,6 +1,8 @@
 #include <arpa/inet.h>
 #include <stddef.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <setjmp.h>
 
 #include <cmocka.h>
 
@@ -38,7 +40,7 @@ static void test_set_lltd_header_populates_fields(void **state) {
     assert_memory_equal(&header->frameHeader.destination, &destination, sizeof(destination));
     assert_memory_equal(&header->realSource, &source, sizeof(source));
     assert_memory_equal(&header->realDestination, &destination, sizeof(destination));
-    assert_int_equal(header->seqNumber, 0x1234);
+    assert_int_equal(header->seqNumber, htons(0x1234));
     assert_int_equal(header->opcode, opcode_probe);
     assert_int_equal(header->tos, tos_discovery);
     assert_int_equal(header->version, 1);
@@ -57,7 +59,7 @@ static void test_set_hello_header_writes_payload(void **state) {
         (lltd_hello_upper_header_t *)(buffer + sizeof(lltd_demultiplex_header_t));
     assert_memory_equal(&hello->apparentMapper, &apparent, sizeof(apparent));
     assert_memory_equal(&hello->currentMapper, &current, sizeof(current));
-    assert_int_equal(hello->generation, 0x42);
+    assert_int_equal(hello->generation, htons(0x42));
 }
 
 static void test_set_end_of_property_tlv_marks_buffer(void **state) {
@@ -92,35 +94,43 @@ static void test_set_uuid_tlv_correct_size(void **state) {
 // Test that perf counter TLV uses network byte order (big-endian)
 static void test_set_perf_counter_tlv_endianness(void **state) {
     (void)state;
-    uint8_t buffer[sizeof(generic_tlv_t) + sizeof(uint32_t)] = {0};
+    uint8_t buffer[sizeof(generic_tlv_t) + sizeof(uint64_t)] = {0};
 
     size_t written = setPerfCounterTLV(buffer, 0);
 
-    assert_int_equal(written, sizeof(generic_tlv_t) + sizeof(uint32_t));
+    assert_int_equal(written, sizeof(generic_tlv_t) + sizeof(uint64_t));
     generic_tlv_t *tlv = (generic_tlv_t *)buffer;
     assert_int_equal(tlv->TLVType, tlv_perfCounterFrequency);
-    assert_int_equal(tlv->TLVLength, sizeof(uint32_t));
+    assert_int_equal(tlv->TLVLength, sizeof(uint64_t));
 
-    // Value should be 1000000 in network byte order
-    uint32_t *value = (uint32_t *)(buffer + sizeof(generic_tlv_t));
-    assert_int_equal(*value, htonl(1000000));
+    const uint8_t *bytes = buffer + sizeof(generic_tlv_t);
+    uint64_t value =
+        ((uint64_t)bytes[0] << 56) |
+        ((uint64_t)bytes[1] << 48) |
+        ((uint64_t)bytes[2] << 40) |
+        ((uint64_t)bytes[3] << 32) |
+        ((uint64_t)bytes[4] << 24) |
+        ((uint64_t)bytes[5] << 16) |
+        ((uint64_t)bytes[6] << 8) |
+        (uint64_t)bytes[7];
+    assert_int_equal(value, 1000000ULL);
 }
 
 // Test QoS characteristics TLV uses network byte order
 static void test_set_qos_characteristics_tlv_endianness(void **state) {
     (void)state;
-    uint8_t buffer[sizeof(generic_tlv_t) + sizeof(uint16_t)] = {0};
+    uint8_t buffer[sizeof(generic_tlv_t) + sizeof(uint32_t)] = {0};
 
     size_t written = setQosCharacteristicsTLV(buffer, 0);
 
-    assert_int_equal(written, sizeof(generic_tlv_t) + sizeof(uint16_t));
+    assert_int_equal(written, sizeof(generic_tlv_t) + sizeof(uint32_t));
     generic_tlv_t *tlv = (generic_tlv_t *)buffer;
     assert_int_equal(tlv->TLVType, tlv_qos_characteristics);
-    assert_int_equal(tlv->TLVLength, sizeof(uint16_t));
+    assert_int_equal(tlv->TLVLength, sizeof(uint32_t));
 
-    uint16_t *value = (uint16_t *)(buffer + sizeof(generic_tlv_t));
-    uint16_t expected = Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN;
-    assert_int_equal(*value, htons(expected));
+    uint32_t *value = (uint32_t *)(buffer + sizeof(generic_tlv_t));
+    uint32_t expected = (uint32_t)(Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN) << 16;
+    assert_int_equal(*value, htonl(expected));
 }
 
 // Test icon image TLV has zero length (empty stub)
