@@ -9,6 +9,13 @@
 	/* Begin PBXBuildFile section */
 		C1A0D7D618E01E0900863EA1 /* lltd_wifi_iokit.c in Sources */ = {isa = PBXBuildFile; fileRef = C1A0D7D518E01E0900863EA1 /* lltd_wifi_iokit.c */; };
 		C1A0D7D618E01E0900863EA2 /* lltd_wifi_rates.c in Sources */ = {isa = PBXBuildFile; fileRef = C1A0D7D518E01E0900863EA2 /* lltd_wifi_rates.c */; };
+		B02700000000000000000031 /* LLTDResponderXCTests.m in Sources */ = {isa = PBXBuildFile; fileRef = B02700000000000000000011 /* LLTDResponderXCTests.m */; };
+		B02700000000000000000032 /* lltd_test_port.c in Sources */ = {isa = PBXBuildFile; fileRef = B02700000000000000000013 /* lltd_test_port.c */; };
+		B02700000000000000000033 /* lltdBlock.c in Sources */ = {isa = PBXBuildFile; fileRef = E53E69BE1908293B0033F651 /* lltdBlock.c */; };
+		B02700000000000000000034 /* lltdTlvOps.c in Sources */ = {isa = PBXBuildFile; fileRef = E59A5324190BEBB500CF5329 /* lltdTlvOps.c */; };
+		B02700000000000000000035 /* lltdWire.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* lltdWire.c */; };
+		B02700000000000000000041 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B02700000000000000000051 /* XCTest.framework */; };
+		B02700000000000000000042 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B02700000000000000000052 /* Foundation.framework */; };
 		E500D7D618E01E0900863EAC /* darwin-ops.c in Sources */ = {isa = PBXBuildFile; fileRef = E500D7D518E01E0900863EAC /* darwin-ops.c */; };
 		E500D7DD18E02F3900863EAC /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7DC18E02F3900863EAC /* ImageIO.framework */; };
 		E500D7E318E0427200863EAC /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E500D7E218E0427200863EAC /* CoreServices.framework */; };
@@ -29,7 +36,7 @@
 		FAD3A22919EACFF8000FB445 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0218CF4D550054B295 /* CoreWLAN.framework */; };
 		FAD3A22B19EACFF8000FB445 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BFE18CF4D4A0054B295 /* IOKit.framework */; };
 		FAD3A22C19EACFF8000FB445 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
-			FAD3A22E19EACFF8000FB445 /* lltdResponder.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59E8BF918CF4D250054B295 /* lltdResponder.1 */; };
+				FAD3A22E19EACFF8000FB445 /* lltdResponder.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59E8BF918CF4D250054B295 /* lltdResponder.1 */; };
 		FAD3A23419EAD02E000FB445 /* main_autom.c in Sources */ = {isa = PBXBuildFile; fileRef = FAD3A21E19EACF76000FB445 /* main_autom.c */; };
 /* End PBXBuildFile section */
 
@@ -57,6 +64,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 	/* Begin PBXFileReference section */
+			B02700000000000000000011 /* LLTDResponderXCTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LLTDResponderXCTests.m; path = tests/xcode/LLTDResponderXCTests.m; sourceTree = SOURCE_ROOT; };
+			B02700000000000000000012 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = tests/xcode/Info.plist; sourceTree = SOURCE_ROOT; };
+			B02700000000000000000013 /* lltd_test_port.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltd_test_port.c; path = tests/lltd_test_port.c; sourceTree = SOURCE_ROOT; };
+			B02700000000000000000014 /* lltdTestShim.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lltdTestShim.h; path = tests/lltdTestShim.h; sourceTree = SOURCE_ROOT; };
+			B02700000000000000000020 /* lltdResponderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = lltdResponderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B02700000000000000000051 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
+		B02700000000000000000052 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 			C1A0D7D518E01E0900863EA1 /* lltd_wifi_iokit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "lltd_wifi_iokit.c"; path = "os/darwin/daemon/lltd_wifi_iokit.c"; sourceTree = SOURCE_ROOT; };
 			C1A0D7D518E01E0900863EA2 /* lltd_wifi_rates.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "lltd_wifi_rates.c"; path = "os/darwin/daemon/lltd_wifi_rates.c"; sourceTree = SOURCE_ROOT; };
 			C1A0D7D518E01E0900863EA3 /* lltd_wifi_corewlan.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "lltd_wifi_corewlan.h"; path = "os/darwin/daemon/lltd_wifi_corewlan.h"; sourceTree = SOURCE_ROOT; };
@@ -91,7 +105,7 @@
 			FAD3A21E19EACF76000FB445 /* main_autom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main_autom.c; path = tools/automata/main_autom.c; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
-/* Begin PBXFrameworksBuildPhase section */
+	/* Begin PBXFrameworksBuildPhase section */
 		E59E8BF018CF4D250054B295 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -117,6 +131,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B02700000000000000000061 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B02700000000000000000041 /* XCTest.framework in Frameworks */,
+				B02700000000000000000042 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -125,15 +148,28 @@
 			children = (
 				E5E475591C6B7E850054AC33 /* distribution.xml */,
 				E59E8BF618CF4D250054B295 /* lltdDaemon */,
+				B02700000000000000000010 /* Tests */,
 				E52240FA18CF0CA200DD9E2F /* Frameworks */,
 				E52240F918CF0CA200DD9E2F /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		B02700000000000000000010 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				B02700000000000000000011 /* LLTDResponderXCTests.m */,
+				B02700000000000000000012 /* Info.plist */,
+				B02700000000000000000013 /* lltd_test_port.c */,
+				B02700000000000000000014 /* lltdTestShim.h */,
+			);
+			name = Tests;
 			sourceTree = "<group>";
 		};
 		E52240F918CF0CA200DD9E2F /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				E59E8BF318CF4D250054B295 /* lltdDaemon */,
+				B02700000000000000000020 /* lltdResponderTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -147,6 +183,8 @@
 				E59E8C0218CF4D550054B295 /* CoreWLAN.framework */,
 				E59E8BFE18CF4D4A0054B295 /* IOKit.framework */,
 				E59E8BF418CF4D250054B295 /* CoreFoundation.framework */,
+				B02700000000000000000052 /* Foundation.framework */,
+				B02700000000000000000051 /* XCTest.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -184,7 +222,7 @@
 			};
 /* End PBXGroup section */
 
-/* Begin PBXNativeTarget section */
+	/* Begin PBXNativeTarget section */
 		E59E8BF218CF4D250054B295 /* lltdDaemon */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E59E8BFD18CF4D250054B295 /* Build configuration list for PBXNativeTarget "lltdDaemon" */;
@@ -200,6 +238,21 @@
 			name = lltdResponder;
 			productReference = E59E8BF318CF4D250054B295 /* lltdDaemon */;
 			productType = "com.apple.product-type.tool";
+		};
+		B02700000000000000000070 /* lltdResponderTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B02700000000000000000080 /* Build configuration list for PBXNativeTarget "lltdResponderTests" */;
+			buildPhases = (
+				B02700000000000000000062 /* Sources */,
+				B02700000000000000000061 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = lltdResponderTests;
+			productReference = B02700000000000000000020 /* lltdResponderTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		FAD3A21F19EACFF8000FB445 /* automata */ = {
 			isa = PBXNativeTarget;
@@ -238,6 +291,7 @@
 			projectRoot = "";
 			targets = (
 				E59E8BF218CF4D250054B295 /* lltdDaemon */,
+				B02700000000000000000070 /* lltdResponderTests */,
 				FAD3A21F19EACFF8000FB445 /* automata */,
 			);
 		};
@@ -260,6 +314,18 @@
 					);
 				runOnlyForDeploymentPostprocessing = 0;
 			};
+		B02700000000000000000062 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B02700000000000000000031 /* LLTDResponderXCTests.m in Sources */,
+				B02700000000000000000032 /* lltd_test_port.c in Sources */,
+				B02700000000000000000033 /* lltdBlock.c in Sources */,
+				B02700000000000000000034 /* lltdTlvOps.c in Sources */,
+				B02700000000000000000035 /* lltdWire.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		FAD3A22019EACFF8000FB445 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -270,7 +336,7 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
-/* Begin XCBuildConfiguration section */
+	/* Begin XCBuildConfiguration section */
 		E522410618CF0CA200DD9E2F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -351,9 +417,41 @@
 			};
 			name = Release;
 		};
+		B02700000000000000000081 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/lltdResponder",
+					"$(SRCROOT)/tests",
+				);
+				INFOPLIST_FILE = tests/xcode/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				PRODUCT_BUNDLE_IDENTIFIER = net.shmessenger.lltdResponderTests;
+				PRODUCT_NAME = lltdResponderTests;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		B02700000000000000000082 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/lltdResponder",
+					"$(SRCROOT)/tests",
+				);
+				INFOPLIST_FILE = tests/xcode/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				PRODUCT_BUNDLE_IDENTIFIER = net.shmessenger.lltdResponderTests;
+				PRODUCT_NAME = lltdResponderTests;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
-/* Begin XCConfigurationList section */
+	/* Begin XCConfigurationList section */
 		E52240F318CF0CA200DD9E2F /* Build configuration list for PBXProject "lltdDaemon" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -377,6 +475,15 @@
 			buildConfigurations = (
 				FAD3A23019EACFF8000FB445 /* Debug */,
 				FAD3A23119EACFF8000FB445 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B02700000000000000000080 /* Build configuration list for PBXNativeTarget "lltdResponderTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B02700000000000000000081 /* Debug */,
+				B02700000000000000000082 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

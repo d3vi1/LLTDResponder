@@ -1,4 +1,3 @@
-#include <arpa/inet.h>
 #include <errno.h>
 #ifdef __linux__
 #include <linux/if_ether.h>
@@ -15,14 +14,15 @@
 #include <unistd.h>
 
 #include "lltdTestShim.h"
-#include "lltdTlvOps.h"
+#include "lltdEndian.h"
+#include "lltdWire.h"
 
 #ifndef ETH_ALEN
 #define ETH_ALEN 6
 #endif
 
 static int open_bound_socket(const char *ifname, struct sockaddr_ll *addr) {
-    int fd = socket(AF_PACKET, SOCK_RAW, htons(lltdEtherType));
+    int fd = socket(AF_PACKET, SOCK_RAW, lltd_htons(lltdEtherType));
     if (fd < 0) {
         perror("socket");
         return -1;
@@ -30,7 +30,7 @@ static int open_bound_socket(const char *ifname, struct sockaddr_ll *addr) {
 
     memset(addr, 0, sizeof(*addr));
     addr->sll_family = AF_PACKET;
-    addr->sll_protocol = htons(lltdEtherType);
+    addr->sll_protocol = lltd_htons(lltdEtherType);
     addr->sll_ifindex = if_nametoindex(ifname);
     addr->sll_halen = ETH_ALEN;
     memset(addr->sll_addr, 0xff, ETH_ALEN);
@@ -138,11 +138,11 @@ int main(int argc, char **argv) {
     }
 
     lltd_demultiplex_header_t *header = (lltd_demultiplex_header_t *)recvbuf;
-    if (ntohs(header->frameHeader.ethertype) != lltdEtherType ||
+    if (lltd_ntohs(header->frameHeader.ethertype) != lltdEtherType ||
         header->opcode != opcode_hello ||
         header->tos != tos_discovery) {
         fprintf(stderr, "Unexpected response opcode=%u tos=%u ethertype=0x%04x\n",
-                header->opcode, header->tos, ntohs(header->frameHeader.ethertype));
+                header->opcode, header->tos, lltd_ntohs(header->frameHeader.ethertype));
         close(fd);
         return 1;
     }
