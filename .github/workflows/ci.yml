@@ -16,6 +16,24 @@ jobs:
       - name: "Guardrails: core must be OS-agnostic"
         run: bash scripts/lint_core_no_os_conditionals.sh
 
+  tests:
+    name: tests-linux
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install test dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libcmocka-dev pkg-config
+
+      - name: Run unit + integration tests
+        run: |
+          set -euo pipefail
+          make test
+
   openwatcom:
     name: openwatcom-win16-win9x
     runs-on: ubuntu-24.04
