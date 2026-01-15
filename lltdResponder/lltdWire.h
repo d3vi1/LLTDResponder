@@ -28,7 +28,7 @@ size_t setLltdHeaderEx(void *buffer,
                        uint8_t tos);
 
 size_t setHelloHeader(void *buffer,
-                      uint64_t offset,
+                      size_t offset,
                       ethernet_address_t *apparentMapper,
                       ethernet_address_t *currentMapper,
                       uint16_t generation);
