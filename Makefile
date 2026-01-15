@@ -21,29 +21,31 @@ endif
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
-		CFLAGS += -D LINUX
-		PLATFORM ?= linux-systemd
-		ifeq ($(PLATFORM),linux-systemd)
-			LLTD_SRC_FILES = os/linux/daemon/linux-main.c \
-				os/linux/daemon/linux-ops.c \
-				os/daemon/lltdBlock.c \
-				os/daemon/lltdTlvOps.c \
-				lltdResponder/lltdAutomata.c \
-				os/linux/lltd_port.c
-			LLTD_CFLAGS += -DLLTD_BACKEND_SYSTEMD -DLLTD_USE_SYSTEMD
-			LLTD_LDFLAGS += -lsystemd
-		else ifeq ($(PLATFORM),linux-embedded)
-			LLTD_SRC_FILES = os/linux/daemon/linux-embedded-main.c \
-				os/linux/daemon/linux-ops.c \
-				os/daemon/lltdBlock.c \
-				os/daemon/lltdTlvOps.c \
-				lltdResponder/lltdAutomata.c \
-				os/linux/lltd_port.c
-			LLTD_CFLAGS += -DLLTD_BACKEND_EMBEDDED -DLLTD_USE_CONSOLE
-		else
-			$(error Unsupported PLATFORM '$(PLATFORM)'; use linux-systemd or linux-embedded)
-		endif
-	endif
+    CFLAGS += -D LINUX
+    PLATFORM ?= linux-systemd
+    ifeq ($(PLATFORM),linux-systemd)
+        LLTD_SRC_FILES = os/linux/daemon/linux-main.c \
+            os/linux/daemon/linux-ops.c \
+            os/daemon/lltdBlock.c \
+            os/daemon/lltdTlvOps.c \
+            lltdResponder/lltdAutomata.c \
+            lltdResponder/lltdWire.c \
+            os/linux/lltd_port.c
+        LLTD_CFLAGS += -DLLTD_BACKEND_SYSTEMD -DLLTD_USE_SYSTEMD
+        LLTD_LDFLAGS += -lsystemd
+    else ifeq ($(PLATFORM),linux-embedded)
+        LLTD_SRC_FILES = os/linux/daemon/linux-embedded-main.c \
+            os/linux/daemon/linux-ops.c \
+            os/daemon/lltdBlock.c \
+            os/daemon/lltdTlvOps.c \
+            lltdResponder/lltdAutomata.c \
+            lltdResponder/lltdWire.c \
+            os/linux/lltd_port.c
+        LLTD_CFLAGS += -DLLTD_BACKEND_EMBEDDED -DLLTD_USE_CONSOLE
+    else
+        $(error Unsupported PLATFORM '$(PLATFORM)'; use linux-systemd or linux-embedded)
+    endif
+endif
 ifeq ($(UNAME_S),Darwin)
 	CFLAGS += -D OSX
 endif
@@ -100,13 +102,13 @@ $(TEST_DIR):
 
 test-unit: test-check $(TEST_DIR)
 	$(CC) $(TEST_CFLAGS) $$(pkg-config --cflags cmocka) \
-		os/daemon/lltdTlvOps.c tests/test_shims.c tests/test_lltd_tlv_ops.c \
+		lltdResponder/lltdWire.c os/daemon/lltdTlvOps.c tests/test_shims.c tests/test_lltd_tlv_ops.c \
 		$(TEST_LDFLAGS) $$(pkg-config --libs cmocka) -o $(TEST_DIR)/unit_tests
 	$(TEST_DIR)/unit_tests
 
 test-integration: test-check $(TEST_DIR)
 	$(CC) $(TEST_CFLAGS) $$(pkg-config --cflags cmocka) \
-		os/daemon/lltdTlvOps.c tests/test_shims.c tests/test_lltd_integration.c \
+		lltdResponder/lltdWire.c os/daemon/lltdTlvOps.c tests/test_shims.c tests/test_lltd_integration.c \
 		$(TEST_LDFLAGS) $$(pkg-config --libs cmocka) -o $(TEST_DIR)/integration_tests
 	$(TEST_DIR)/integration_tests
 
@@ -120,7 +122,7 @@ test: test-unit test-integration
 
 integration-helper: $(TEST_DIR)
 	$(CC) $(TEST_CFLAGS) \
-		os/daemon/lltdTlvOps.c tests/test_shims.c \
+		lltdResponder/lltdWire.c os/daemon/lltdTlvOps.c tests/test_shims.c \
 		tests/integration/lltd_integration_smoke.c \
 		$(TEST_LDFLAGS) -o $(TEST_DIR)/lltd_integration_smoke
 

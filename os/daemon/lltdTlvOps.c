@@ -14,88 +14,10 @@
 #include "lltdDaemon.h"
 #endif
 
+#include "../../lltdResponder/lltdWire.h"
+
 #include <stdlib.h>
 #include <string.h>
-
-#pragma mark -
-#pragma mark Header generation
-
-size_t setLltdHeader (void *buffer, ethernet_address_t *source, ethernet_address_t *destination, uint16_t seqNumber, uint8_t opcode, uint8_t tos){
-
-    lltd_demultiplex_header_t *lltdHeader = (lltd_demultiplex_header_t*) buffer;
-
-    lltdHeader->frameHeader.ethertype = htons(lltdEtherType);
-    memcpy(&lltdHeader->frameHeader.source, source, sizeof(ethernet_address_t));
-    memcpy(&lltdHeader->frameHeader.destination, destination, sizeof(ethernet_address_t));
-    memcpy(&lltdHeader->realSource, source, sizeof(ethernet_address_t));
-    memcpy(&lltdHeader->realDestination, destination, sizeof(ethernet_address_t));
-    /* seqNumber is provided in host order; serialize in network order. */
-    lltdHeader->seqNumber = htons(seqNumber);
-    lltdHeader->opcode = opcode;
-    lltdHeader->tos = tos;
-    lltdHeader->version = 1;
-
-    return sizeof(lltd_demultiplex_header_t);
-}
-
-/*
- * setLltdHeaderEx: Extended header setter for bridged networks.
- *
- * In bridged/AP topologies, the Ethernet-layer addresses (apparent, next-hop)
- * may differ from the LLTD base-header addresses (real, end-to-end identity).
- *
- * Parameters:
- *   ethSource  - Ethernet header source (our MAC)
- *   ethDest    - Ethernet header destination (apparent mapper / next-hop)
- *   realSource - LLTD base header Real Source (our MAC)
- *   realDest   - LLTD base header Real Destination (true mapper MAC)
- */
-size_t setLltdHeaderEx(void *buffer,
-                       const ethernet_address_t *ethSource,
-                       const ethernet_address_t *ethDest,
-                       const ethernet_address_t *realSource,
-                       const ethernet_address_t *realDest,
-                       uint16_t seqNumber, uint8_t opcode, uint8_t tos) {
-
-    lltd_demultiplex_header_t *lltdHeader = (lltd_demultiplex_header_t *)buffer;
-
-    lltdHeader->frameHeader.ethertype = htons(lltdEtherType);
-    memcpy(&lltdHeader->frameHeader.source, ethSource, sizeof(ethernet_address_t));
-    memcpy(&lltdHeader->frameHeader.destination, ethDest, sizeof(ethernet_address_t));
-    memcpy(&lltdHeader->realSource, realSource, sizeof(ethernet_address_t));
-    memcpy(&lltdHeader->realDestination, realDest, sizeof(ethernet_address_t));
-    /* seqNumber is provided in host order; serialize in network order. */
-    lltdHeader->seqNumber = htons(seqNumber);
-    lltdHeader->opcode = opcode;
-    lltdHeader->tos = tos;
-    lltdHeader->version = 1;
-
-    return sizeof(lltd_demultiplex_header_t);
-}
-
-bool compareEthernetAddress(const ethernet_address_t *A, const ethernet_address_t *B) {
-    return A->a[0]==B->a[0] &&
-           A->a[1]==B->a[1] &&
-           A->a[2]==B->a[2] &&
-           A->a[3]==B->a[3] &&
-           A->a[4]==B->a[4] &&
-           A->a[5]==B->a[5];
-}
-
-//
-// Get the mess out of lltdBlock.c
-//
-size_t setHelloHeader (void *buffer, uint64_t offset, ethernet_address_t *apparentMapper, ethernet_address_t *currentMapper, uint16_t generation){
-
-    lltd_hello_upper_header_t *helloHeader = (lltd_hello_upper_header_t *) (buffer+offset);
-
-    memcpy(&helloHeader->apparentMapper, apparentMapper, sizeof(ethernet_address_t));
-    memcpy(&helloHeader->currentMapper, currentMapper, sizeof(ethernet_address_t));
-    /* generation is provided in host order; serialize in network order. */
-    helloHeader->generation = htons(generation);
-
-    return sizeof(lltd_hello_upper_header_t);
-}
 
 #pragma mark -
 #pragma mark Host specific TLVs
