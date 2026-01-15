@@ -48,7 +48,7 @@
     #include <SystemConfiguration/CaptiveNetwork.h>             // darwin-ops WiFi SSID/BSSID
     #include "../darwin/daemon/darwin-main.h"
     #include "../darwin/daemon/darwin-ops.h"
-    #include "msIcoFormat.h"
+    #include "../../lltdResponder/msIcoFormat.h"
     #include "lltdBlock.h"
     #include "lltdTlvOps.h"
     #include "../../lltdResponder/lltdAutomata.h"

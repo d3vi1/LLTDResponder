@@ -71,7 +71,7 @@
 			E53FA3A41C6A787F009E43DD /* linux-main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "linux-main.h"; path = "os/linux/daemon/linux-main.h"; sourceTree = SOURCE_ROOT; };
 			E54C38B218F191EB00127645 /* lltdDaemon.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = lltdDaemon.plist; path = os/darwin/daemon/net.shmessenger.darwin.lltdDaemon.plist; sourceTree = SOURCE_ROOT; };
 			E55B08981C6A3C930020A136 /* lltdDaemon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lltdDaemon.h; path = os/daemon/lltdDaemon.h; sourceTree = SOURCE_ROOT; };
-			E55B08991C6A4E8B0020A136 /* msIcoFormat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = msIcoFormat.h; path = os/daemon/msIcoFormat.h; sourceTree = SOURCE_ROOT; };
+			E55B08991C6A4E8B0020A136 /* msIcoFormat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = msIcoFormat.h; path = lltdResponder/msIcoFormat.h; sourceTree = SOURCE_ROOT; };
 			E5774FA718D61F5E00988358 /* darwin-main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "darwin-main.h"; path = "os/darwin/daemon/darwin-main.h"; sourceTree = SOURCE_ROOT; };
 			E59A5324190BEBB500CF5329 /* lltdTlvOps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lltdTlvOps.c; path = os/daemon/lltdTlvOps.c; sourceTree = SOURCE_ROOT; };
 			E59A5326190BEBC600CF5329 /* lltdTlvOps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lltdTlvOps.h; path = os/daemon/lltdTlvOps.h; sourceTree = SOURCE_ROOT; };
