@@ -8,8 +8,8 @@
  *                                                                            *
  ******************************************************************************/
 
-
 #include "../../daemon/lltdDaemon.h"
+#include "../../../lltdResponder/lltdWire.h"
 #include <sys/file.h>
 #include <fcntl.h>
 #include <unistd.h>
