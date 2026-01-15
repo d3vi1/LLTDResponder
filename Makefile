@@ -6,7 +6,7 @@ CFLAGS += -Wall -Wextra
 BIN_NAME ?= build/lltdResponder
 
 TEST_DIR := build/tests
-TEST_CFLAGS := $(CFLAGS) -Itests -Ios/daemon -DLLTD_TESTING
+TEST_CFLAGS := $(CFLAGS) -Itests -Ios/daemon -IlltdResponder -DLLTD_TESTING
 TEST_LDFLAGS :=
 
 ifneq ($(SANITIZE),)
@@ -27,7 +27,7 @@ ifeq ($(UNAME_S),Linux)
         LLTD_SRC_FILES = os/linux/daemon/linux-main.c \
             os/linux/daemon/linux-ops.c \
             os/daemon/lltdBlock.c \
-            os/daemon/lltdTlvOps.c \
+            lltdResponder/lltdTlvOps.c \
             lltdResponder/lltdAutomata.c \
             lltdResponder/lltdWire.c \
             os/linux/lltd_port.c
@@ -37,7 +37,7 @@ ifeq ($(UNAME_S),Linux)
         LLTD_SRC_FILES = os/linux/daemon/linux-embedded-main.c \
             os/linux/daemon/linux-ops.c \
             os/daemon/lltdBlock.c \
-            os/daemon/lltdTlvOps.c \
+            lltdResponder/lltdTlvOps.c \
             lltdResponder/lltdAutomata.c \
             lltdResponder/lltdWire.c \
             os/linux/lltd_port.c
@@ -102,13 +102,13 @@ $(TEST_DIR):
 
 test-unit: test-check $(TEST_DIR)
 	$(CC) $(TEST_CFLAGS) $$(pkg-config --cflags cmocka) \
-		lltdResponder/lltdWire.c os/daemon/lltdTlvOps.c tests/test_shims.c tests/test_lltd_tlv_ops.c \
+		lltdResponder/lltdWire.c lltdResponder/lltdTlvOps.c tests/test_shims.c tests/test_lltd_tlv_ops.c \
 		$(TEST_LDFLAGS) $$(pkg-config --libs cmocka) -o $(TEST_DIR)/unit_tests
 	$(TEST_DIR)/unit_tests
 
 test-integration: test-check $(TEST_DIR)
 	$(CC) $(TEST_CFLAGS) $$(pkg-config --cflags cmocka) \
-		lltdResponder/lltdWire.c os/daemon/lltdTlvOps.c tests/test_shims.c tests/test_lltd_integration.c \
+		lltdResponder/lltdWire.c lltdResponder/lltdTlvOps.c tests/test_shims.c tests/test_lltd_integration.c \
 		$(TEST_LDFLAGS) $$(pkg-config --libs cmocka) -o $(TEST_DIR)/integration_tests
 	$(TEST_DIR)/integration_tests
 
@@ -122,7 +122,7 @@ test: test-unit test-integration
 
 integration-helper: $(TEST_DIR)
 	$(CC) $(TEST_CFLAGS) \
-		lltdResponder/lltdWire.c os/daemon/lltdTlvOps.c tests/test_shims.c \
+		lltdResponder/lltdWire.c lltdResponder/lltdTlvOps.c tests/test_shims.c \
 		tests/integration/lltd_integration_smoke.c \
 		$(TEST_LDFLAGS) -o $(TEST_DIR)/lltd_integration_smoke
 
