@@ -5,6 +5,29 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+
+void *lltd_port_memcpy(void *destination, const void *source, size_t num) {
+    return memcpy(destination, source, num);
+}
+
+int lltd_port_memcmp(const void *lhs, const void *rhs, size_t num) {
+    return memcmp(lhs, rhs, num);
+}
+
+void lltd_port_sleep_ms(uint32_t milliseconds) {
+    struct timespec ts;
+    ts.tv_sec = (time_t)(milliseconds / 1000U);
+    ts.tv_nsec = (long)((milliseconds % 1000U) * 1000000UL);
+    nanosleep(&ts, NULL);
+}
+
+int lltd_port_send_frame(void *iface_ctx, const void *frame, size_t frame_len) {
+    (void)iface_ctx;
+    (void)frame;
+    (void)frame_len;
+    return -1;
+}
 
 static void lltd_vlog(FILE *out, const char *prefix, const char *fmt, va_list args) {
     if (!out) {
