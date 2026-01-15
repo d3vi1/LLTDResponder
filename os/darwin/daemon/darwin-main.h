@@ -17,7 +17,7 @@
  * Keep the definition centralized in lltdBlock.h.
  */
 
-#include "../../daemon/lltdBlock.h"
+#include "../../../lltdResponder/lltdBlock.h"
 
 #pragma mark -
 

@@ -6,7 +6,7 @@
 
 #include "../../daemon/lltdDaemon.h"
 #include "../../../lltdResponder/lltdAutomata.h"
-#include "../../daemon/lltdBlock.h"
+#include "../../../lltdResponder/lltdBlock.h"
 #include "beos-shared.h"
 
 #include <errno.h>

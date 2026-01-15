@@ -11,7 +11,7 @@
 
 #include "../../daemon/lltdDaemon.h"
 #include "../../../lltdResponder/lltdAutomata.h"
-#include "../../daemon/lltdBlock.h"
+#include "../../../lltdResponder/lltdBlock.h"
 
 #include <errno.h>
 #include <ifaddrs.h>
