@@ -16,7 +16,7 @@
 		E59ADBBE1C80982300895932 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59ADBBD1C80982300895932 /* SystemConfiguration.framework */; };
 		E59C3D6A18E9B38C006836B0 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
 		E59E8BF518CF4D250054B295 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
-		E59E8BFA18CF4D250054B295 /* lltdDaemon.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59E8BF918CF4D250054B295 /* lltdDaemon.1 */; };
+			E59E8BFA18CF4D250054B295 /* lltdResponder.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59E8BF918CF4D250054B295 /* lltdResponder.1 */; };
 		E59E8BFF18CF4D4A0054B295 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BFE18CF4D4A0054B295 /* IOKit.framework */; };
 		E59E8C0318CF4D550054B295 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0218CF4D550054B295 /* CoreWLAN.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 			E5A41A0E19082C0B00D5D2FD /* darwin-main.c in Sources */ = {isa = PBXBuildFile; fileRef = E5A41A0D19082C0B00D5D2FD /* darwin-main.c */; };
@@ -29,7 +29,7 @@
 		FAD3A22919EACFF8000FB445 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8C0218CF4D550054B295 /* CoreWLAN.framework */; };
 		FAD3A22B19EACFF8000FB445 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BFE18CF4D4A0054B295 /* IOKit.framework */; };
 		FAD3A22C19EACFF8000FB445 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E59E8BF418CF4D250054B295 /* CoreFoundation.framework */; };
-		FAD3A22E19EACFF8000FB445 /* lltdDaemon.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59E8BF918CF4D250054B295 /* lltdDaemon.1 */; };
+			FAD3A22E19EACFF8000FB445 /* lltdResponder.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = E59E8BF918CF4D250054B295 /* lltdResponder.1 */; };
 		FAD3A23419EAD02E000FB445 /* main_autom.c in Sources */ = {isa = PBXBuildFile; fileRef = FAD3A21E19EACF76000FB445 /* main_autom.c */; };
 /* End PBXBuildFile section */
 
@@ -40,7 +40,7 @@
 			dstPath = /usr/share/man/man1/;
 			dstSubfolderSpec = 0;
 			files = (
-				E59E8BFA18CF4D250054B295 /* lltdDaemon.1 in CopyFiles */,
+					E59E8BFA18CF4D250054B295 /* lltdResponder.1 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
@@ -50,7 +50,7 @@
 			dstPath = /usr/share/man/man1/;
 			dstSubfolderSpec = 0;
 			files = (
-				FAD3A22E19EACFF8000FB445 /* lltdDaemon.1 in CopyFiles */,
+					FAD3A22E19EACFF8000FB445 /* lltdResponder.1 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
@@ -78,7 +78,7 @@
 		E59ADBBD1C80982300895932 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		E59E8BF318CF4D250054B295 /* lltdDaemon */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lltdResponder; sourceTree = BUILT_PRODUCTS_DIR; };
 		E59E8BF418CF4D250054B295 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
-			E59E8BF918CF4D250054B295 /* lltdDaemon.1 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.man; name = lltdDaemon.1; path = os/daemon/lltdDaemon.1; sourceTree = SOURCE_ROOT; };
+			E59E8BF918CF4D250054B295 /* lltdResponder.1 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.man; name = lltdResponder.1; path = Documentation/lltdResponder.1; sourceTree = SOURCE_ROOT; };
 		E59E8BFE18CF4D4A0054B295 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		E59E8C0218CF4D550054B295 /* CoreWLAN.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreWLAN.framework; path = System/Library/Frameworks/CoreWLAN.framework; sourceTree = SDKROOT; };
 			E5A41A0D19082C0B00D5D2FD /* darwin-main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "darwin-main.c"; path = "os/darwin/daemon/darwin-main.c"; sourceTree = SOURCE_ROOT; };
@@ -155,7 +155,7 @@
 				isa = PBXGroup;
 				children = (
 				FAD3A21E19EACF76000FB445 /* main_autom.c */,
-				E59E8BF918CF4D250054B295 /* lltdDaemon.1 */,
+					E59E8BF918CF4D250054B295 /* lltdResponder.1 */,
 				E54C38B218F191EB00127645 /* lltdDaemon.plist */,
 				E5A41A0D19082C0B00D5D2FD /* darwin-main.c */,
 				E5774FA718D61F5E00988358 /* darwin-main.h */,
