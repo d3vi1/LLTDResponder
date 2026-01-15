@@ -12,10 +12,12 @@
 #include <unistd.h>
 #endif
 
+#include "lltdEndian.h"
+
 static void test_raw_socket_open(void **state) {
     (void)state;
 #ifdef __linux__
-    int fd = socket(AF_PACKET, SOCK_RAW, htons(lltdEtherType));
+    int fd = socket(AF_PACKET, SOCK_RAW, lltd_htons(lltdEtherType));
     if (fd < 0) {
         if (errno == EPERM || errno == EACCES) {
             print_message("Raw socket unavailable without CAP_NET_RAW; skipping.\n");

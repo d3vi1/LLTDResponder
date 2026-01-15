@@ -6,7 +6,7 @@ CFLAGS += -Wall -Wextra
 BIN_NAME ?= build/lltdResponder
 
 TEST_DIR := build/tests
-TEST_CFLAGS := $(CFLAGS) -Itests -Ios/daemon -IlltdResponder -DLLTD_TESTING
+TEST_CFLAGS := $(CFLAGS) -Itests -IlltdResponder -DLLTD_TESTING
 TEST_LDFLAGS :=
 
 ifneq ($(SANITIZE),)
@@ -102,32 +102,40 @@ $(TEST_DIR):
 
 test-unit: test-check $(TEST_DIR)
 	$(CC) $(TEST_CFLAGS) $$(pkg-config --cflags cmocka) \
-		lltdResponder/lltdWire.c lltdResponder/lltdTlvOps.c tests/test_shims.c tests/test_lltd_tlv_ops.c \
+		lltdResponder/lltdWire.c lltdResponder/lltdTlvOps.c tests/lltd_test_port.c tests/test_lltd_tlv_ops.c \
 		$(TEST_LDFLAGS) $$(pkg-config --libs cmocka) -o $(TEST_DIR)/unit_tests
 	$(TEST_DIR)/unit_tests
 
 test-integration: test-check $(TEST_DIR)
 	$(CC) $(TEST_CFLAGS) $$(pkg-config --cflags cmocka) \
-		lltdResponder/lltdWire.c lltdResponder/lltdTlvOps.c tests/test_shims.c tests/test_lltd_integration.c \
+		lltdResponder/lltdWire.c lltdResponder/lltdTlvOps.c tests/lltd_test_port.c tests/test_lltd_integration.c \
 		$(TEST_LDFLAGS) $$(pkg-config --libs cmocka) -o $(TEST_DIR)/integration_tests
 	$(TEST_DIR)/integration_tests
 
 test-privileged: test-check $(TEST_DIR)
 	$(CC) $(TEST_CFLAGS) $$(pkg-config --cflags cmocka) \
-		tests/test_shims.c tests/test_lltd_privileged.c \
+		tests/lltd_test_port.c tests/test_lltd_privileged.c \
 		$(TEST_LDFLAGS) $$(pkg-config --libs cmocka) -o $(TEST_DIR)/privileged_tests
 	$(TEST_DIR)/privileged_tests
 
 test: test-unit test-integration
 
+ifeq ($(UNAME_S),Linux)
 integration-helper: $(TEST_DIR)
 	$(CC) $(TEST_CFLAGS) \
-		lltdResponder/lltdWire.c lltdResponder/lltdTlvOps.c tests/test_shims.c \
+		lltdResponder/lltdWire.c lltdResponder/lltdTlvOps.c tests/lltd_test_port.c \
 		tests/integration/lltd_integration_smoke.c \
 		$(TEST_LDFLAGS) -o $(TEST_DIR)/lltd_integration_smoke
 
 integration-test: integration-helper
 	./tests/integration/linux_veth.sh $(TEST_DIR)/lltd_integration_smoke ./$(BIN_NAME)
+else
+integration-helper:
+	@echo "integration-helper is Linux-only; skipping."
+
+integration-test:
+	@echo "integration-test is Linux-only; skipping."
+endif
 
 coverage: COVERAGE=1
 coverage: test

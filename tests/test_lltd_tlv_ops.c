@@ -1,4 +1,3 @@
-#include <arpa/inet.h>
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -7,6 +6,7 @@
 #include <cmocka.h>
 
 #include "lltdTestShim.h"
+#include "lltdEndian.h"
 #include "lltdTlvOps.h"
 
 static void test_compare_ethernet_address_equal(void **state) {
@@ -35,12 +35,12 @@ static void test_set_lltd_header_populates_fields(void **state) {
 
     assert_int_equal(written, sizeof(lltd_demultiplex_header_t));
     lltd_demultiplex_header_t *header = (lltd_demultiplex_header_t *)buffer;
-    assert_int_equal(header->frameHeader.ethertype, htons(lltdEtherType));
+    assert_int_equal(header->frameHeader.ethertype, lltd_htons(lltdEtherType));
     assert_memory_equal(&header->frameHeader.source, &source, sizeof(source));
     assert_memory_equal(&header->frameHeader.destination, &destination, sizeof(destination));
     assert_memory_equal(&header->realSource, &source, sizeof(source));
     assert_memory_equal(&header->realDestination, &destination, sizeof(destination));
-    assert_int_equal(header->seqNumber, htons(0x1234));
+    assert_int_equal(header->seqNumber, lltd_htons(0x1234));
     assert_int_equal(header->opcode, opcode_probe);
     assert_int_equal(header->tos, tos_discovery);
     assert_int_equal(header->version, 1);
@@ -59,7 +59,7 @@ static void test_set_hello_header_writes_payload(void **state) {
         (lltd_hello_upper_header_t *)(buffer + sizeof(lltd_demultiplex_header_t));
     assert_memory_equal(&hello->apparentMapper, &apparent, sizeof(apparent));
     assert_memory_equal(&hello->currentMapper, &current, sizeof(current));
-    assert_int_equal(hello->generation, htons(0x42));
+    assert_int_equal(hello->generation, lltd_htons(0x42));
 }
 
 static void test_set_end_of_property_tlv_marks_buffer(void **state) {
