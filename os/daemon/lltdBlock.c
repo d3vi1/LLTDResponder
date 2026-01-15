@@ -10,6 +10,8 @@
 
 #include "lltdDaemon.h"
 
+#include "../../lltdResponder/lltdWire.h"
+
 #include <stdlib.h>
 #include <string.h>
 
