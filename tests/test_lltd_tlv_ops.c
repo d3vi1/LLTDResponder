@@ -8,6 +8,7 @@
 #include "lltdTestShim.h"
 #include "lltdEndian.h"
 #include "lltdTlvOps.h"
+#include "lltdWire.h"
 
 static void test_compare_ethernet_address_equal(void **state) {
     (void)state;
@@ -130,7 +131,7 @@ static void test_set_qos_characteristics_tlv_endianness(void **state) {
 
     uint32_t *value = (uint32_t *)(buffer + sizeof(generic_tlv_t));
     uint32_t expected = (uint32_t)(Config_TLV_QOS_L2Fwd | Config_TLV_QOS_PrioTag | Config_TLV_QOS_VLAN) << 16;
-    assert_int_equal(*value, htonl(expected));
+    assert_int_equal(*value, lltd_htonl(expected));
 }
 
 // Test icon image TLV has zero length (empty stub)
