@@ -1,11 +1,11 @@
-name: build
+name: ci
 
 on:
   push:
     branches: [main, master]
     tags: ['v*']
   pull_request:
-    branches: [main]
+    branches: [main, master]
   workflow_dispatch:
     inputs:
       run_privileged:
@@ -18,7 +18,7 @@ on:
         default: false
 
 concurrency:
-  group: build-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -154,6 +154,58 @@ jobs:
         run: |
           set -euo pipefail
           make integration-test PLATFORM=linux-embedded
+
+  openwatcom:
+    name: openwatcom-win16-win9x
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Open Watcom
+        run: |
+          set -euo pipefail
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y curl libc6:i386 libstdc++6:i386
+          echo "=== Downloading Open Watcom snapshot ==="
+          curl -fL -o /tmp/ow-snapshot.tar.xz "https://github.com/open-watcom/open-watcom-v2/releases/download/Last-CI-build/ow-snapshot.tar.xz"
+          echo "=== Extracting to /opt/openwatcom ==="
+          sudo mkdir -p /opt/openwatcom
+          sudo tar -xJf /tmp/ow-snapshot.tar.xz -C /opt/openwatcom --strip-components=1
+          test -x /opt/openwatcom/binl64/wcc
+          echo "WATCOM=/opt/openwatcom" >> "$GITHUB_ENV"
+          echo "INCLUDE=/opt/openwatcom/h:/opt/openwatcom/h/win" >> "$GITHUB_ENV"
+          echo "EDPATH=/opt/openwatcom/eddat" >> "$GITHUB_ENV"
+          echo "WIPFC=/opt/openwatcom/wipfc" >> "$GITHUB_ENV"
+          echo "/opt/openwatcom/binl64" >> "$GITHUB_PATH"
+
+      - name: Build Win16 + Win9x + INF templates
+        run: |
+          set -euo pipefail
+          make windows-openwatcom
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwatcom-windows
+          path: dist/windows/**
+
+  win32:
+    name: windows-win32-user-mode
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Win32 user-mode
+        run: powershell -File scripts/windows-build.ps1
+
+      - name: Upload Win32 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: win32-user-mode
+          path: dist/windows/win32/**
 
   build:
     name: build-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ matrix.backend }}
