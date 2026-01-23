@@ -306,7 +306,6 @@ void getIconImage(void **icon, size_t *iconsize){
 //
 //==============================================================================
 void getMachineName(char **pointer, size_t *stringSize){
-    //FIXME: also breaks on subsequent scans
     CFStringRef LocalHostName = SCDynamicStoreCopyLocalHostName(NULL);
     *stringSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(LocalHostName), kCFStringEncodingUTF16LE);
     char *data  = malloc(*stringSize);
@@ -920,10 +919,6 @@ void getComponentTable (void **data, size_t *dataSize){
 
 //==============================================================================
 //
-// FIXME: Switches the interface in the argument to promscuous mode
-// FIXME: The flags need to be read from the interface not from the cache.
-//        Other applications might change the flags although we should get
-//        IOKit notifications about it.
 //
 //==============================================================================
 void setPromiscuous(void *networkInterface, boolean_t set){

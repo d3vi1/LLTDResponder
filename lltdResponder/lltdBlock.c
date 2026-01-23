@@ -573,7 +573,6 @@ static void parseEmit(void *inFrame, lltd_iface_state *st, void *iface_ctx) {
 //==============================================================================
 //
 // This is the Hello answer to any Discovery package.
-// FIXME: Hello header casting is b0rken.
 //
 //==============================================================================
 static void answerHello(void *inFrame, lltd_iface_state *st, void *iface_ctx) {
@@ -652,7 +651,6 @@ static void answerHello(void *inFrame, lltd_iface_state *st, void *iface_ctx) {
 //
 // Here we validate the frame and make sure that the TOS/OpCode is a valid
 // combination.
-// TODO: Add a method to validate that we have the correct TLV combinations for each frame.
 //
 //==============================================================================
 void parseFrame(void *frame, void *iface_ctx) {

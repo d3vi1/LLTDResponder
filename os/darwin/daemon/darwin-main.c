@@ -1016,7 +1016,6 @@ static int acquireInstanceLock(void) {
 //==============================================================================
 //
 // main
-// TODO: Convert to a Launch Daemon
 //
 //==============================================================================
 int main(int argc, const char *argv[]){

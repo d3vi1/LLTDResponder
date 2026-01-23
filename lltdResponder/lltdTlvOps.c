@@ -144,7 +144,6 @@ size_t setHardwareIdTLV(void *buffer, size_t offset){
     return sizeof(*hwIdTLV) + dataLen;
 }
 
-//TODO: see if there really is support for Level2 Forwarding.. ? or just leave it hardcoded
 size_t setQosCharacteristicsTLV(void *buffer, size_t offset){
     uint8_t *base = (uint8_t *)buffer;
     generic_tlv_t *QosCharacteristicsTLV = (generic_tlv_t *)(base + offset);
